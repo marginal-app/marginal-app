@@ -1,0 +1,23 @@
+.ds-field {
+  display: flex;
+  flex-direction: column;
+  gap: 0.3rem;
+}
+
+.ds-field-label {
+  font-size: 0.8rem;
+  font-weight: 600;
+  color: var(--text-secondary);
+}
+
+.ds-field-input {
+  width: 100%;
+  padding: 0.45rem 0.55rem;
+  font-size: 0.85rem;
+  color: var(--text);
+  background: var(--bg-elevated);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  font-family: inherit;
+  box-sizing: border-box;
+}
