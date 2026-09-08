@@ -138,3 +138,29 @@ Put matching image tags in the PR body, paths identical to `--attach` (including
 ```
 
 `/library/` is the live HTMX composition of the same components. Use it to prove a swap. Do not substitute a library walkthrough — or an unpacked extension — for the stills. When the slice's point is motion, attach stills of the before and after named states; an MP4 may accompany them.
+
+## Design system primitives
+
+The design system is `django-components`, not a React package. Tokens stay in `apps/api/static/ui/app.css` and `apps/browser-extension/entrypoints/sidepanel/style.css` (see [Style belongs to the design system](#style-belongs-to-the-design-system)). A primitive is a new registered component. Feature components (`highlight_card`, `settings_form`, `library_panel`, …) stay as they are until a later compose pass.
+
+v1 primitives — one pull request each:
+
+| Primitive | Named states | Today's class |
+| --- | --- | --- |
+| `button` | default, small, disabled | `.primary-button` |
+| `input` | empty, filled | settings / comment fields |
+| `textarea` | empty, filled | comment edit |
+| `label` | default | `.field-label` |
+| `field` | default | `.field` |
+| `card` | default | bordered panel chrome |
+| `icon_button` | default | `.icon-button` |
+| `status` | ok, error | `.status` |
+
+A primitive PR:
+
+- Adds only `apps/api/components/<name>/` — the component, `examples.py`, and construction tests.
+- Registers named states as `EXAMPLES` in that folder. `ui/examples.py` discovers those files; do not append rows to the feature catalog.
+- Reuses the current tokens. It does not invent a second palette, and it does not restyle an existing feature component.
+- Attaches a silhouette PNG per named state that changes the picture. Capture the raw URL with `uv run python scripts/capture_silhouette.py <slug>` while `runserver` is up. Do not commit goldens.
+
+Do not add shadcn, Tailwind, or a `packages/ui` React tree for this.

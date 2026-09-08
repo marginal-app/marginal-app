@@ -38,6 +38,15 @@ uv run pytest
 
 Click **raw** on a gallery card to open the screenshot URL for that silhouette.
 
+Named states for a new primitive live in `components/<name>/examples.py`. The gallery catalog at `ui/examples.py` discovers those files. Feature examples stay in `ui/examples.py` until a compose pass. Tokens stay in `static/ui/app.css`.
+
+Capture a review PNG (gitignored) from the raw silhouette URL:
+
+```bash
+uv run python manage.py runserver
+uv run python scripts/capture_silhouette.py empty-state
+```
+
 ## Editors
 
 - Helix: `.helix/languages.toml` registers Pyrefly as the Python language server.
