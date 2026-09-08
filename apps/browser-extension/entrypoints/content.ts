@@ -151,6 +151,7 @@ export default defineContentScript({
       name: 'marginal-toolbar',
       position: 'overlay',
       anchor: () => document.body,
+      zIndex: 2147483647,
       onMount(container) {
         const toolbar = document.createElement('div');
         toolbar.style.position = 'fixed';
@@ -160,6 +161,7 @@ export default defineContentScript({
         toolbar.style.background = '#1f1f1f';
         toolbar.style.borderRadius = '999px';
         toolbar.style.boxShadow = '0 2px 8px rgba(0,0,0,0.3)';
+        toolbar.style.zIndex = '2147483647';
 
         PASTEL_COLORS.forEach((color) => {
           const dot = document.createElement('button');
@@ -206,6 +208,7 @@ export default defineContentScript({
         commentBox.style.background = '#1f1f1f';
         commentBox.style.borderRadius = '8px';
         commentBox.style.boxShadow = '0 2px 8px rgba(0,0,0,0.3)';
+        commentBox.style.zIndex = '2147483647';
 
         const textarea = document.createElement('textarea');
         textarea.style.width = '100%';
