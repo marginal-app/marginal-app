@@ -4,7 +4,7 @@ EXAMPLES = [
     Example(
         slug="card-default",
         title="Card / default",
-        description="Bordered panel chrome — a presentational container.",
+        description="Cursor-style panel chrome — subtle border, soft elevation, padding.",
         component="card",
         group="Primitives",
         kwargs={
