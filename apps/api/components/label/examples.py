@@ -4,10 +4,11 @@ EXAMPLES = [
     Example(
         slug="label-default",
         title="Label / default",
-        description="Field caption with supporting hint — Cursor settings hierarchy.",
+        description="Cursor settings caption — kicker, title, and supporting hint.",
         component="label",
         group="Primitives",
         kwargs={
+            "kicker": "Connection",
             "text": "Server URL",
             "hint": "Host the extension uses to sync highlights.",
         },

@@ -9,11 +9,13 @@ class Label(Component):
     class Kwargs:
         text: str = "Server URL"
         hint: str = ""
+        kicker: str = ""
         html_for: str = ""
 
     def get_template_data(self, args, kwargs: Kwargs, slots, context):
         return {
             "text": kwargs.text,
             "hint": kwargs.hint,
+            "kicker": kwargs.kicker,
             "html_for": kwargs.html_for,
         }
