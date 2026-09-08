@@ -1,47 +1,19 @@
-from dataclasses import dataclass, field
-from typing import Any
+from ui.discover import discover_examples, merge_examples
+from ui.example import Example
+from ui.fixtures import EDITING, HIGHLIGHTS, QUOTE_ONLY, WITH_COMMENT
 
+__all__ = [
+    "EDITING",
+    "EXAMPLES",
+    "FEATURE_EXAMPLES",
+    "HIGHLIGHTS",
+    "QUOTE_ONLY",
+    "WITH_COMMENT",
+    "Example",
+    "example_by_slug",
+]
 
-@dataclass(frozen=True)
-class Example:
-    slug: str
-    title: str
-    description: str
-    component: str
-    group: str
-    kwargs: dict[str, Any] = field(default_factory=dict)
-
-
-QUOTE_ONLY = {
-    "highlight_id": "preview-quote",
-    "quote": "Server-rendered HTML is a complete first paint.",
-    "color": "#f5d76e",
-    "comment": "",
-    "editing": False,
-    "comment_edit_url": "",
-    "comment_save_url": "",
-}
-
-WITH_COMMENT = {
-    **QUOTE_ONLY,
-    "highlight_id": "preview-comment",
-    "quote": "Cloud Agents can screenshot a component URL.",
-    "color": "#8b8bff",
-    "comment": "This is the silhouette we review before merge.",
-}
-
-EDITING = {
-    **QUOTE_ONLY,
-    "highlight_id": "preview-editing",
-    "quote": "HTMX swaps this same component, not a second client tree.",
-    "color": "#57cf85",
-    "comment": "Draft note from a Cloud Agent",
-    "editing": True,
-}
-
-HIGHLIGHTS = [QUOTE_ONLY, WITH_COMMENT]
-
-EXAMPLES: list[Example] = [
+FEATURE_EXAMPLES: list[Example] = [
     Example(
         slug="empty-state",
         title="EmptyState",
@@ -143,6 +115,8 @@ EXAMPLES: list[Example] = [
         kwargs={"view": "settings", "settings_status": "idle"},
     ),
 ]
+
+EXAMPLES: list[Example] = merge_examples(FEATURE_EXAMPLES, discover_examples())
 
 
 def example_by_slug(slug: str) -> Example:

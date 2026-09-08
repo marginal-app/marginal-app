@@ -35,7 +35,10 @@
     <p>{{ example.description }}</p>
     <p><a href="{% url 'component_gallery' %}">← gallery</a></p>
   </div>
-  <div class="silhouette" data-example="{{ example.slug }}">
+  <div
+    class="silhouette{% if example.is_atom %} silhouette-atom{% endif %}"
+    data-example="{{ example.slug }}"
+  >
     {{ example.html|safe }}
   </div>
 </div>
