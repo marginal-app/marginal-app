@@ -1,0 +1,18 @@
+<c-if cond="is_link">
+  <a
+    c-class="class_name"
+    c-href="href"
+    c-aria-label="label"
+    c-title="title"
+    c-bind="attrs"
+  ><span class="ds-icon-button__glyph" aria-hidden="true">{{ icon }}</span></a>
+</c-if>
+<c-else>
+  <button
+    type="button"
+    c-class="class_name"
+    c-aria-label="label"
+    c-title="title"
+    c-bind="attrs"
+  ><span class="ds-icon-button__glyph" aria-hidden="true">{{ icon }}</span></button>
+</c-else>

@@ -1,0 +1,36 @@
+<form
+  class="settings"
+  method="post"
+  c-action="action_url"
+  c-bind="form_attrs"
+>
+  <input type="hidden" name="csrfmiddlewaretoken" c-value="csrf_token">
+  <c-field
+    c-label="'Server URL'"
+    c-name="'server_url'"
+    c-value="server_url"
+    c-input_type="'text'"
+    c-placeholder="'https://my-server.example.com'"
+  />
+
+  <c-field
+    c-label="'API Token'"
+    c-name="'api_token'"
+    c-value="api_token"
+    c-input_type="'password'"
+    c-placeholder="'dev-token'"
+  />
+
+  <button
+    type="submit"
+    class="primary-button"
+    c-disabled="submit_disabled"
+  >{{ submit_label }}</button>
+
+  <c-if cond="status == 'ok'">
+    <c-status c-tone="'ok'" c-message="'연결 성공 — 저장했습니다.'" />
+  </c-if>
+  <c-elif cond="status == 'error'">
+    <c-status c-tone="'error'" c-message="'연결 실패: ' + error_message" />
+  </c-elif>
+</form>

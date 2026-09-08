@@ -23,16 +23,17 @@
     <a href="{% url 'component_gallery' %}">gallery</a>
   </p>
   <div class="silhouette">
-    {% component "library_panel"
-      view=panel_kwargs.view
-      highlights=panel_kwargs.highlights
-      toggle_url=panel_kwargs.toggle_url
-      settings_action_url=panel_kwargs.settings_action_url
-      server_url=panel_kwargs.server_url
-      api_token=panel_kwargs.api_token
-      settings_status=panel_kwargs.settings_status
-      settings_error=panel_kwargs.settings_error
-    %}{% endcomponent %}
+    <c-library_panel
+      c-view="panel_kwargs['view']"
+      c-highlights="panel_kwargs['highlights']"
+      c-toggle_url="panel_kwargs['toggle_url']"
+      c-settings_action_url="panel_kwargs['settings_action_url']"
+      c-server_url="panel_kwargs['server_url']"
+      c-api_token="panel_kwargs['api_token']"
+      c-settings_status="panel_kwargs['settings_status']"
+      c-settings_error="panel_kwargs['settings_error']"
+      c-csrf_token="panel_kwargs['csrf_token']"
+    />
   </div>
 </div>
 {% endblock %}

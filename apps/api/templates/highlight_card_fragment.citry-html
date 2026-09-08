@@ -1,0 +1,10 @@
+<c-highlight_card
+  c-highlight_id="highlight_id"
+  c-quote="quote"
+  c-color="color"
+  c-comment="comment"
+  c-editing="editing"
+  c-comment_edit_url="comment_edit_url"
+  c-comment_save_url="comment_save_url"
+  c-csrf_token="csrf_token"
+/>

@@ -1,0 +1,14 @@
+<ul class="highlight-list">
+  <c-for each="highlight in highlights">
+    <c-highlight_card
+      c-highlight_id="highlight['highlight_id']"
+      c-quote="highlight['quote']"
+      c-color="highlight['color']"
+      c-comment="highlight['comment']"
+      c-editing="highlight['editing']"
+      c-comment_edit_url="highlight['comment_edit_url']"
+      c-comment_save_url="highlight['comment_save_url']"
+      c-csrf_token="csrf_token"
+    />
+  </c-for>
+</ul>

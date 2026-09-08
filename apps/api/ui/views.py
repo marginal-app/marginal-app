@@ -1,11 +1,12 @@
 from dataclasses import dataclass
 
 from django.http import Http404, HttpRequest, HttpResponse
+from django.middleware.csrf import get_token
 from django.shortcuts import render
 from django.urls import reverse
 from django.views.decorators.http import require_http_methods
-from django_components import registry
 
+from citry_components.rendering import render_component
 from highlights.models import Highlight
 from ui.examples import EXAMPLES, Example, example_by_slug
 
@@ -20,12 +21,8 @@ class RenderedExample:
     is_atom: bool = False
 
 
-def _render_example(example: Example, request: HttpRequest) -> str:
-    return registry.get(example.component).render(
-        request=request,
-        kwargs=example.kwargs,
-        deps_strategy="fragment",
-    )
+def _render_example(example: Example, request: HttpRequest) -> str:  # noqa: ARG001
+    return render_component(example.component, example.kwargs)
 
 
 def _rendered(example: Example, request: HttpRequest) -> RenderedExample:
@@ -91,6 +88,7 @@ def _highlight_kwargs(highlight: Highlight) -> dict[str, object]:
 
 
 def _library_kwargs(
+    request: HttpRequest,
     *,
     view: str,
     status: str = "idle",
@@ -110,17 +108,14 @@ def _library_kwargs(
         "api_token": api_token,
         "settings_status": status,
         "settings_error": error,
+        "csrf_token": get_token(request),
     }
 
 
 def _library_response(request: HttpRequest, kwargs: dict[str, object]) -> HttpResponse:
-    component = registry.get("library_panel")
     if _is_htmx(request):
-        return component.render_to_response(
-            request=request,
-            kwargs=kwargs,
-            deps_strategy="fragment",
-        )
+        html = render_component("library_panel", kwargs)
+        return HttpResponse(html)
     return render(request, "ui/library.html", {"panel_kwargs": kwargs})
 
 
@@ -141,7 +136,7 @@ def silhouette_view(request: HttpRequest, slug: str) -> HttpResponse:
 
 @require_http_methods(["GET"])
 def library_highlights_view(request: HttpRequest) -> HttpResponse:
-    return _library_response(request, _library_kwargs(view="highlights"))
+    return _library_response(request, _library_kwargs(request, view="highlights"))
 
 
 @require_http_methods(["GET", "POST"])
@@ -151,6 +146,7 @@ def library_settings_view(request: HttpRequest) -> HttpResponse:
         api_token = request.POST.get("api_token", "").strip()
         if server_url and api_token:
             kwargs = _library_kwargs(
+                request,
                 view="settings",
                 status="ok",
                 server_url=server_url,
@@ -158,6 +154,7 @@ def library_settings_view(request: HttpRequest) -> HttpResponse:
             )
         else:
             kwargs = _library_kwargs(
+                request,
                 view="settings",
                 status="error",
                 error="Server URL과 API Token이 필요합니다",
@@ -165,4 +162,4 @@ def library_settings_view(request: HttpRequest) -> HttpResponse:
                 api_token=api_token,
             )
         return _library_response(request, kwargs)
-    return _library_response(request, _library_kwargs(view="settings"))
+    return _library_response(request, _library_kwargs(request, view="settings"))

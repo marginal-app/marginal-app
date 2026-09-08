@@ -1,6 +1,6 @@
 from django.urls import path
 
-from components.highlight_card.highlight_card import HighlightCard
+from citry_components.highlight_card.highlight_card import highlight_card_edit_view
 from ui import views
 
 urlpatterns = [
@@ -14,7 +14,7 @@ urlpatterns = [
     path("library/settings", views.library_settings_view, name="library_settings"),
     path(
         "library/highlights/<uuid:highlight_id>/comment",
-        HighlightCard.as_view(),
+        highlight_card_edit_view,
         name="highlight_comment",
     ),
 ]

@@ -1,0 +1,5 @@
+<label class="ds-label" c-bind="for_attrs">
+  <c-if cond="kicker"><span class="ds-label-kicker">{{ kicker }}</span></c-if>
+  <span class="ds-label-text">{{ text }}</span>
+  <c-if cond="hint"><span class="ds-label-hint">{{ hint }}</span></c-if>
+</label>

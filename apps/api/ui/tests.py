@@ -1,7 +1,7 @@
 from django.test import SimpleTestCase, TestCase
 from django.urls import reverse
-from django_components import registry
 
+from citry_components.testing import render_component
 from highlights.models import Highlight
 from ui.discover import discover_examples, merge_examples
 from ui.example import Example
@@ -10,20 +10,22 @@ from ui.examples import EXAMPLES, FEATURE_EXAMPLES
 
 class ComponentRenderTests(SimpleTestCase):
     def test_empty_state_renders_without_a_view(self):
-        html = registry.get("empty_state").render()
+        html = render_component("empty_state")
         self.assertIn("empty-state", html)
         self.assertIn("하이라이트가 없습니다", html)
 
     def test_highlight_card_variants_are_kwargs_not_separate_trees(self):
-        quote = registry.get("highlight_card").render(
-            kwargs={
+        quote = render_component(
+            "highlight_card",
+            {
                 "highlight_id": "a",
                 "quote": "isolated quote",
                 "color": "#f5d76e",
             },
         )
-        editing = registry.get("highlight_card").render(
-            kwargs={
+        editing = render_component(
+            "highlight_card",
+            {
                 "highlight_id": "a",
                 "quote": "isolated quote",
                 "color": "#f5d76e",
@@ -38,11 +40,13 @@ class ComponentRenderTests(SimpleTestCase):
         self.assertIn("저장", editing)
 
     def test_library_panel_composes_empty_and_list(self):
-        empty = registry.get("library_panel").render(
-            kwargs={"view": "highlights", "highlights": []},
+        empty = render_component(
+            "library_panel",
+            {"view": "highlights", "highlights": []},
         )
-        filled = registry.get("library_panel").render(
-            kwargs={
+        filled = render_component(
+            "library_panel",
+            {
                 "view": "highlights",
                 "highlights": [
                     {

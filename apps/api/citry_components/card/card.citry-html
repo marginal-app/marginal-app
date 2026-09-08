@@ -1,0 +1,5 @@
+<article class="ds-card">
+  <c-slot>
+    <c-if cond="body"><p class="ds-card-body">{{ body }}</p></c-if>
+  </c-slot>
+</article>

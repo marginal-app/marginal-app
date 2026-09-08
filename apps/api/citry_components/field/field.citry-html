@@ -1,0 +1,11 @@
+<label class="ds-field">
+  <span class="ds-field-label">{{ label }}</span>
+  <input
+    class="ds-field-input"
+    c-type="input_type"
+    c-name="name"
+    c-value="value"
+    c-placeholder="placeholder"
+    c-disabled="disabled"
+  >
+</label>

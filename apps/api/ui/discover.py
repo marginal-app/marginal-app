@@ -3,18 +3,18 @@ from pathlib import Path
 
 from ui.example import Example
 
-COMPONENTS_DIR = Path(__file__).resolve().parent.parent / "components"
+COMPONENTS_DIR = Path(__file__).resolve().parent.parent / "citry_components"
 
 
 def discover_examples() -> list[Example]:
-    """Load EXAMPLES from each `components/<name>/examples.py`."""
+    """Load EXAMPLES from each `citry_components/<name>/examples.py`."""
     found: list[Example] = []
     if not COMPONENTS_DIR.is_dir():
         return found
     for child in sorted(COMPONENTS_DIR.iterdir()):
         if not (child / "examples.py").is_file():
             continue
-        module = import_module(f"components.{child.name}.examples")
+        module = import_module(f"citry_components.{child.name}.examples")
         found.extend(getattr(module, "EXAMPLES", ()))
     return found
 
