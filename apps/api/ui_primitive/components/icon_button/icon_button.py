@@ -1,5 +1,9 @@
+from dataclasses import dataclass
+from typing import Self
+
 from citry import Component
 
+from citry_preview.variants import meta
 from config.citry_app import app
 
 _STATE_CLASS = {
@@ -14,6 +18,7 @@ class IconButton(Component):
     template_file = "icon_button.citry-html"
     css_file = "icon_button.css"
 
+    @dataclass
     class Kwargs:
         label: str = "설정 열기"
         icon: str = "⚙"
@@ -21,6 +26,32 @@ class IconButton(Component):
         title: str = ""
         state: str = ""
         attrs: dict[str, str] | None = None
+
+    class PreviewVariant(Kwargs):
+        group = "Primitives"
+
+        @classmethod
+        def variants(variant: type[Self]):
+            return [
+                meta(
+                    variant(label="설정 열기", icon="⚙"),
+                    slug="icon-button-default",
+                    title="IconButton / default",
+                    description="32px hit target — settings gear on an elevated chip.",
+                ),
+                meta(
+                    variant(label="설정 열기", icon="⚙", state="hover"),
+                    slug="icon-button-hover",
+                    title="IconButton / hover",
+                    description="Hover: hairline border and primary icon color.",
+                ),
+                meta(
+                    variant(label="설정 열기", icon="⚙", state="focus"),
+                    slug="icon-button-focus",
+                    title="IconButton / focus",
+                    description="Focus-visible: accent ring with offset.",
+                ),
+            ]
 
     def template_data(self, kwargs, slots):
         class_name = "ds-icon-button"

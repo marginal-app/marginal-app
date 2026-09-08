@@ -1,19 +1,12 @@
 from django.test import SimpleTestCase
 
-from citry_preview.testing import render_component
-from ui_primitive.components.icon_button.preview import PREVIEWS
-
-
-def _example(slug: str):
-    for example in PREVIEWS:
-        if example.slug == slug:
-            return example
-    raise KeyError(slug)
+from citry_preview.testing import preview_by_slug, render_component
+from ui_primitive.components.icon_button.icon_button import IconButton
 
 
 class IconButtonConstructionTests(SimpleTestCase):
     def test_default_renders_a_button_with_the_settings_gear(self):
-        example = _example("icon-button-default")
+        example = preview_by_slug(IconButton, "icon-button-default")
         html = render_component(example.component, example.kwargs)
         self.assertIn("<button", html)
         self.assertIn('type="button"', html)
@@ -28,8 +21,8 @@ class IconButtonConstructionTests(SimpleTestCase):
         self.assertNotIn("href=", html)
 
     def test_hover_and_focus_named_states_add_modifiers(self):
-        hover = _example("icon-button-hover")
-        focus = _example("icon-button-focus")
+        hover = preview_by_slug(IconButton, "icon-button-hover")
+        focus = preview_by_slug(IconButton, "icon-button-focus")
         hover_html = render_component(hover.component, hover.kwargs)
         focus_html = render_component(focus.component, focus.kwargs)
         self.assertIn("ds-icon-button is-hover", hover_html)

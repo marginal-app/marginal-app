@@ -1,12 +1,12 @@
 from django.test import SimpleTestCase
 
-from citry_preview.testing import render_component
-from ui_primitive.components.card.preview import PREVIEWS
+from citry_preview.testing import preview_by_slug, render_component
+from ui_primitive.components.card.card import Card
 
 
 class CardConstructionTests(SimpleTestCase):
     def test_card_default_renders_from_named_state(self):
-        example = next(row for row in PREVIEWS if row.slug == "card-default")
+        example = preview_by_slug(Card, "card-default")
         html = render_component(example.component, example.kwargs)
         self.assertIn('class="ds-card"', html)
         self.assertIn(example.kwargs["body"], html)

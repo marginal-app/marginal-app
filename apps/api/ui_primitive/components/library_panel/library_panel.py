@@ -1,8 +1,11 @@
-from typing import Any
+from dataclasses import dataclass
+from typing import Any, Self
 
 from citry import Component
 
+from citry_preview.variants import meta
 from config.citry_app import app
+from highlights.components.highlight_list.highlight_list import HIGHLIGHTS
 
 
 class LibraryPanel(Component):
@@ -11,6 +14,7 @@ class LibraryPanel(Component):
     template_file = "library_panel.citry-html"
     css_file = "library_panel.css"
 
+    @dataclass
     class Kwargs:
         view: str = "highlights"
         highlights: list[dict[str, Any]] | None = None
@@ -21,6 +25,32 @@ class LibraryPanel(Component):
         settings_status: str = "idle"
         settings_error: str = ""
         csrf_token: str = ""
+
+    class PreviewVariant(Kwargs):
+        group = "Pages"
+
+        @classmethod
+        def variants(variant: type[Self]):
+            return [
+                meta(
+                    variant(view="highlights", highlights=[]),
+                    slug="panel-empty",
+                    title="LibraryPanel / empty",
+                    description="Composed page: header + empty state. Page-level silhouette.",
+                ),
+                meta(
+                    variant(view="highlights", highlights=HIGHLIGHTS),
+                    slug="panel-highlights",
+                    title="LibraryPanel / highlights",
+                    description="Composed page matching the extension side panel list.",
+                ),
+                meta(
+                    variant(view="settings", settings_status="idle"),
+                    slug="panel-settings",
+                    title="LibraryPanel / settings",
+                    description="Composed settings view.",
+                ),
+            ]
 
     def template_data(self, kwargs, slots):
         highlights = kwargs.highlights or []

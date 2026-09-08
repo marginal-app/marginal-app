@@ -1,16 +1,12 @@
 from django.test import SimpleTestCase
 
-from citry_preview.testing import render_component
-from ui_primitive.components.button.preview import PREVIEWS
-
-
-def _example(slug: str):
-    return next(example for example in PREVIEWS if example.slug == slug)
+from citry_preview.testing import preview_by_slug, render_component
+from ui_primitive.components.button.button import Button
 
 
 class ButtonConstructionTests(SimpleTestCase):
     def test_default_button(self):
-        example = _example("button-default")
+        example = preview_by_slug(Button, "button-default")
         html = render_component("button", example.kwargs)
         self.assertIn('class="button"', html)
         self.assertNotIn("small", html)
@@ -19,7 +15,7 @@ class ButtonConstructionTests(SimpleTestCase):
         self.assertNotIn("is-focused", html)
 
     def test_small_button(self):
-        example = _example("button-small")
+        example = preview_by_slug(Button, "button-small")
         html = render_component("button", example.kwargs)
         self.assertIn("button", html)
         self.assertIn("small", html)
@@ -27,7 +23,7 @@ class ButtonConstructionTests(SimpleTestCase):
         self.assertNotIn("disabled", html)
 
     def test_disabled_button(self):
-        example = _example("button-disabled")
+        example = preview_by_slug(Button, "button-disabled")
         html = render_component("button", example.kwargs)
         self.assertIn("button", html)
         self.assertIn("확인 중...", html)
@@ -36,15 +32,12 @@ class ButtonConstructionTests(SimpleTestCase):
         self.assertNotIn("is-focused", html)
 
     def test_focused_button(self):
-        example = _example("button-focus")
+        example = preview_by_slug(Button, "button-focus")
         html = render_component("button", example.kwargs)
         self.assertIn("is-focused", html)
         self.assertIn("Save &amp; Test Connection", html)
         self.assertNotIn("disabled", html)
 
     def test_named_states_are_primitives(self):
-        slugs = {example.slug: example.group for example in PREVIEWS}
-        self.assertEqual(slugs["button-default"], "Primitives")
-        self.assertEqual(slugs["button-small"], "Primitives")
-        self.assertEqual(slugs["button-disabled"], "Primitives")
-        self.assertEqual(slugs["button-focus"], "Primitives")
+        for slug in ("button-default", "button-small", "button-disabled", "button-focus"):
+            self.assertEqual(preview_by_slug(Button, slug).group, "Primitives")

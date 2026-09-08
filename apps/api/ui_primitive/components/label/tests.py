@@ -1,19 +1,12 @@
 from django.test import SimpleTestCase
 
-from citry_preview.testing import render_component
-from ui_primitive.components.label.preview import PREVIEWS
-
-
-def _example(slug: str):
-    for example in PREVIEWS:
-        if example.slug == slug:
-            return example
-    raise KeyError(slug)
+from citry_preview.testing import preview_by_slug, render_component
+from ui_primitive.components.label.label import Label
 
 
 class LabelTests(SimpleTestCase):
     def test_default_renders_text(self):
-        example = _example("label-default")
+        example = preview_by_slug(Label, "label-default")
         html = render_component(example.component, example.kwargs)
         self.assertIn('class="ds-label"', html)
         self.assertIn("ds-label-kicker", html)

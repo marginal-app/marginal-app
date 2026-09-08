@@ -1,5 +1,9 @@
+from dataclasses import dataclass
+from typing import Self
+
 from citry import Component
 
+from citry_preview.variants import meta
 from config.citry_app import app
 
 
@@ -9,6 +13,7 @@ class Textarea(Component):
     template_file = "textarea.citry-html"
     css_file = "textarea.css"
 
+    @dataclass
     class Kwargs:
         name: str = "comment"
         value: str = ""
@@ -17,6 +22,26 @@ class Textarea(Component):
         disabled: bool = False
         focused: bool = False
         autofocus: bool = False
+
+    class PreviewVariant(Kwargs):
+        group = "Primitives"
+
+        @classmethod
+        def variants(variant: type[Self]):
+            return [
+                meta(
+                    variant(placeholder="코멘트 추가...", focused=True),
+                    slug="textarea-empty",
+                    title="Textarea / empty",
+                    description="Empty comment field with a focus ring — ready to type.",
+                ),
+                meta(
+                    variant(value="Draft note from a Cloud Agent"),
+                    slug="textarea-filled",
+                    title="Textarea / filled",
+                    description="Draft comment ready to save.",
+                ),
+            ]
 
     def template_data(self, kwargs, slots):
         class_name = "ds-textarea" + (" is-focused" if kwargs.focused else "")
