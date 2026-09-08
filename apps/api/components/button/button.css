@@ -1,0 +1,21 @@
+.ds-button {
+  border: none;
+  border-radius: var(--radius);
+  padding: 0.5rem 0.9rem;
+  font-size: 0.85rem;
+  font-weight: 600;
+  background: var(--accent);
+  color: var(--accent-text);
+  cursor: pointer;
+  font-family: inherit;
+}
+
+.ds-button:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.ds-button-small {
+  padding: 0.3rem 0.6rem;
+  font-size: 0.78rem;
+}
