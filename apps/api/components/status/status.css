@@ -1,0 +1,12 @@
+.ds-status {
+  margin: 0;
+  font-size: 0.8rem;
+}
+
+.ds-status-ok {
+  color: var(--success);
+}
+
+.ds-status-error {
+  color: var(--danger);
+}
