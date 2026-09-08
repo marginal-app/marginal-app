@@ -10,6 +10,7 @@ For the full list of settings and their values, see
 https://docs.djangoproject.com/en/6.1/ref/settings/
 """
 
+import os
 from pathlib import Path
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
@@ -27,6 +28,10 @@ DEBUG = True
 
 ALLOWED_HOSTS = []
 
+# Self-hosted single-user auth: the extension sends this as
+# `Authorization: Bearer <token>`. Set MARGINAL_API_TOKEN in production.
+API_TOKEN = os.environ.get('MARGINAL_API_TOKEN', 'dev-token')
+
 
 # Application definition
 
@@ -37,9 +42,11 @@ INSTALLED_APPS = [
     'django.contrib.sessions',
     'django.contrib.messages',
     'django.contrib.staticfiles',
+    'highlights',
 ]
 
 MIDDLEWARE = [
+    'config.cors.CorsMiddleware',
     'django.middleware.security.SecurityMiddleware',
     'django.contrib.sessions.middleware.SessionMiddleware',
     'django.middleware.common.CommonMiddleware',
