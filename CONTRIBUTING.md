@@ -2,26 +2,31 @@
 
 This file is the repo gate. `AGENTS.md` and `CLAUDE.md` are symlinks to it.
 
-A reviewer approves a UI PR from the diff plus a silhouette PNG — they do not run the app. Screenshots are a review contract, not a demo. Commands, attach flags, and the harness live in [Reviewing UI from a silhouette](#reviewing-ui-from-a-silhouette).
+This monorepo has two surfaces that paint pixels. They are not the same app and they are not reviewed the same way.
+
+| Surface | Tree | What it is |
+| --- | --- | --- |
+| Browser extension | `apps/browser-extension` | Content script paints the page. Background owns IndexedDB and messages. Side panel is the live React client. |
+| Server-side rendered fullstack | `apps/api` | Sync API plus `django-components` + HTMX. This is the silhouette review surface for panel pixels. |
+
+A reviewer approves a UI PR from the diff plus a silhouette PNG — they do not run the app, and they do not load an unpacked extension. Screenshots are a review contract, not a demo. Commands, attach flags, and the SSR harness live in [Reviewing UI from a silhouette](#reviewing-ui-from-a-silhouette).
 
 ## Style belongs to the design system
 
-Appearance still belongs to the tokens in `apps/api/static/ui/app.css` and the colocated `*.css` next to each `django-components` component. A feature that paints pixels consumes those tokens. It does not invent a second palette, a second type ramp, or a one-off panel chrome.
+Appearance still belongs to the shared tokens (`--bg`, `--accent`, `--radius`, type). Today they live in `apps/api/static/ui/app.css` and `apps/browser-extension/entrypoints/sidepanel/style.css`. A feature that paints pixels consumes those tokens. It does not invent a second palette, a second type ramp, or a one-off panel chrome.
+
+The two copies must not drift. A token change lands in both files, or it is not a token change. Colocated CSS next to a `django-components` component, or in the extension's `App.css`, is for layout that only that surface owns.
 
 This section is the style rule. [UI that paints pixels](#ui-that-paints-pixels) is the structure-and-review rule. Neither replaces the other.
 
 ## UI that paints pixels
 
-A feature that paints pixels splits the values on screen from the commands that change them. The public `django-components` component receives kwargs. The Django view — or that component's nested `View` — is the only composition root that knows the request, the ORM, session cookies, or the live API. A component test is another composition root: it injects a named state. Do not add a BaseScreen framework, a generic view-model, or a second URL tree for tests.
+A feature that paints pixels splits the values on screen from the commands that change them. The public view receives props (or kwargs). A composition root is the only place that knows IndexedDB, `browser.*`, `fetch`, session cookies, or the live API. A component test is another composition root: it injects a named state. Do not add a BaseScreen framework, a generic view-model, or a second router for tests.
 
-`get_template_data` maps kwargs onto template context. It does not query `Highlight`, read cookies, or call an HTTP client. HTMX attributes may appear in the template; the swap target is the same registered component, not a second client tree.
+UI PRs that change what a reviewer can see ship:
 
-The named-state catalog is `apps/api/ui/examples.py`. The gallery at `/` and the raw silhouette at `/dev/components/<slug>/` render those examples. That catalog is the screenshot surface. It is not Storybook.
-
-UI PRs ship:
-
-- Named-state factories next to the feature — idle, empty, populated, error, and one distinctive in-progress, or whichever of those the surface can actually show. Do not invent a state the UI cannot reach. Today those factories are the `Example` rows and shared kwargs (`QUOTE_ONLY`, `WITH_COMMENT`, `EDITING`) in `apps/api/ui/examples.py`.
-- A test that constructs the public component with that state via `registry.get(...).render(kwargs=...)` or `Component.render(...)`. It does not boot `runserver`, the browser extension, Vite, or a live HTTP server.
+- Named-state factories next to the feature — idle, empty, populated, error, and one distinctive in-progress, or whichever of those the surface can actually show. Do not invent a state the UI cannot reach.
+- A test that constructs the public view with that state. It does not boot Vite, WXT, `runserver`, Chrome, or the API.
 - A silhouette PNG that is `f(named state)`, attached to the pull request body. A gitignored file on the author's disk is not the review contract — reviewers never open the worktree.
 
 Prefer one `--attach` per named-state PNG, with the state in the fragment:
@@ -36,29 +41,62 @@ Label-only differences are text assertions, not extra goldens.
 
 ### Do
 
-- Keep the ORM, session cookies, and the API client out of the presentational component.
-- Feed the construction test and the PNG from the same factory (`Example.kwargs` or the named dict it wraps).
-- Attach stills. An MP4 is welcome only when the slice's point is motion (an HTMX swap), and never instead of stills.
+- Keep live fetch, session cookies, IndexedDB, and the API client out of the presentational view.
+- Feed the construction test and the PNG from the same factory.
+- Attach stills. An MP4 is welcome only when the slice's point is motion, and never instead of stills.
 
 ### Don't
 
-- Query or fetch inside `get_template_data` "because the test can mock it".
+- Fetch inside the presentational view "because the test can mock it".
 - Snapshot every theme × tab × empty × error combination. Name the states that change the silhouette.
 - Commit golden PNGs. They rot, they bloat the clone, and they are not what a reviewer sees.
-- Treat "I ran it locally" as evidence. The reviewer did not.
-- Add Storybook, a visual-regression service, or a screenshot comparison gate for this. The PNG is attached to the PR; it is not a CI oracle. The gallery at `/` is a named-state catalog, not a visual-regression tool.
+- Treat "I ran it locally" or "I loaded the unpacked extension" as evidence. The reviewer did not.
+- Add Storybook, a visual-regression service, or a screenshot comparison gate for this. The PNG is attached to the PR; it is not a CI oracle.
+
+How that split is wired depends on the surface.
+
+## Server-side rendered fullstack
+
+`apps/api` is a Django app that paints the library panel with `django-components` and swaps the same registered components over HTMX. It is a fullstack app, not a JSON-only API with a gallery bolted on. The gallery exists so a reviewer can see named states without a session, an extension, or a React tree.
+
+The public component receives kwargs. The Django view — or that component's nested `View` — is the only composition root that knows the request, the ORM, session cookies, or the live API.
+
+`get_template_data` maps kwargs onto template context. It does not query `Highlight`, read cookies, or call an HTTP client. HTMX attributes may appear in the template; the swap target is the same registered component, not a second client tree.
+
+The named-state catalog is `apps/api/ui/examples.py`. The gallery at `/` and the raw silhouette at `/dev/components/<slug>/` render those examples. That catalog is the screenshot surface. It is not Storybook.
+
+Today the factories are the `Example` rows and shared kwargs (`QUOTE_ONLY`, `WITH_COMMENT`, `EDITING`) in `apps/api/ui/examples.py`. A construction test calls `registry.get(...).render(kwargs=...)` or `Component.render(...)`.
+
+A change to panel pixels lands here first. The extension side panel is a live client of the same look, not a second source of truth for silhouettes.
+
+## Browser extension
+
+`apps/browser-extension` is a WXT + React extension. It has three composition roots, and none of them is a silhouette URL.
+
+| Root | Owns | Test |
+| --- | --- | --- |
+| Content script | Selecting text, painting `<mark>`, restoring highlights onto a page | jsdom + `resolveAndPaint`. No Chrome. |
+| Background | IndexedDB and `browser.runtime` messages | `fake-indexeddb` + the exported store helpers. No Chrome. |
+| Side panel | The live React client: `browser.tabs`, `browser.runtime`, `browser.storage`, `fetch` to the API | Not a visual review surface. |
+
+Page paint is not a panel silhouette. A content-script change ships DOM assertions (`flattenText`, `resolveAndPaint`). A background change ships store assertions. Do not attach a library-panel PNG for either.
+
+The side panel is allowed to be a live client. It is not allowed to be a second design system. Panel chrome that changes what a reviewer can see is reviewed through the matching [server-side rendered fullstack](#server-side-rendered-fullstack) named state — update `apps/api/ui/examples.py` and the `django-components` twin, then attach that PNG. Two looks is a bug.
+
+Do not add Storybook, a component gallery, or a `/dev` route to the extension to get a screenshot. The SSR harness already exists. Do not boot WXT or load an unpacked build to prove appearance.
 
 ## Reviewing UI from a silhouette
 
-The harness is already in the tree. Do not add another.
+The harness lives in `apps/api`. Do not add another, and do not point it at the extension.
 
 | Surface | What it is |
 | --- | --- |
-| `apps/api/ui/examples.py` | Named states. One `Example` per silhouette the UI can actually show. |
+| `apps/api/ui/examples.py` | Named states. One `Example` per silhouette the panel can actually show. |
 | `/` | Gallery. Every example, 360px panel, fixture kwargs only. |
 | `/dev/components/<slug>/` | Raw silhouette. This is the screenshot target. |
 | `apps/api/.silhouettes/` | Author-local PNGs. Gitignored. Attach them; do not commit them. |
 | `uv run python manage.py test ui` | Construction tests. `Component.render()` / gallery URL smoke. No Chrome. |
+| `pnpm --filter @marginal-app/browser-extension test` | Extension construction tests. jsdom / fake-indexeddb. No Chrome. |
 
 Name files from the example slug and the state that changes the silhouette:
 
@@ -69,7 +107,7 @@ apps/api/.silhouettes/settings-error.png
 apps/api/.silhouettes/highlight-card-editing.png
 ```
 
-Capture the raw URL, not the gallery grid:
+Capture the raw URL, not the gallery grid, and not the extension side panel:
 
 ```bash
 cd apps/api
@@ -95,4 +133,4 @@ Put matching image tags in the PR body, paths identical to `--attach` (including
 ![error](./apps/api/.silhouettes/settings-error.png)
 ```
 
-`/library/` is the live HTMX composition of the same components. Use it to prove a swap. Do not substitute a library walkthrough for the stills. When the slice's point is motion, attach stills of the before and after named states; an MP4 may accompany them.
+`/library/` is the live HTMX composition of the same components. Use it to prove a swap. Do not substitute a library walkthrough — or an unpacked extension — for the stills. When the slice's point is motion, attach stills of the before and after named states; an MP4 may accompany them.
