@@ -1,6 +1,6 @@
 from django.test import SimpleTestCase
 
-from citry_components.field.preview import DEFAULT, PREVIEWS
+from ui.components.field.preview import DEFAULT, PREVIEWS
 from citry_components.testing import render_component
 
 

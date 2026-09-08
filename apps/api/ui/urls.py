@@ -1,6 +1,6 @@
 from django.urls import path
 
-from citry_components.highlight_card.highlight_card import highlight_card_edit_view
+from highlights.components.highlight_card.highlight_card import highlight_card_edit_view
 from ui import views
 
 urlpatterns = [

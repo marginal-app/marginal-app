@@ -158,7 +158,7 @@ v1 primitives — one pull request each:
 
 A primitive PR:
 
-- Adds only `apps/api/citry_components/<name>/` — the component, `preview.py`, and construction tests.
+- Adds only `apps/api/ui/components/<name>/` — the component, `preview.py`, and construction tests. `config/citry_app.py` builds its `dirs=` by walking `INSTALLED_APPS` and picking up each app's own `components/` folder, so a component's real home is whichever app owns that domain (a `highlights` component lives in `apps/api/highlights/components/<name>/`, not here) — `ui/components/` is just where anything without a more specific owning app lands, primitives included.
 - Registers named states as `PREVIEWS` in that folder. `ui/previews.py` discovers those files; do not append rows to the feature catalog.
 - Reuses the current tokens. It does not invent a second palette, and it does not restyle an existing feature component.
 - Attaches a silhouette PNG per named state that changes the picture. Capture the raw URL with `uv run python scripts/capture_silhouette.py <slug>` while `runserver` is up. Playwright clips `.silhouette`. Do not commit goldens. Cloud Agents attach per [Cursor Cloud Agent silhouette attach](#cursor-cloud-agent-silhouette-attach).
