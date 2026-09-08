@@ -161,7 +161,7 @@ A primitive PR:
 - Adds only `apps/api/components/<name>/` — the component, `examples.py`, and construction tests.
 - Registers named states as `EXAMPLES` in that folder. `ui/examples.py` discovers those files; do not append rows to the feature catalog.
 - Reuses the current tokens. It does not invent a second palette, and it does not restyle an existing feature component.
-- Attaches a silhouette PNG per named state that changes the picture. Capture the raw URL with `uv run python scripts/capture_silhouette.py <slug>` while `runserver` is up. Do not commit goldens.
+- Attaches a silhouette PNG per named state that changes the picture. Capture the raw URL with `uv run python scripts/capture_silhouette.py <slug>` while `runserver` is up. Do not commit goldens. Cloud Agents attach per [Cursor Cloud Agent silhouette attach](#cursor-cloud-agent-silhouette-attach). Cloud Agents attach per [Cursor Cloud Agent silhouette attach](#cursor-cloud-agent-silhouette-attach).
 
 Do not add shadcn, Tailwind, or a `packages/ui` React tree for this.
 
