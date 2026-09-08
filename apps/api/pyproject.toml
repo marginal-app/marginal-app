@@ -10,6 +10,7 @@ dependencies = [
 
 [dependency-groups]
 dev = [
+    "django-stubs>=6.1.0",
     "pyrefly>=1.2.0",
 ]
 

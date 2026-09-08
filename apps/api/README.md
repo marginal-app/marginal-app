@@ -2,7 +2,7 @@
 
 Django API for the marginal-app highlighter monorepo.
 
-This package is managed with [uv](https://docs.astral.sh/uv/) and type-checked with [Pyrefly](https://pyrefly.org/). Open this directory (`apps/api`) as the editor workspace so Helix and Zed pick up the project-local language server configs.
+This package is managed with [uv](https://docs.astral.sh/uv/) and type-checked with [Pyrefly](https://pyrefly.org/). `django-stubs` is a dev dependency so Pyrefly can resolve Django imports. Open this directory (`apps/api`) as the editor workspace so Helix and Zed pick up the project-local language server configs.
 
 ## Prerequisites
 

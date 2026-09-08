@@ -12,6 +12,7 @@ dependencies = [
 
 [package.dev-dependencies]
 dev = [
+    { name = "django-stubs" },
     { name = "pyrefly" },
 ]
 
@@ -19,7 +20,10 @@ dev = [
 requires-dist = [{ name = "django", specifier = ">=6.1,<6.2" }]
 
 [package.metadata.requires-dev]
-dev = [{ name = "pyrefly", specifier = ">=1.2.0" }]
+dev = [
+    { name = "django-stubs", specifier = ">=6.1.0" },
+    { name = "pyrefly", specifier = ">=1.2.0" },
+]
 
 [[package]]
 name = "asgiref"
@@ -42,6 +46,34 @@ dependencies = [
 sdist = { url = "https://files.pythonhosted.org/packages/f8/d4/8314b5bdef20832f0ac6ae3b3e4d4924e4759fa3b4af27609dd747e7a6be/django-6.1.1.tar.gz", hash = "sha256:7ab93536d8e677aa14554c56426290c69480bf2ee68d7513d4a22f57d6bfeb84", size = 11284905, upload-time = "2026-09-02T17:20:45.621Z" }
 wheels = [
     { url = "https://files.pythonhosted.org/packages/8d/ca/c1040a4fd15754ede7df15fd72fc2e123045b473b253ab5f5284e11c651e/django-6.1.1-py3-none-any.whl", hash = "sha256:585fb82bf15053c42cf52e67c2f1b54a032dca384759315fd6678ab1870d1d72", size = 8419512, upload-time = "2026-09-02T17:20:39.153Z" },
+]
+
+[[package]]
+name = "django-stubs"
+version = "6.1.0"
+source = { registry = "https://pypi.org/simple" }
+dependencies = [
+    { name = "django" },
+    { name = "django-stubs-ext" },
+    { name = "types-pyyaml" },
+    { name = "typing-extensions" },
+]
+sdist = { url = "https://files.pythonhosted.org/packages/65/34/e9f03764b32f56c02168814385ddc6d0e49a7b3e4381e8e3f6f5f34f39ff/django_stubs-6.1.0.tar.gz", hash = "sha256:b6aecc5c738a103135f76ba160a6f75e3b27dcf0200c64d7226018cdbc2340dd", size = 293018, upload-time = "2026-08-12T10:55:28.817Z" }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/a8/cf/064d7c48642309f3397b17ff14f3159c5225eb9321185a10039c0e846848/django_stubs-6.1.0-py3-none-any.whl", hash = "sha256:63b23ccca2616d464ed7e37d1ce44960315cb3cecab75b23c928467ef125e560", size = 557040, upload-time = "2026-08-12T10:55:26.959Z" },
+]
+
+[[package]]
+name = "django-stubs-ext"
+version = "6.1.0"
+source = { registry = "https://pypi.org/simple" }
+dependencies = [
+    { name = "django" },
+    { name = "typing-extensions" },
+]
+sdist = { url = "https://files.pythonhosted.org/packages/e6/40/75dd6650c5fc345b9edaebe42085811096e31a502fdbe17a52ffb9640d03/django_stubs_ext-6.1.0.tar.gz", hash = "sha256:d5635a481f5bdf2e04d533a8b602d3b9a28f073deffc85b83048dd20032e4d20", size = 6848, upload-time = "2026-08-12T10:54:44.47Z" }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/ed/41/10b8d576651af4f1dc6bdfb0d8a203e8b3a55d60ae36ba305d0edcdb594f/django_stubs_ext-6.1.0-py3-none-any.whl", hash = "sha256:57273506823274700a707c8f404dfb52a12c4554daf1468dfb2bff857bb22074", size = 10404, upload-time = "2026-08-12T10:54:42.979Z" },
 ]
 
 [[package]]
@@ -70,6 +102,24 @@ source = { registry = "https://pypi.org/simple" }
 sdist = { url = "https://files.pythonhosted.org/packages/5f/d3/3f06a1006f2261d1342aefb3c71eed02f5d4ca5bdbecd86ebc12ad38306e/sqlparse-0.6.0.tar.gz", hash = "sha256:113c35c75365ab9cc9c7231d68c6428fb11c085fc8e9eb1ad659b7ddbf6cd2b9", size = 178477, upload-time = "2026-08-13T19:16:06.396Z" }
 wheels = [
     { url = "https://files.pythonhosted.org/packages/d9/50/f00935da0ec7cbf325f8dc4f772ae46fbc7b672dd62876e73f0a94adda57/sqlparse-0.6.0-py3-none-any.whl", hash = "sha256:b861c0288ce2fa56209a9a6412d2e066ac664b3873b89c26c9d8415e8e32996f", size = 50070, upload-time = "2026-08-13T19:16:04.062Z" },
+]
+
+[[package]]
+name = "types-pyyaml"
+version = "6.0.12.20260906"
+source = { registry = "https://pypi.org/simple" }
+sdist = { url = "https://files.pythonhosted.org/packages/90/6e/abec85b9013db5b934b0280a6dd104904d84f7bcbaab2e2f3def87ac7463/types_pyyaml-6.0.12.20260906.tar.gz", hash = "sha256:f59c1cc05010b833d2d72287bbaa72610106b28d42d89a907313117faba85212", size = 18649, upload-time = "2026-09-06T06:35:35.362Z" }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/15/c0/fc0644b7ddcfb969e95845837143cb5173ddd6e06ee4ba5fc493cd9329b7/types_pyyaml-6.0.12.20260906-py3-none-any.whl", hash = "sha256:bca893ff0d51df5c9053137d5d0e6ccd36e939a196356f1d5c16372422f5137b", size = 21282, upload-time = "2026-09-06T06:35:34.372Z" },
+]
+
+[[package]]
+name = "typing-extensions"
+version = "4.16.0"
+source = { registry = "https://pypi.org/simple" }
+sdist = { url = "https://files.pythonhosted.org/packages/f6/cc/6253133b5bb138fc3306cebfbda2c520f545d36b5be2c7255cc528bb45d6/typing_extensions-4.16.0.tar.gz", hash = "sha256:dc983d19a509c94dba722ee6abd33940f7c05a89e243c47e907eb4db6f1a43e5", size = 113555, upload-time = "2026-07-02T08:40:05.92Z" }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/49/d3/b8441a820a491ddfc024b0b0cf0393375b75ea13866d9c66727e54c2fc80/typing_extensions-4.16.0-py3-none-any.whl", hash = "sha256:481caa481374e813c1b176ada14e97f1f67a4539ce9cfeb3f350d78d6370c2e8", size = 45571, upload-time = "2026-07-02T08:40:04.659Z" },
 ]
 
 [[package]]
