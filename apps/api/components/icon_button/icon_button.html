@@ -1,17 +1,17 @@
 {% if is_link %}
 <a
-  class="icon-button"
+  class="{{ class_name }}"
   href="{{ href }}"
   aria-label="{{ label }}"
   title="{{ title }}"
   {% for name, value in attrs.items %}{{ name }}="{{ value }}" {% endfor %}
->{{ icon }}</a>
+><span class="ds-icon-button__glyph" aria-hidden="true">{{ icon }}</span></a>
 {% else %}
 <button
   type="button"
-  class="icon-button"
+  class="{{ class_name }}"
   aria-label="{{ label }}"
   title="{{ title }}"
   {% for name, value in attrs.items %}{{ name }}="{{ value }}" {% endfor %}
->{{ icon }}</button>
+><span class="ds-icon-button__glyph" aria-hidden="true">{{ icon }}</span></button>
 {% endif %}
