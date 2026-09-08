@@ -161,7 +161,7 @@ A primitive PR:
 - Adds only `apps/api/components/<name>/` — the component, `examples.py`, and construction tests.
 - Registers named states as `EXAMPLES` in that folder. `ui/examples.py` discovers those files; do not append rows to the feature catalog.
 - Reuses the current tokens. It does not invent a second palette, and it does not restyle an existing feature component.
-- Attaches a silhouette PNG per named state that changes the picture. Capture the raw URL with `uv run python scripts/capture_silhouette.py <slug>` while `runserver` is up. Do not commit goldens. Cloud Agents attach per [Cursor Cloud Agent silhouette attach](#cursor-cloud-agent-silhouette-attach). Cloud Agents attach per [Cursor Cloud Agent silhouette attach](#cursor-cloud-agent-silhouette-attach).
+- Attaches a silhouette PNG per named state that changes the picture. Capture the raw URL with `uv run python scripts/capture_silhouette.py <slug>` while `runserver` is up. Playwright clips `.silhouette`. Do not commit goldens. Cloud Agents attach per [Cursor Cloud Agent silhouette attach](#cursor-cloud-agent-silhouette-attach).
 
 Do not add shadcn, Tailwind, or a `packages/ui` React tree for this.
 
@@ -173,7 +173,7 @@ A Cloud Agent must not put `![empty](./apps/api/.silhouettes/panel-empty.png)` (
 
 A Cloud Agent attaches the same runtime PNG this way:
 
-- Capture the raw silhouette URL at review time (`scripts/capture_silhouette.py` or a headless screenshot of `/dev/components/<slug>/`). Do not commit the PNG.
+- Capture the raw silhouette URL at review time with `uv run python scripts/capture_silhouette.py <slug>` (Playwright clips `.silhouette`). Do not commit the PNG.
 - Create or update the PR with the Cursor PR tool. Embed each still as an HTML `<img>` whose `src` is the absolute file path on the agent machine (for example `/workspace/apps/api/.silhouettes/panel-empty.png`). The tool uploads the file and rewrites the tag to a Cursor artifact URL.
 - Do not also leave the gitignored relative markdown path in the body. GitHub will try to thumbnail it and fail.
 - Do not use `gh pr create` / `gh pr edit --attach` from a Cloud Agent. The agent token cannot upload GitHub user-attachments (`unsupported authentication type`).

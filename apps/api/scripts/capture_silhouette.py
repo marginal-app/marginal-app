@@ -1,63 +1,71 @@
 #!/usr/bin/env python3
 """Capture raw silhouette PNGs into apps/api/.silhouettes/ (gitignored).
 
-Requires `manage.py runserver` on BASE_URL (default http://127.0.0.1:8000).
+Playwright clips the `.silhouette` panel. Requires `manage.py runserver`
+and a Chromium install (`uv run playwright install chromium`).
 
-    uv run python scripts/capture_silhouette.py button-default button-small
+    uv run python scripts/capture_silhouette.py empty-state
+    uv run python scripts/capture_silhouette.py --all
 """
 
 from __future__ import annotations
 
 import argparse
-import subprocess
 import sys
 from pathlib import Path
 
-CHROME = "google-chrome"
-DEFAULT_BASE = "http://127.0.0.1:8000"
-WINDOW = "420,800"
+API_DIR = Path(__file__).resolve().parent.parent
+if str(API_DIR) not in sys.path:
+    sys.path.insert(0, str(API_DIR))
 
 
 def repo_api_dir() -> Path:
-    return Path(__file__).resolve().parent.parent
+    return API_DIR
 
 
-def capture(slug: str, *, base_url: str, out_dir: Path) -> Path:
-    out_dir.mkdir(parents=True, exist_ok=True)
-    dest = out_dir / f"{slug}.png"
-    url = f"{base_url.rstrip('/')}/dev/components/{slug}/"
-    cmd = [
-        CHROME,
-        "--headless=new",
-        "--disable-gpu",
-        "--hide-scrollbars",
-        "--no-sandbox",
-        f"--window-size={WINDOW}",
-        f"--screenshot={dest}",
-        url,
-    ]
-    result = subprocess.run(cmd, check=False, capture_output=True, text=True)
-    if result.returncode != 0 or not dest.is_file():
-        sys.stderr.write(result.stdout)
-        sys.stderr.write(result.stderr)
-        raise SystemExit(f"Failed to capture {url} -> {dest}")
-    print(dest)
-    return dest
+def _slugs_from_catalog() -> list[str]:
+    import os
+
+    os.environ.setdefault("DJANGO_SETTINGS_MODULE", "config.settings")
+    import django
+
+    django.setup()
+    from ui.examples import EXAMPLES
+
+    return [example.slug for example in EXAMPLES]
 
 
-def main() -> None:
+def main() -> int:
+    from ui.capture import DEFAULT_BASE_URL, capture_silhouette
+
     parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument("slugs", nargs="+", help="Example slugs from the gallery catalog")
-    parser.add_argument("--base-url", default=DEFAULT_BASE)
+    parser.add_argument(
+        "slugs",
+        nargs="*",
+        help="Example slugs from the gallery catalog",
+    )
+    parser.add_argument(
+        "--all",
+        action="store_true",
+        help="Capture every discovered example. Does not compare goldens.",
+    )
+    parser.add_argument("--base-url", default=DEFAULT_BASE_URL)
     parser.add_argument(
         "--out-dir",
         type=Path,
         default=repo_api_dir() / ".silhouettes",
     )
     args = parser.parse_args()
-    for slug in args.slugs:
-        capture(slug, base_url=args.base_url, out_dir=args.out_dir)
+    slugs = list(args.slugs)
+    if args.all:
+        slugs.extend(_slugs_from_catalog())
+    if not slugs:
+        parser.error("provide slugs or --all")
+    for slug in slugs:
+        dest = capture_silhouette(slug, base_url=args.base_url, out_dir=args.out_dir)
+        print(dest)
+    return 0
 
 
 if __name__ == "__main__":
-    main()
+    sys.exit(main())
