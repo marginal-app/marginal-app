@@ -26,6 +26,7 @@ def _render_example(example: Example, request: HttpRequest) -> str:
         deps_strategy="fragment",
     )
 
+
 DEMO_HIGHLIGHTS = (
     {
         "id": "11111111-1111-1111-1111-111111111111",
