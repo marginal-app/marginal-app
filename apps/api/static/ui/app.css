@@ -78,10 +78,3 @@ a {
   box-shadow: 0 10px 30px rgba(20, 20, 30, 0.08);
   overflow: hidden;
 }
-
-/* Atoms sit in the same 360px chrome as a page, but the page-height
-   frame with no padding makes a lone button look unfinished. */
-.silhouette-atom {
-  min-height: 0;
-  padding: 1.25rem;
-}

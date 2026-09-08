@@ -17,7 +17,6 @@ class RenderedExample:
     description: str
     group: str
     html: str
-    is_atom: bool = False
 
 
 def _render_example(example: Example, request: HttpRequest) -> str:
@@ -25,17 +24,6 @@ def _render_example(example: Example, request: HttpRequest) -> str:
         request=request,
         kwargs=example.kwargs,
         deps_strategy="fragment",
-    )
-
-
-def _rendered(example: Example, request: HttpRequest) -> RenderedExample:
-    return RenderedExample(
-        slug=example.slug,
-        title=example.title,
-        description=example.description,
-        group=example.group,
-        html=_render_example(example, request),
-        is_atom=example.group == "Primitives",
     )
 
 
@@ -126,7 +114,16 @@ def _library_response(request: HttpRequest, kwargs: dict[str, object]) -> HttpRe
 
 @require_http_methods(["GET"])
 def gallery_view(request: HttpRequest) -> HttpResponse:
-    examples = [_rendered(example, request) for example in EXAMPLES]
+    examples = [
+        RenderedExample(
+            slug=example.slug,
+            title=example.title,
+            description=example.description,
+            group=example.group,
+            html=_render_example(example, request),
+        )
+        for example in EXAMPLES
+    ]
     return render(request, "ui/gallery.html", {"examples": examples})
 
 
@@ -136,7 +133,14 @@ def silhouette_view(request: HttpRequest, slug: str) -> HttpResponse:
         example = example_by_slug(slug)
     except KeyError as exc:
         raise Http404(f"Unknown example: {slug}") from exc
-    return render(request, "ui/silhouette.html", {"example": _rendered(example, request)})
+    rendered = RenderedExample(
+        slug=example.slug,
+        title=example.title,
+        description=example.description,
+        group=example.group,
+        html=_render_example(example, request),
+    )
+    return render(request, "ui/silhouette.html", {"example": rendered})
 
 
 @require_http_methods(["GET"])

@@ -85,10 +85,7 @@
           </div>
           <a href="{% url 'component_silhouette' example.slug %}">raw</a>
         </header>
-        <div
-          class="silhouette{% if example.is_atom %} silhouette-atom{% endif %}"
-          data-example="{{ example.slug }}"
-        >
+        <div class="silhouette" data-example="{{ example.slug }}">
           {{ example.html|safe }}
         </div>
       </article>
