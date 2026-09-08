@@ -13,6 +13,8 @@ https://docs.djangoproject.com/en/6.1/ref/settings/
 import os
 from pathlib import Path
 
+from django_components import ComponentsSettings
+
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
 
@@ -42,7 +44,9 @@ INSTALLED_APPS = [
     'django.contrib.sessions',
     'django.contrib.messages',
     'django.contrib.staticfiles',
+    'django_components',
     'highlights',
+    'ui',
 ]
 
 MIDDLEWARE = [
@@ -58,17 +62,30 @@ MIDDLEWARE = [
 
 ROOT_URLCONF = 'config.urls'
 
+_TEMPLATE_LOADERS = [
+    'django.template.loaders.filesystem.Loader',
+    'django.template.loaders.app_directories.Loader',
+    'django_components.template_loader.Loader',
+]
+
 TEMPLATES = [
     {
         'BACKEND': 'django.template.backends.django.DjangoTemplates',
-        'DIRS': [],
-        'APP_DIRS': True,
+        'DIRS': [BASE_DIR / 'templates'],
         'OPTIONS': {
             'context_processors': [
                 'django.template.context_processors.request',
                 'django.contrib.auth.context_processors.auth',
                 'django.contrib.messages.context_processors.messages',
             ],
+            'builtins': [
+                'django_components.templatetags.component_tags',
+            ],
+            'loaders': (
+                _TEMPLATE_LOADERS
+                if DEBUG
+                else [('django.template.loaders.cached.Loader', _TEMPLATE_LOADERS)]
+            ),
         },
     },
 ]
@@ -122,6 +139,12 @@ USE_TZ = True
 # https://docs.djangoproject.com/en/6.1/howto/static-files/
 
 STATIC_URL = 'static/'
+STATICFILES_DIRS = [BASE_DIR / 'static']
+STATICFILES_FINDERS = [
+    'django.contrib.staticfiles.finders.FileSystemFinder',
+    'django.contrib.staticfiles.finders.AppDirectoriesFinder',
+    'django_components.finders.ComponentsFileSystemFinder',
+]
 
 
 # Email
@@ -132,3 +155,8 @@ MAILERS = {
         'BACKEND': 'django.core.mail.backends.console.EmailBackend',
     },
 }
+
+COMPONENTS = ComponentsSettings(
+    dirs=[BASE_DIR / 'components'],
+    reload_on_file_change='restart' if DEBUG else 'off',
+)

@@ -1,0 +1,17 @@
+<header class="panel-header">
+  <h1>{{ title }}</h1>
+  {% if toggle_url %}
+    <a
+      class="icon-button"
+      href="{{ toggle_url }}"
+      hx-get="{{ toggle_url }}"
+      hx-target="closest .panel"
+      hx-swap="outerHTML"
+      hx-push-url="true"
+      aria-label="{{ toggle_label }}"
+      title="{{ toggle_title }}"
+    >{{ toggle_icon }}</a>
+  {% else %}
+    <span class="icon-button" aria-hidden="true">{{ toggle_icon }}</span>
+  {% endif %}
+</header>
