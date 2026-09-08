@@ -1,1 +1,4 @@
-<p class="status status-{{ tone }}">{{ message }}</p>
+<p class="status status-{{ tone }}" role="status">
+  <span class="status-dot" aria-hidden="true"></span>
+  <span class="status-message">{{ message }}</span>
+</p>
