@@ -4,7 +4,7 @@ EXAMPLES = [
     Example(
         slug="input-empty",
         title="Input / empty",
-        description="Settings field before a value is entered.",
+        description="Empty field — muted placeholder, no value.",
         component="input",
         group="Primitives",
         kwargs={"placeholder": "https://my-server.example.com"},
@@ -12,7 +12,7 @@ EXAMPLES = [
     Example(
         slug="input-filled",
         title="Input / filled",
-        description="Server URL with a saved value.",
+        description="Filled field — primary-weight value, readable against the placeholder.",
         component="input",
         group="Primitives",
         kwargs={

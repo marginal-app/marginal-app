@@ -17,6 +17,8 @@ class InputTests(SimpleTestCase):
         html = registry.get(example.component).render(kwargs=example.kwargs)
         self.assertIn('class="ds-input"', html)
         self.assertIn('placeholder="https://my-server.example.com"', html)
+        self.assertIn('value=""', html)
+        self.assertNotIn("127.0.0.1", html)
         self.assertNotIn("disabled", html)
 
     def test_filled_renders_value(self):
@@ -25,3 +27,4 @@ class InputTests(SimpleTestCase):
         self.assertIn('name="server_url"', html)
         self.assertIn('value="http://127.0.0.1:8000"', html)
         self.assertIn('class="ds-input"', html)
+        self.assertNotIn("my-server.example.com", html)
