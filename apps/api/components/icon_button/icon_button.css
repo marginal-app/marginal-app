@@ -1,0 +1,56 @@
+.ds-icon-button {
+  appearance: none;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  width: 32px;
+  height: 32px;
+  margin: 0;
+  padding: 0;
+  border: 1px solid transparent;
+  border-radius: var(--radius);
+  background: var(--bg-elevated);
+  color: var(--text-secondary);
+  font-size: 15px;
+  line-height: 1;
+  text-decoration: none;
+  cursor: pointer;
+  font-family: inherit;
+  user-select: none;
+  transition:
+    background-color 0.12s ease,
+    border-color 0.12s ease,
+    color 0.12s ease,
+    box-shadow 0.12s ease;
+}
+
+.ds-icon-button__glyph {
+  display: block;
+  pointer-events: none;
+}
+
+.ds-icon-button:hover,
+.ds-icon-button.is-hover {
+  background: var(--bg);
+  border-color: var(--border);
+  color: var(--text);
+}
+
+.ds-icon-button:focus {
+  outline: none;
+}
+
+.ds-icon-button:focus-visible,
+.ds-icon-button.is-focus {
+  outline: none;
+  color: var(--text);
+  border-color: var(--accent);
+  box-shadow: 0 0 0 2px var(--bg), 0 0 0 4px var(--accent);
+}
+
+.ds-icon-button:active {
+  background: var(--border);
+  border-color: var(--border);
+  color: var(--text);
+}
