@@ -1,7 +1,7 @@
-from ui.example import Example
+from ui.preview import Preview
 
-EXAMPLES = [
-    Example(
+PREVIEWS = [
+    Preview(
         slug="input-empty",
         title="Input / empty",
         description="Empty field — muted placeholder, no value.",
@@ -9,7 +9,7 @@ EXAMPLES = [
         group="Primitives",
         kwargs={"placeholder": "https://my-server.example.com"},
     ),
-    Example(
+    Preview(
         slug="input-filled",
         title="Input / filled",
         description="Filled field — primary-weight value, readable against the placeholder.",

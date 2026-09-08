@@ -1,7 +1,7 @@
-from ui.example import Example
+from ui.preview import Preview
 
-EXAMPLES = [
-    Example(
+PREVIEWS = [
+    Preview(
         slug="card-default",
         title="Card / default",
         description="Cursor-style panel chrome — subtle border, soft elevation, padding.",

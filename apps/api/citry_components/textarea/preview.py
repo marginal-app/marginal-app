@@ -1,7 +1,7 @@
-from ui.example import Example
+from ui.preview import Preview
 
-EXAMPLES = [
-    Example(
+PREVIEWS = [
+    Preview(
         slug="textarea-empty",
         title="Textarea / empty",
         description="Empty comment field with a focus ring — ready to type.",
@@ -9,7 +9,7 @@ EXAMPLES = [
         group="Primitives",
         kwargs={"placeholder": "코멘트 추가...", "focused": True},
     ),
-    Example(
+    Preview(
         slug="textarea-filled",
         title="Textarea / filled",
         description="Draft comment ready to save.",

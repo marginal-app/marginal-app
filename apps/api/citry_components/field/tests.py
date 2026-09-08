@@ -1,12 +1,12 @@
 from django.test import SimpleTestCase
 
-from citry_components.field.examples import DEFAULT, EXAMPLES
+from citry_components.field.preview import DEFAULT, PREVIEWS
 from citry_components.testing import render_component
 
 
 class FieldTests(SimpleTestCase):
     def test_default_named_state_renders_label_and_input(self):
-        example = EXAMPLES[0]
+        example = PREVIEWS[0]
         html = render_component(example.component, example.kwargs)
         self.assertEqual(example.slug, "field-default")
         self.assertEqual(example.group, "Primitives")

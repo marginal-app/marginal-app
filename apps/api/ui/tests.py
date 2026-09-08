@@ -3,9 +3,9 @@ from django.urls import reverse
 
 from citry_components.testing import render_component
 from highlights.models import Highlight
-from ui.discover import discover_examples, merge_examples
-from ui.example import Example
-from ui.examples import EXAMPLES, FEATURE_EXAMPLES
+from ui.discover import discover_previews, merge_previews
+from ui.preview import Preview
+from ui.previews import FEATURE_PREVIEWS, PREVIEWS
 
 
 class ComponentRenderTests(SimpleTestCase):
@@ -67,9 +67,9 @@ class ComponentRenderTests(SimpleTestCase):
         self.assertIn("highlight-list", filled)
 
 
-class ExampleCatalogTests(SimpleTestCase):
+class PreviewCatalogTests(SimpleTestCase):
     def test_feature_slugs_still_resolve(self):
-        slugs = {example.slug for example in FEATURE_EXAMPLES}
+        slugs = {preview.slug for preview in FEATURE_PREVIEWS}
         self.assertEqual(
             slugs,
             {
@@ -88,16 +88,16 @@ class ExampleCatalogTests(SimpleTestCase):
         )
 
     def test_catalog_slugs_are_unique(self):
-        slugs = [example.slug for example in EXAMPLES]
+        slugs = [preview.slug for preview in PREVIEWS]
         self.assertEqual(slugs, list(dict.fromkeys(slugs)))
 
-    def test_discover_examples_returns_a_list(self):
-        found = discover_examples()
+    def test_discover_previews_returns_a_list(self):
+        found = discover_previews()
         self.assertIsInstance(found, list)
-        self.assertTrue(all(isinstance(example, Example) for example in found))
+        self.assertTrue(all(isinstance(preview, Preview) for preview in found))
 
-    def test_merge_examples_rejects_duplicate_slugs(self):
-        row = Example(
+    def test_merge_previews_rejects_duplicate_slugs(self):
+        row = Preview(
             slug="dup",
             title="Dup",
             description="",
@@ -105,26 +105,26 @@ class ExampleCatalogTests(SimpleTestCase):
             group="Atoms",
         )
         with self.assertRaises(ValueError):
-            merge_examples([row], [row])
+            merge_previews([row], [row])
 
 
 class GalleryTests(TestCase):
-    def test_gallery_lists_every_example(self):
+    def test_gallery_lists_every_preview(self):
         response = self.client.get(reverse("component_gallery"))
         self.assertEqual(response.status_code, 200)
         body = response.content.decode()
-        for example in EXAMPLES:
-            self.assertIn(example.title, body)
-            self.assertIn(f'data-example="{example.slug}"', body)
+        for preview in PREVIEWS:
+            self.assertIn(preview.title, body)
+            self.assertIn(f'data-preview="{preview.slug}"', body)
 
     def test_each_silhouette_url_renders(self):
-        for example in EXAMPLES:
-            with self.subTest(example.slug):
+        for preview in PREVIEWS:
+            with self.subTest(preview.slug):
                 response = self.client.get(
-                    reverse("component_silhouette", args=[example.slug]),
+                    reverse("component_silhouette", args=[preview.slug]),
                 )
                 self.assertEqual(response.status_code, 200)
-                self.assertContains(response, example.title)
+                self.assertContains(response, preview.title)
 
     def test_page_silhouettes_keep_the_full_panel_frame(self):
         response = self.client.get(reverse("component_silhouette", args=["panel-empty"]))
@@ -132,9 +132,9 @@ class GalleryTests(TestCase):
         self.assertNotContains(response, "silhouette-atom")
 
     def test_primitive_silhouettes_use_the_padded_atom_frame(self):
-        primitives = [example for example in EXAMPLES if example.group == "Primitives"]
+        primitives = [preview for preview in PREVIEWS if preview.group == "Primitives"]
         if not primitives:
-            self.skipTest("no primitive examples discovered yet")
+            self.skipTest("no primitive previews discovered yet")
         response = self.client.get(
             reverse("component_silhouette", args=[primitives[0].slug]),
         )

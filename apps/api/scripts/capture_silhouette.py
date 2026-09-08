@@ -30,9 +30,9 @@ def _slugs_from_catalog() -> list[str]:
     import django
 
     django.setup()
-    from ui.examples import EXAMPLES
+    from ui.previews import PREVIEWS
 
-    return [example.slug for example in EXAMPLES]
+    return [preview.slug for preview in PREVIEWS]
 
 
 def main() -> int:
@@ -42,7 +42,7 @@ def main() -> int:
     parser.add_argument(
         "slugs",
         nargs="*",
-        help="Example slugs from the gallery catalog",
+        help="Preview slugs from the gallery catalog",
     )
     parser.add_argument(
         "--all",

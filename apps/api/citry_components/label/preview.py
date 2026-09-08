@@ -1,7 +1,7 @@
-from ui.example import Example
+from ui.preview import Preview
 
-EXAMPLES = [
-    Example(
+PREVIEWS = [
+    Preview(
         slug="label-default",
         title="Label / default",
         description="Cursor settings caption — kicker, title, and supporting hint.",

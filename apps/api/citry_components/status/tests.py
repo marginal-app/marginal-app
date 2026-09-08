@@ -1,11 +1,11 @@
 from django.test import SimpleTestCase
 
-from citry_components.status.examples import EXAMPLES
+from citry_components.status.preview import PREVIEWS
 from citry_components.testing import render_component
 
 
 def _example(slug: str):
-    return next(example for example in EXAMPLES if example.slug == slug)
+    return next(example for example in PREVIEWS if example.slug == slug)
 
 
 class StatusConstructionTests(SimpleTestCase):
@@ -28,6 +28,6 @@ class StatusConstructionTests(SimpleTestCase):
         self.assertIn("연결 실패: 서버가 401로 응답했습니다", html)
 
     def test_named_states_are_primitives(self):
-        slugs = {example.slug: example.group for example in EXAMPLES}
+        slugs = {example.slug: example.group for example in PREVIEWS}
         self.assertEqual(slugs["status-ok"], "Primitives")
         self.assertEqual(slugs["status-error"], "Primitives")

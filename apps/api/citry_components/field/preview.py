@@ -1,4 +1,4 @@
-from ui.example import Example
+from ui.preview import Preview
 
 DEFAULT = {
     "label": "Server URL",
@@ -6,8 +6,8 @@ DEFAULT = {
     "placeholder": "https://my-server.example.com",
 }
 
-EXAMPLES = [
-    Example(
+PREVIEWS = [
+    Preview(
         slug="field-default",
         title="Field / default",
         description="Settings Server URL field with a saved value.",

@@ -3,7 +3,7 @@ from typing import Any
 
 
 @dataclass(frozen=True)
-class Example:
+class Preview:
     slug: str
     title: str
     description: str

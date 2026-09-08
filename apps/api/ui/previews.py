@@ -1,27 +1,27 @@
-from ui.discover import discover_examples, merge_examples
-from ui.example import Example
+from ui.discover import discover_previews, merge_previews
 from ui.fixtures import EDITING, HIGHLIGHTS, QUOTE_ONLY, WITH_COMMENT
+from ui.preview import Preview
 
 __all__ = [
     "EDITING",
-    "EXAMPLES",
-    "FEATURE_EXAMPLES",
+    "FEATURE_PREVIEWS",
     "HIGHLIGHTS",
+    "PREVIEWS",
     "QUOTE_ONLY",
     "WITH_COMMENT",
-    "Example",
-    "example_by_slug",
+    "Preview",
+    "preview_by_slug",
 ]
 
-FEATURE_EXAMPLES: list[Example] = [
-    Example(
+FEATURE_PREVIEWS: list[Preview] = [
+    Preview(
         slug="empty-state",
         title="EmptyState",
         description="Default empty library — no highlights on the page.",
         component="empty_state",
         group="Atoms",
     ),
-    Example(
+    Preview(
         slug="highlight-card-quote",
         title="HighlightCard / quote only",
         description="Card with a color accent and the add-comment placeholder.",
@@ -29,7 +29,7 @@ FEATURE_EXAMPLES: list[Example] = [
         group="Atoms",
         kwargs=QUOTE_ONLY,
     ),
-    Example(
+    Preview(
         slug="highlight-card-comment",
         title="HighlightCard / with comment",
         description="Saved annotation under the quote.",
@@ -37,7 +37,7 @@ FEATURE_EXAMPLES: list[Example] = [
         group="Atoms",
         kwargs=WITH_COMMENT,
     ),
-    Example(
+    Preview(
         slug="highlight-card-editing",
         title="HighlightCard / editing",
         description="HTMX target state: textarea + save. Same component, different kwargs.",
@@ -45,7 +45,7 @@ FEATURE_EXAMPLES: list[Example] = [
         group="Atoms",
         kwargs=EDITING,
     ),
-    Example(
+    Preview(
         slug="highlight-list",
         title="HighlightList",
         description="Stacked cards as a fragment an HTMX swap can replace.",
@@ -53,7 +53,7 @@ FEATURE_EXAMPLES: list[Example] = [
         group="Molecules",
         kwargs={"highlights": HIGHLIGHTS},
     ),
-    Example(
+    Preview(
         slug="settings-idle",
         title="SettingsForm / idle",
         description="Connection form before a test.",
@@ -65,7 +65,7 @@ FEATURE_EXAMPLES: list[Example] = [
             "status": "idle",
         },
     ),
-    Example(
+    Preview(
         slug="settings-ok",
         title="SettingsForm / success",
         description="Ping succeeded.",
@@ -77,7 +77,7 @@ FEATURE_EXAMPLES: list[Example] = [
             "status": "ok",
         },
     ),
-    Example(
+    Preview(
         slug="settings-error",
         title="SettingsForm / error",
         description="Ping failed — used as an error-state silhouette.",
@@ -90,7 +90,7 @@ FEATURE_EXAMPLES: list[Example] = [
             "error_message": "서버가 401로 응답했습니다",
         },
     ),
-    Example(
+    Preview(
         slug="panel-empty",
         title="LibraryPanel / empty",
         description="Composed page: header + empty state. Page-level silhouette.",
@@ -98,7 +98,7 @@ FEATURE_EXAMPLES: list[Example] = [
         group="Pages",
         kwargs={"view": "highlights", "highlights": []},
     ),
-    Example(
+    Preview(
         slug="panel-highlights",
         title="LibraryPanel / highlights",
         description="Composed page matching the extension side panel list.",
@@ -106,7 +106,7 @@ FEATURE_EXAMPLES: list[Example] = [
         group="Pages",
         kwargs={"view": "highlights", "highlights": HIGHLIGHTS},
     ),
-    Example(
+    Preview(
         slug="panel-settings",
         title="LibraryPanel / settings",
         description="Composed settings view.",
@@ -116,11 +116,11 @@ FEATURE_EXAMPLES: list[Example] = [
     ),
 ]
 
-EXAMPLES: list[Example] = merge_examples(FEATURE_EXAMPLES, discover_examples())
+PREVIEWS: list[Preview] = merge_previews(FEATURE_PREVIEWS, discover_previews())
 
 
-def example_by_slug(slug: str) -> Example:
-    for example in EXAMPLES:
-        if example.slug == slug:
-            return example
+def preview_by_slug(slug: str) -> Preview:
+    for preview in PREVIEWS:
+        if preview.slug == slug:
+            return preview
     raise KeyError(slug)

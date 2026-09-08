@@ -1,6 +1,6 @@
 {% extends "ui/base.html" %}
 
-{% block title %}{{ example.title }}{% endblock %}
+{% block title %}{{ preview.title }}{% endblock %}
 
 {% block extra_head %}
 <style>
@@ -31,15 +31,15 @@
 {% block body %}
 <div class="silhouette-page">
   <div class="silhouette-meta">
-    <h1>{{ example.title }}</h1>
-    <p>{{ example.description }}</p>
+    <h1>{{ preview.title }}</h1>
+    <p>{{ preview.description }}</p>
     <p><a href="{% url 'component_gallery' %}">← gallery</a></p>
   </div>
   <div
-    class="silhouette{% if example.is_atom %} silhouette-atom{% endif %}"
-    data-example="{{ example.slug }}"
+    class="silhouette{% if preview.is_atom %} silhouette-atom{% endif %}"
+    data-preview="{{ preview.slug }}"
   >
-    {{ example.html|safe }}
+    {{ preview.html|safe }}
   </div>
 </div>
 {% endblock %}

@@ -8,11 +8,11 @@ from django.views.decorators.http import require_http_methods
 
 from citry_components.rendering import render_component
 from highlights.models import Highlight
-from ui.examples import EXAMPLES, Example, example_by_slug
+from ui.previews import PREVIEWS, Preview, preview_by_slug
 
 
 @dataclass(frozen=True)
-class RenderedExample:
+class RenderedPreview:
     slug: str
     title: str
     description: str
@@ -21,18 +21,18 @@ class RenderedExample:
     is_atom: bool = False
 
 
-def _render_example(example: Example, request: HttpRequest) -> str:  # noqa: ARG001
-    return render_component(example.component, example.kwargs)
+def _render_preview(preview: Preview, request: HttpRequest) -> str:  # noqa: ARG001
+    return render_component(preview.component, preview.kwargs)
 
 
-def _rendered(example: Example, request: HttpRequest) -> RenderedExample:
-    return RenderedExample(
-        slug=example.slug,
-        title=example.title,
-        description=example.description,
-        group=example.group,
-        html=_render_example(example, request),
-        is_atom=example.group == "Primitives",
+def _rendered(preview: Preview, request: HttpRequest) -> RenderedPreview:
+    return RenderedPreview(
+        slug=preview.slug,
+        title=preview.title,
+        description=preview.description,
+        group=preview.group,
+        html=_render_preview(preview, request),
+        is_atom=preview.group == "Primitives",
     )
 
 
@@ -121,17 +121,17 @@ def _library_response(request: HttpRequest, kwargs: dict[str, object]) -> HttpRe
 
 @require_http_methods(["GET"])
 def gallery_view(request: HttpRequest) -> HttpResponse:
-    examples = [_rendered(example, request) for example in EXAMPLES]
-    return render(request, "ui/gallery.html", {"examples": examples})
+    previews = [_rendered(preview, request) for preview in PREVIEWS]
+    return render(request, "ui/gallery.html", {"previews": previews})
 
 
 @require_http_methods(["GET"])
 def silhouette_view(request: HttpRequest, slug: str) -> HttpResponse:
     try:
-        example = example_by_slug(slug)
+        preview = preview_by_slug(slug)
     except KeyError as exc:
-        raise Http404(f"Unknown example: {slug}") from exc
-    return render(request, "ui/silhouette.html", {"example": _rendered(example, request)})
+        raise Http404(f"Unknown preview: {slug}") from exc
+    return render(request, "ui/silhouette.html", {"preview": _rendered(preview, request)})
 
 
 @require_http_methods(["GET"])

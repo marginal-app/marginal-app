@@ -10,7 +10,7 @@ VIEWPORT = {"width": 420, "height": 900}
 
 
 def silhouette_url(base_url: str, slug: str) -> str:
-    return f"{base_url.rstrip('/')}/dev/components/{slug}/"
+    return f"{base_url.rstrip('/')}/citry/preview/{slug}/"
 
 
 def dest_path(out_dir: Path, slug: str) -> Path:

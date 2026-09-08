@@ -4,9 +4,9 @@ from citry_components.highlight_card.highlight_card import highlight_card_edit_v
 from ui import views
 
 urlpatterns = [
-    path("", views.gallery_view, name="component_gallery"),
+    path("citry/preview/", views.gallery_view, name="component_gallery"),
     path(
-        "dev/components/<slug:slug>/",
+        "citry/preview/<slug:slug>/",
         views.silhouette_view,
         name="component_silhouette",
     ),

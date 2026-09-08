@@ -1,7 +1,7 @@
-from ui.example import Example
+from ui.preview import Preview
 
-EXAMPLES = [
-    Example(
+PREVIEWS = [
+    Preview(
         slug="status-ok",
         title="Status / ok",
         description="Success tone — connection saved.",
@@ -9,7 +9,7 @@ EXAMPLES = [
         group="Primitives",
         kwargs={"message": "연결 성공 — 저장했습니다."},
     ),
-    Example(
+    Preview(
         slug="status-error",
         title="Status / error",
         description="Error tone — ping failed.",

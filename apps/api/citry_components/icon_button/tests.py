@@ -1,11 +1,11 @@
 from django.test import SimpleTestCase
 
-from citry_components.icon_button.examples import EXAMPLES
+from citry_components.icon_button.preview import PREVIEWS
 from citry_components.testing import render_component
 
 
 def _example(slug: str):
-    for example in EXAMPLES:
+    for example in PREVIEWS:
         if example.slug == slug:
             return example
     raise KeyError(slug)
