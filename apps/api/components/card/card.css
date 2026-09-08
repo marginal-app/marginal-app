@@ -1,0 +1,12 @@
+.ds-card {
+  background: var(--bg);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 0.625rem 0.75rem;
+}
+
+.ds-card-body {
+  margin: 0;
+  font-size: 0.9rem;
+  line-height: 1.45;
+}
