@@ -1,6 +1,6 @@
 # Contributing
 
-This file is the repo gate. `AGENTS.md` and `CLAUDE.md` are symlinks to it.
+This file is the human gate for how a UI change is structured and reviewed. It is the [UI that paints pixels](AGENTS.md#ui-that-paints-pixels) principle in full. Other agent principles live in [AGENTS.md](AGENTS.md) as sibling sections.
 
 This monorepo has two surfaces that paint pixels. They are not the same app and they are not reviewed the same way.
 
