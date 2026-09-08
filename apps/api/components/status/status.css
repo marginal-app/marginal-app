@@ -1,0 +1,12 @@
+.status {
+  margin: 0;
+  font-size: 0.8rem;
+}
+
+.status-ok {
+  color: var(--success);
+}
+
+.status-error {
+  color: var(--danger);
+}
