@@ -1,4 +1,5 @@
 """Render a registered Citry component to an HTML string, styles included."""
+
 from typing import Any
 
 from config.citry_app import app
