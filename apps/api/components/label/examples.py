@@ -4,9 +4,12 @@ EXAMPLES = [
     Example(
         slug="label-default",
         title="Label / default",
-        description="Field label matching .field-label.",
+        description="Field caption with supporting hint — Cursor settings hierarchy.",
         component="label",
         group="Primitives",
-        kwargs={"text": "Server URL"},
+        kwargs={
+            "text": "Server URL",
+            "hint": "Host the extension uses to sync highlights.",
+        },
     ),
 ]

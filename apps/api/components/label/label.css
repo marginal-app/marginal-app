@@ -1,5 +1,34 @@
 .ds-label {
-  font-size: 0.8rem;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 0.2rem;
+  width: 100%;
+  margin: 0;
+  padding: 0.55rem 0.7rem;
+  background: var(--bg-elevated);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  box-sizing: border-box;
+}
+
+.ds-label:focus-within {
+  border-color: var(--accent);
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--accent) 16%, transparent);
+}
+
+.ds-label-text {
+  font-size: 0.75rem;
   font-weight: 600;
+  letter-spacing: 0.02em;
+  line-height: 1.25;
+  color: var(--text);
+}
+
+.ds-label-hint {
+  font-size: 0.6875rem;
+  font-weight: 400;
+  letter-spacing: 0.01em;
+  line-height: 1.4;
   color: var(--text-secondary);
 }

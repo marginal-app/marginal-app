@@ -8,10 +8,12 @@ class Label(Component):
 
     class Kwargs:
         text: str = "Server URL"
+        hint: str = ""
         html_for: str = ""
 
     def get_template_data(self, args, kwargs: Kwargs, slots, context):
         return {
             "text": kwargs.text,
+            "hint": kwargs.hint,
             "html_for": kwargs.html_for,
         }

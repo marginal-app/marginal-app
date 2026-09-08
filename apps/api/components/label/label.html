@@ -1,1 +1,4 @@
-<label class="ds-label"{% if html_for %} for="{{ html_for }}"{% endif %}>{{ text }}</label>
+<label class="ds-label"{% if html_for %} for="{{ html_for }}"{% endif %}>
+  <span class="ds-label-text">{{ text }}</span>
+  {% if hint %}<span class="ds-label-hint">{{ hint }}</span>{% endif %}
+</label>

@@ -16,5 +16,8 @@ class LabelTests(SimpleTestCase):
         example = _example("label-default")
         html = registry.get(example.component).render(kwargs=example.kwargs)
         self.assertIn('class="ds-label"', html)
+        self.assertIn("ds-label-text", html)
+        self.assertIn("ds-label-hint", html)
         self.assertIn("Server URL", html)
+        self.assertIn("Host the extension uses to sync highlights.", html)
         self.assertNotIn(" for=", html)
