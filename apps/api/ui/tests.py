@@ -3,7 +3,9 @@ from django.urls import reverse
 from django_components import registry
 
 from highlights.models import Highlight
-from ui.examples import EXAMPLES
+from ui.discover import discover_examples, merge_examples
+from ui.example import Example
+from ui.examples import EXAMPLES, FEATURE_EXAMPLES
 
 
 class ComponentRenderTests(SimpleTestCase):
@@ -61,6 +63,47 @@ class ComponentRenderTests(SimpleTestCase):
         self.assertIn("highlight-list", filled)
 
 
+class ExampleCatalogTests(SimpleTestCase):
+    def test_feature_slugs_still_resolve(self):
+        slugs = {example.slug for example in FEATURE_EXAMPLES}
+        self.assertEqual(
+            slugs,
+            {
+                "empty-state",
+                "highlight-card-quote",
+                "highlight-card-comment",
+                "highlight-card-editing",
+                "highlight-list",
+                "settings-idle",
+                "settings-ok",
+                "settings-error",
+                "panel-empty",
+                "panel-highlights",
+                "panel-settings",
+            },
+        )
+
+    def test_catalog_slugs_are_unique(self):
+        slugs = [example.slug for example in EXAMPLES]
+        self.assertEqual(slugs, list(dict.fromkeys(slugs)))
+
+    def test_discover_examples_returns_a_list(self):
+        found = discover_examples()
+        self.assertIsInstance(found, list)
+        self.assertTrue(all(isinstance(example, Example) for example in found))
+
+    def test_merge_examples_rejects_duplicate_slugs(self):
+        row = Example(
+            slug="dup",
+            title="Dup",
+            description="",
+            component="empty_state",
+            group="Atoms",
+        )
+        with self.assertRaises(ValueError):
+            merge_examples([row], [row])
+
+
 class GalleryTests(TestCase):
     def test_gallery_lists_every_example(self):
         response = self.client.get(reverse("component_gallery"))
@@ -78,6 +121,21 @@ class GalleryTests(TestCase):
                 )
                 self.assertEqual(response.status_code, 200)
                 self.assertContains(response, example.title)
+
+    def test_page_silhouettes_keep_the_full_panel_frame(self):
+        response = self.client.get(reverse("component_silhouette", args=["panel-empty"]))
+        self.assertEqual(response.status_code, 200)
+        self.assertNotContains(response, "silhouette-atom")
+
+    def test_primitive_silhouettes_use_the_padded_atom_frame(self):
+        primitives = [example for example in EXAMPLES if example.group == "Primitives"]
+        if not primitives:
+            self.skipTest("no primitive examples discovered yet")
+        response = self.client.get(
+            reverse("component_silhouette", args=[primitives[0].slug]),
+        )
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, "silhouette-atom")
 
 
 class LibraryHtmxTests(TestCase):

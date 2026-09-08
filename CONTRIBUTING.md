@@ -138,3 +138,44 @@ Put matching image tags in the PR body, paths identical to `--attach` (including
 ```
 
 `/library/` is the live HTMX composition of the same components. Use it to prove a swap. Do not substitute a library walkthrough — or an unpacked extension — for the stills. When the slice's point is motion, attach stills of the before and after named states; an MP4 may accompany them.
+
+## Design system primitives
+
+The design system is `django-components`, not a React package. Tokens stay in `apps/api/static/ui/app.css` and `apps/browser-extension/entrypoints/sidepanel/style.css` (see [Style belongs to the design system](#style-belongs-to-the-design-system)). A primitive is a new registered component. Feature components (`highlight_card`, `settings_form`, `library_panel`, …) stay as they are until a later compose pass.
+
+v1 primitives — one pull request each:
+
+| Primitive | Named states | Today's class |
+| --- | --- | --- |
+| `button` | default, small, disabled | `.primary-button` |
+| `input` | empty, filled | settings / comment fields |
+| `textarea` | empty, filled | comment edit |
+| `label` | default | `.field-label` |
+| `field` | default | `.field` |
+| `card` | default | bordered panel chrome |
+| `icon_button` | default | `.icon-button` |
+| `status` | ok, error | `.status` |
+
+A primitive PR:
+
+- Adds only `apps/api/components/<name>/` — the component, `examples.py`, and construction tests.
+- Registers named states as `EXAMPLES` in that folder. `ui/examples.py` discovers those files; do not append rows to the feature catalog.
+- Reuses the current tokens. It does not invent a second palette, and it does not restyle an existing feature component.
+- Attaches a silhouette PNG per named state that changes the picture. Capture the raw URL with `uv run python scripts/capture_silhouette.py <slug>` while `runserver` is up. Playwright clips `.silhouette`. Do not commit goldens. Cloud Agents attach per [Cursor Cloud Agent silhouette attach](#cursor-cloud-agent-silhouette-attach).
+
+Do not add shadcn, Tailwind, or a `packages/ui` React tree for this.
+
+## Cursor Cloud Agent silhouette attach
+
+`gh pr create --attach` is the human attach path. It is not the Cursor Cloud Agent path.
+
+A Cloud Agent must not put `![empty](./apps/api/.silhouettes/panel-empty.png)` (or `/workspace/apps/api/.silhouettes/…`) in the pull request body unless GitHub has already rewritten that path to a `user-attachments` URL. Those files are gitignored. GitHub then tries to thumbnail a path that is not in the repo and shows "Couldn't open thumbnail image."
+
+A Cloud Agent attaches the same runtime PNG this way:
+
+- Capture the raw silhouette URL at review time with `uv run python scripts/capture_silhouette.py <slug>` (Playwright clips `.silhouette`). Do not commit the PNG.
+- Create or update the PR with the Cursor PR tool. Embed each still as an HTML `<img>` whose `src` is the absolute file path on the agent machine (for example `/workspace/apps/api/.silhouettes/panel-empty.png`). The tool uploads the file and rewrites the tag to a Cursor artifact URL.
+- Do not also leave the gitignored relative markdown path in the body. GitHub will try to thumbnail it and fail.
+- Do not use `gh pr create` / `gh pr edit --attach` from a Cloud Agent. The agent token cannot upload GitHub user-attachments (`unsupported authentication type`).
+
+A human opening a PR from their laptop still uses `--attach` as in [Reviewing UI from a silhouette](#reviewing-ui-from-a-silhouette). The review contract is unchanged: the PNG is attached to the PR, not committed, and not a CI oracle.
