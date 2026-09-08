@@ -21,5 +21,6 @@ from django.urls import include, path
 urlpatterns = [
     path('admin/', admin.site.urls),
     path('api/', include('highlights.urls')),
+    path('', include('highlights.library_urls')),
     path('', include('citry_preview.urls')),
 ]

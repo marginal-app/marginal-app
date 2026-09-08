@@ -99,7 +99,7 @@ The harness lives in `apps/api`. Do not add another, and do not point it at the 
 | `/citry/preview/` | Gallery. Every preview, 360px panel, fixture kwargs only. |
 | `/citry/preview/<slug>/` | Raw silhouette. This is the screenshot target. |
 | `apps/api/.silhouettes/` | Author-local PNGs. Gitignored. Attach them; do not commit them. |
-| `uv run python manage.py test citry_preview ui_primitive` | Construction tests. `Component.render()` / gallery URL smoke. No Chrome. |
+| `uv run python manage.py test citry_preview ui_primitive highlights` | Construction tests. `Component.render()` / gallery URL smoke. No Chrome. |
 | `pnpm --filter @marginal-app/browser-extension test` | Extension construction tests. jsdom / fake-indexeddb. No Chrome. |
 
 Name files from the preview slug and the state that changes the silhouette:

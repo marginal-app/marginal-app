@@ -9,13 +9,13 @@ PROJECT_ROOT = Path(__file__).resolve().parent.parent
 
 def discover_previews() -> list[Preview]:
     """Load PREVIEWS from every installed app's `components/**/preview.py`."""
-    found: list[Preview] = []
+    groups: list[list[Preview]] = []
     for base_dir in component_dirs():
         for path in sorted(base_dir.rglob("preview.py")):
             relative = path.relative_to(PROJECT_ROOT).with_suffix("")
             module = import_module(".".join(relative.parts))
-            found.extend(getattr(module, "PREVIEWS", ()))
-    return found
+            groups.append(list(getattr(module, "PREVIEWS", ())))
+    return merge_previews(*groups)
 
 
 def merge_previews(*groups: list[Preview]) -> list[Preview]:
