@@ -1,0 +1,45 @@
+.status {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  margin: 0;
+  max-width: 100%;
+  padding: 0.35rem 0.7rem 0.35rem 0.55rem;
+  font-size: 0.8rem;
+  font-weight: 500;
+  line-height: 1.35;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  box-sizing: border-box;
+}
+
+.status-dot {
+  width: 0.4rem;
+  height: 0.4rem;
+  flex: 0 0 auto;
+  border-radius: 999px;
+}
+
+.status-message {
+  min-width: 0;
+}
+
+.status-ok {
+  color: var(--success);
+  background: color-mix(in srgb, var(--success) 10%, var(--bg));
+  border-color: color-mix(in srgb, var(--success) 22%, var(--border));
+}
+
+.status-ok .status-dot {
+  background: var(--success);
+}
+
+.status-error {
+  color: var(--danger);
+  background: color-mix(in srgb, var(--danger) 10%, var(--bg));
+  border-color: color-mix(in srgb, var(--danger) 22%, var(--border));
+}
+
+.status-error .status-dot {
+  background: var(--danger);
+}
