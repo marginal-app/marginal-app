@@ -1,5 +1,22 @@
 const PASTEL_COLORS = ['#FFF3B0', '#FFD6E0', '#C9F2C7', '#C7E8FF', '#E3D4FF'];
 
+function extractContext(blockEl: Element, quote: string, wordCount = 6) {
+  const text = blockEl.textContent ?? '';
+  const idx = text.indexOf(quote);
+  if (idx === -1) return { prefix: '', suffix: '' };
+
+  const before = text.slice(0, idx);
+  const after = text.slice(idx + quote.length);
+
+  const prefixWords = before.match(/\S+/g) ?? [];
+  const suffixWords = after.match(/\S+/g) ?? [];
+
+  return {
+    prefix: prefixWords.slice(-wordCount).join(' '),
+    suffix: suffixWords.slice(0, wordCount).join(' '),
+  };
+}
+
 export default defineContentScript({
   matches: ['<all_urls>'],
   runAt: 'document_idle',
@@ -87,6 +104,9 @@ export default defineContentScript({
         hideToolbar();
         return;
       }
+
+      const { prefix, suffix } = extractContext(blockEl, quote);
+      console.log({ quote, prefix, suffix });
 
       pendingRange = range.cloneRange();
 
