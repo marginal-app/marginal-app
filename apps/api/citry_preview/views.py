@@ -45,4 +45,5 @@ def silhouette_view(request: HttpRequest, slug: str) -> HttpResponse:
         preview = preview_by_slug(slug)
     except KeyError as exc:
         raise Http404(f"Unknown preview: {slug}") from exc
-    return render(request, "citry_preview/silhouette.html", {"preview": _rendered(preview, request)})
+    context = {"preview": _rendered(preview, request)}
+    return render(request, "citry_preview/silhouette.html", context)

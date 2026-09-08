@@ -1,7 +1,7 @@
 from django.test import SimpleTestCase
 
-from ui_primitive.components.icon_button.preview import PREVIEWS
 from citry_preview.testing import render_component
+from ui_primitive.components.icon_button.preview import PREVIEWS
 
 
 def _example(slug: str):

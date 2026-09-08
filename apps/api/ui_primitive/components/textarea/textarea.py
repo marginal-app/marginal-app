@@ -1,5 +1,6 @@
-from config.citry_app import app
 from citry import Component
+
+from config.citry_app import app
 
 
 class Textarea(Component):

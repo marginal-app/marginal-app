@@ -1,7 +1,7 @@
 from django.test import SimpleTestCase
 
-from ui_primitive.components.field.preview import DEFAULT, PREVIEWS
 from citry_preview.testing import render_component
+from ui_primitive.components.field.preview import DEFAULT, PREVIEWS
 
 
 class FieldTests(SimpleTestCase):

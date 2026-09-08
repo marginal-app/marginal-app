@@ -1,12 +1,12 @@
 from uuid import UUID
 
+from citry import Component
 from django.http import HttpRequest, HttpResponse
 from django.middleware.csrf import get_token
 from django.shortcuts import get_object_or_404, render
 from django.urls import reverse
 
 from config.citry_app import app
-from citry import Component
 from highlights.models import Highlight
 
 

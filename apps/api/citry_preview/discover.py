@@ -1,8 +1,8 @@
 from importlib import import_module
 from pathlib import Path
 
-from config.citry_app import component_dirs
 from citry_preview.preview import Preview
+from config.citry_app import component_dirs
 
 PROJECT_ROOT = Path(__file__).resolve().parent.parent
 

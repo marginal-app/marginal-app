@@ -1,7 +1,8 @@
 from typing import Any
 
-from config.citry_app import app
 from citry import Component
+
+from config.citry_app import app
 
 
 class LibraryPanel(Component):

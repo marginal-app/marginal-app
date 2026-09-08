@@ -1,5 +1,6 @@
-from config.citry_app import app
 from citry import Component, SlotInput
+
+from config.citry_app import app
 
 
 class Card(Component):
@@ -12,7 +13,7 @@ class Card(Component):
         body: str = ""
 
     class Slots:
-        default: SlotInput = None
+        default: SlotInput | None = None
 
     def template_data(self, kwargs, slots):
         return {
