@@ -1,0 +1,17 @@
+{% if is_link %}
+<a
+  class="icon-button"
+  href="{{ href }}"
+  aria-label="{{ label }}"
+  title="{{ title }}"
+  {% for name, value in attrs.items %}{{ name }}="{{ value }}" {% endfor %}
+>{{ icon }}</a>
+{% else %}
+<button
+  type="button"
+  class="icon-button"
+  aria-label="{{ label }}"
+  title="{{ title }}"
+  {% for name, value in attrs.items %}{{ name }}="{{ value }}" {% endfor %}
+>{{ icon }}</button>
+{% endif %}
