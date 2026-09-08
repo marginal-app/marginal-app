@@ -43,7 +43,8 @@ INSTALLED_APPS = [
     'django.contrib.messages',
     'django.contrib.staticfiles',
     'highlights',
-    'ui',
+    'ui_primitive',
+    'citry_preview',
 ]
 
 MIDDLEWARE = [

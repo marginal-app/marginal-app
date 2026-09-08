@@ -30,13 +30,13 @@ def _slugs_from_catalog() -> list[str]:
     import django
 
     django.setup()
-    from ui.previews import PREVIEWS
+    from citry_preview.previews import PREVIEWS
 
     return [preview.slug for preview in PREVIEWS]
 
 
 def main() -> int:
-    from ui.capture import DEFAULT_BASE_URL, capture_silhouette
+    from citry_preview.capture import DEFAULT_BASE_URL, capture_silhouette
 
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument(
