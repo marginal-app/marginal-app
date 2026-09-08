@@ -1,6 +1,10 @@
 # Contributing
 
-This file is the human gate for how a UI change is structured and reviewed. It is the [UI that paints pixels](AGENTS.md#ui-that-paints-pixels) principle in full. Other agent principles live in [AGENTS.md](AGENTS.md) as sibling sections.
+This file is the repo gate. `AGENTS.md` and `CLAUDE.md` are symlinks to it.
+
+Add each new principle as its own `##` section below. The silhouette check is one principle. It is not the whole file. Do not fold a new rule into an existing section because it is "also about UI" or "also about review".
+
+## UI that paints pixels
 
 This monorepo has two surfaces that paint pixels. They are not the same app and they are not reviewed the same way.
 
@@ -11,15 +15,15 @@ This monorepo has two surfaces that paint pixels. They are not the same app and 
 
 A reviewer approves a UI PR from the diff plus a silhouette PNG — they do not run the app, and they do not load an unpacked extension. Screenshots are a review contract, not a demo. Commands, attach flags, and the SSR harness live in [Reviewing UI from a silhouette](#reviewing-ui-from-a-silhouette).
 
-## Style belongs to the design system
+### Style belongs to the design system
 
 Appearance still belongs to the shared tokens (`--bg`, `--accent`, `--radius`, type). Today they live in `apps/api/static/ui/app.css` and `apps/browser-extension/entrypoints/sidepanel/style.css`. A feature that paints pixels consumes those tokens. It does not invent a second palette, a second type ramp, or a one-off panel chrome.
 
 The two copies must not drift. A token change lands in both files, or it is not a token change. Colocated CSS next to a `django-components` component, or in the extension's `App.css`, is for layout that only that surface owns.
 
-This section is the style rule. [UI that paints pixels](#ui-that-paints-pixels) is the structure-and-review rule. Neither replaces the other.
+This subsection is the style rule. The rest of this principle is the structure-and-review rule. Neither replaces the other.
 
-## UI that paints pixels
+### Composition
 
 A feature that paints pixels splits the values on screen from the commands that change them. The public view receives props (or kwargs). A composition root is the only place that knows IndexedDB, `browser.*`, `fetch`, session cookies, or the live API. A component test is another composition root: it injects a named state. Do not add a BaseScreen framework, a generic view-model, or a second router for tests.
 
@@ -39,13 +43,13 @@ GitHub CLI 2.99 and later rewrites a Markdown image only when the path in the bo
 
 Label-only differences are text assertions, not extra goldens.
 
-### Do
+Do:
 
 - Keep live fetch, session cookies, IndexedDB, and the API client out of the presentational view.
 - Feed the construction test and the PNG from the same factory.
 - Attach stills. An MP4 is welcome only when the slice's point is motion, and never instead of stills.
 
-### Don't
+Don't:
 
 - Fetch inside the presentational view "because the test can mock it".
 - Snapshot every theme × tab × empty × error combination. Name the states that change the silhouette.
@@ -55,7 +59,7 @@ Label-only differences are text assertions, not extra goldens.
 
 How that split is wired depends on the surface.
 
-## Server-side rendered fullstack
+### Server-side rendered fullstack
 
 `apps/api` is a Django app that paints the library panel with `django-components` and swaps the same registered components over HTMX. It is a fullstack app, not a JSON-only API with a gallery bolted on. The gallery exists so a reviewer can see named states without a session, an extension, or a React tree.
 
@@ -69,7 +73,7 @@ Today the factories are the `Example` rows and shared kwargs (`QUOTE_ONLY`, `WIT
 
 A change to panel pixels lands here first. The extension side panel is a live client of the same look, not a second source of truth for silhouettes.
 
-## Browser extension
+### Browser extension
 
 `apps/browser-extension` is a WXT + React extension. It has three composition roots, and none of them is a silhouette URL.
 
@@ -85,7 +89,7 @@ The side panel is allowed to be a live client. It is not allowed to be a second 
 
 Do not add Storybook, a component gallery, or a `/dev` route to the extension to get a screenshot. The SSR harness already exists. Do not boot WXT or load an unpacked build to prove appearance.
 
-## Reviewing UI from a silhouette
+### Reviewing UI from a silhouette
 
 The harness lives in `apps/api`. Do not add another, and do not point it at the extension.
 
