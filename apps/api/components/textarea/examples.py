@@ -4,10 +4,10 @@ EXAMPLES = [
     Example(
         slug="textarea-empty",
         title="Textarea / empty",
-        description="Comment field before a note is typed.",
+        description="Empty comment field with a focus ring — ready to type.",
         component="textarea",
         group="Primitives",
-        kwargs={"placeholder": "코멘트 추가..."},
+        kwargs={"placeholder": "코멘트 추가...", "focused": True},
     ),
     Example(
         slug="textarea-filled",

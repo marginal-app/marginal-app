@@ -15,7 +15,8 @@ class TextareaTests(SimpleTestCase):
     def test_empty_renders_placeholder(self):
         example = _example("textarea-empty")
         html = registry.get(example.component).render(kwargs=example.kwargs)
-        self.assertIn('class="ds-textarea"', html)
+        self.assertIn("ds-textarea", html)
+        self.assertIn("is-focused", html)
         self.assertIn('placeholder="코멘트 추가..."', html)
         self.assertIn('name="comment"', html)
         self.assertNotIn("disabled", html)
@@ -24,5 +25,6 @@ class TextareaTests(SimpleTestCase):
         example = _example("textarea-filled")
         html = registry.get(example.component).render(kwargs=example.kwargs)
         self.assertIn("Draft note from a Cloud Agent", html)
-        self.assertIn('class="ds-textarea"', html)
+        self.assertIn("ds-textarea", html)
         self.assertIn('name="comment"', html)
+        self.assertNotIn("is-focused", html)

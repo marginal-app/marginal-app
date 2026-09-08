@@ -10,8 +10,10 @@ class Textarea(Component):
         name: str = "comment"
         value: str = ""
         placeholder: str = ""
-        rows: int = 3
+        rows: int = 4
         disabled: bool = False
+        focused: bool = False
+        autofocus: bool = False
 
     def get_template_data(self, args, kwargs: Kwargs, slots, context):
         return {
@@ -20,4 +22,6 @@ class Textarea(Component):
             "placeholder": kwargs.placeholder,
             "rows": kwargs.rows,
             "disabled": kwargs.disabled,
+            "focused": kwargs.focused,
+            "autofocus": kwargs.autofocus,
         }
