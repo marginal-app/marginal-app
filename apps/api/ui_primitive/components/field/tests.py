@@ -1,16 +1,25 @@
 from django.test import SimpleTestCase
 
-from citry_preview.testing import render_component
-from ui_primitive.components.field.preview import DEFAULT, PREVIEWS
+from citry_preview.testing import preview_by_slug, render_component
+from ui_primitive.components.field.field import Field
 
 
 class FieldTests(SimpleTestCase):
     def test_default_named_state_renders_label_and_input(self):
-        example = PREVIEWS[0]
+        example = preview_by_slug(Field, "field-default")
         html = render_component(example.component, example.kwargs)
-        self.assertEqual(example.slug, "field-default")
         self.assertEqual(example.group, "Primitives")
-        self.assertEqual(example.kwargs, DEFAULT)
+        self.assertEqual(
+            example.kwargs,
+            {
+                "label": "Server URL",
+                "name": "server_url",
+                "value": "http://127.0.0.1:8000",
+                "placeholder": "https://my-server.example.com",
+                "input_type": "text",
+                "disabled": False,
+            },
+        )
         self.assertIn('class="ds-field"', html)
         self.assertIn('class="ds-field-label"', html)
         self.assertIn('class="ds-field-input"', html)

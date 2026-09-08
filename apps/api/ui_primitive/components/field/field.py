@@ -1,5 +1,9 @@
+from dataclasses import dataclass
+from typing import ClassVar, Self
+
 from citry import Component
 
+from citry_preview.variants import meta
 from config.citry_app import app
 
 
@@ -9,6 +13,7 @@ class Field(Component):
     template_file = "field.citry-html"
     css_file = "field.css"
 
+    @dataclass
     class Kwargs:
         label: str = "Server URL"
         name: str = "server_url"
@@ -16,6 +21,24 @@ class Field(Component):
         placeholder: str = ""
         input_type: str = "text"
         disabled: bool = False
+
+    class PreviewVariant(Kwargs):
+        group: ClassVar[str] = "Primitives"
+
+        @classmethod
+        def variants(variant: type[Self]):
+            return [
+                meta(
+                    variant(
+                        label="Server URL",
+                        value="http://127.0.0.1:8000",
+                        placeholder="https://my-server.example.com",
+                    ),
+                    slug="field-default",
+                    title="Field / default",
+                    description="Settings Server URL field with a saved value.",
+                ),
+            ]
 
     def template_data(self, kwargs, slots):
         return {
