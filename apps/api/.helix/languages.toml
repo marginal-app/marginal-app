@@ -1,0 +1,15 @@
+[language-server.pyrefly]
+command = ".venv/bin/pyrefly"
+args = ["lsp"]
+
+[language-server.pyrefly.config]
+pythonPath = ".venv/bin/python"
+
+[language-server.pyrefly.config.pyrefly]
+typeCheckingMode = "default"
+diagnosticMode = "workspace"
+
+[[language]]
+name = "python"
+language-servers = ["pyrefly"]
+roots = ["pyproject.toml", "manage.py"]
