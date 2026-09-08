@@ -1,0 +1,24 @@
+<section class="panel">
+  <c-panel_header
+    c-title="title"
+    c-is_settings="is_settings"
+    c-toggle_url="toggle_url"
+  />
+
+  <c-if cond="is_settings">
+    <c-settings_form
+      c-action_url="settings_action_url"
+      c-server_url="server_url"
+      c-api_token="api_token"
+      c-status="settings_status"
+      c-error_message="settings_error"
+      c-csrf_token="csrf_token"
+    />
+  </c-if>
+  <c-elif cond="is_empty">
+    <c-empty_state />
+  </c-elif>
+  <c-else>
+    <c-highlight_list c-highlights="highlights" c-csrf_token="csrf_token" />
+  </c-else>
+</section>

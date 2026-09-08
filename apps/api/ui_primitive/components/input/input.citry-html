@@ -1,0 +1,8 @@
+<input
+  class="ds-input"
+  c-type="input_type"
+  c-name="name"
+  c-value="value"
+  c-placeholder="placeholder"
+  c-disabled="disabled"
+>

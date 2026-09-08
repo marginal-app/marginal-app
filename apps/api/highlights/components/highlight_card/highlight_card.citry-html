@@ -1,0 +1,36 @@
+<li c-bind="{'id': 'highlight-' + highlight_id}" class="highlight-item">
+  <div class="highlight-accent" c-style="'background-color: ' + color"></div>
+  <div class="highlight-body">
+    <p class="quote">{{ quote }}</p>
+    <c-if cond="editing">
+      <form
+        class="comment-edit"
+        method="post"
+        c-action="comment_save_url"
+        c-bind="form_attrs"
+      >
+        <input type="hidden" name="csrfmiddlewaretoken" c-value="csrf_token">
+        <c-textarea c-name="'comment'" c-value="comment" c-autofocus="True" />
+        <button type="submit" class="primary-button small">저장</button>
+      </form>
+    </c-if>
+    <c-elif cond="comment_edit_url">
+      <button
+        type="button"
+        class="comment-trigger"
+        c-bind="{'hx-get': comment_edit_url}"
+        hx-target="closest .highlight-item"
+        hx-swap="outerHTML"
+      >
+        <c-if cond="comment">{{ comment }}</c-if>
+        <c-else><span class="placeholder">코멘트 추가...</span></c-else>
+      </button>
+    </c-elif>
+    <c-else>
+      <p class="comment-trigger">
+        <c-if cond="comment">{{ comment }}</c-if>
+        <c-else><span class="placeholder">코멘트 추가...</span></c-else>
+      </p>
+    </c-else>
+  </div>
+</li>

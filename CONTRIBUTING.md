@@ -67,9 +67,9 @@ The public component receives kwargs. The Django view — or that component's ne
 
 `get_template_data` maps kwargs onto template context. It does not query `Highlight`, read cookies, or call an HTTP client. HTMX attributes may appear in the template; the swap target is the same registered component, not a second client tree.
 
-The named-state catalog is `apps/api/ui/examples.py`. The gallery at `/` and the raw silhouette at `/dev/components/<slug>/` render those examples. That catalog is the screenshot surface. It is not Storybook.
+The named-state catalog is `apps/api/citry_preview/previews.py`. The gallery at `/citry/preview/` and the raw silhouette at `/citry/preview/<slug>/` render those previews. That catalog is the screenshot surface. It is not Storybook.
 
-Today the factories are the `Example` rows and shared kwargs (`QUOTE_ONLY`, `WITH_COMMENT`, `EDITING`) in `apps/api/ui/examples.py`. A construction test calls `registry.get(...).render(kwargs=...)` or `Component.render(...)`.
+Today the factories are the `Preview` rows and shared kwargs (`QUOTE_ONLY`, `WITH_COMMENT`, `EDITING`) in `apps/api/citry_preview/previews.py`. A construction test calls `registry.get(...).render(kwargs=...)` or `Component.render(...)`.
 
 A change to panel pixels lands here first. The extension side panel is a live client of the same look, not a second source of truth for silhouettes.
 
@@ -85,9 +85,9 @@ A change to panel pixels lands here first. The extension side panel is a live cl
 
 Page paint is not a panel silhouette. A content-script change ships DOM assertions (`flattenText`, `resolveAndPaint`). A background change ships store assertions. Do not attach a library-panel PNG for either.
 
-The side panel is allowed to be a live client. It is not allowed to be a second design system. Panel chrome that changes what a reviewer can see is reviewed through the matching [server-side rendered fullstack](#server-side-rendered-fullstack) named state — update `apps/api/ui/examples.py` and the `django-components` twin, then attach that PNG. Two looks is a bug.
+The side panel is allowed to be a live client. It is not allowed to be a second design system. Panel chrome that changes what a reviewer can see is reviewed through the matching [server-side rendered fullstack](#server-side-rendered-fullstack) named state — update `apps/api/citry_preview/previews.py` and the `django-components` twin, then attach that PNG. Two looks is a bug.
 
-Do not add Storybook, a component gallery, or a `/dev` route to the extension to get a screenshot. The SSR harness already exists. Do not boot WXT or load an unpacked build to prove appearance.
+Do not add Storybook, a component gallery, or a `/citry/preview` route to the extension to get a screenshot. The SSR harness already exists. Do not boot WXT or load an unpacked build to prove appearance.
 
 ### Reviewing UI from a silhouette
 
@@ -95,14 +95,14 @@ The harness lives in `apps/api`. Do not add another, and do not point it at the 
 
 | Surface | What it is |
 | --- | --- |
-| `apps/api/ui/examples.py` | Named states. One `Example` per silhouette the panel can actually show. |
-| `/` | Gallery. Every example, 360px panel, fixture kwargs only. |
-| `/dev/components/<slug>/` | Raw silhouette. This is the screenshot target. |
+| `apps/api/citry_preview/previews.py` | Named states. One `Preview` per silhouette the panel can actually show. |
+| `/citry/preview/` | Gallery. Every preview, 360px panel, fixture kwargs only. |
+| `/citry/preview/<slug>/` | Raw silhouette. This is the screenshot target. |
 | `apps/api/.silhouettes/` | Author-local PNGs. Gitignored. Attach them; do not commit them. |
-| `uv run python manage.py test ui` | Construction tests. `Component.render()` / gallery URL smoke. No Chrome. |
+| `uv run python manage.py test citry_preview ui_primitive highlights` | Construction tests. `Component.render()` / gallery URL smoke. No Chrome. |
 | `pnpm --filter @marginal-app/browser-extension test` | Extension construction tests. jsdom / fake-indexeddb. No Chrome. |
 
-Name files from the example slug and the state that changes the silhouette:
+Name files from the preview slug and the state that changes the silhouette:
 
 ```text
 apps/api/.silhouettes/panel-empty.png
@@ -120,7 +120,7 @@ uv run python manage.py migrate
 uv run python manage.py runserver
 ```
 
-Open `http://127.0.0.1:8000/dev/components/panel-empty/` and save a PNG of the 360px `.silhouette` panel. Repeat for every named state the PR changes. Then attach:
+Open `http://127.0.0.1:8000/citry/preview/panel-empty/` and save a PNG of the 360px `.silhouette` panel. Repeat for every named state the PR changes. Then attach:
 
 ```bash
 gh pr create \
@@ -158,8 +158,8 @@ v1 primitives — one pull request each:
 
 A primitive PR:
 
-- Adds only `apps/api/components/<name>/` — the component, `examples.py`, and construction tests.
-- Registers named states as `EXAMPLES` in that folder. `ui/examples.py` discovers those files; do not append rows to the feature catalog.
+- Adds only `apps/api/ui_primitive/components/<name>/` — the component, `preview.py`, and construction tests. `config/citry_app.py` builds its `dirs=` by walking `INSTALLED_APPS` and picking up each app's own `components/` folder, so a component's real home is whichever app owns that domain (a `highlights` component lives in `apps/api/highlights/components/<name>/`, not here) — `ui_primitive/components/` is just where anything without a more specific owning app lands, primitives included.
+- Registers named states as `PREVIEWS` in that folder. `citry_preview/previews.py` discovers those files; do not append rows to the feature catalog.
 - Reuses the current tokens. It does not invent a second palette, and it does not restyle an existing feature component.
 - Attaches a silhouette PNG per named state that changes the picture. Capture the raw URL with `uv run python scripts/capture_silhouette.py <slug>` while `runserver` is up. Playwright clips `.silhouette`. Do not commit goldens. Cloud Agents attach per [Cursor Cloud Agent silhouette attach](#cursor-cloud-agent-silhouette-attach).
 

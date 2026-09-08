@@ -1,0 +1,8 @@
+<textarea
+  c-class="class_name"
+  c-name="name"
+  c-rows="rows"
+  c-placeholder="placeholder"
+  c-autofocus="autofocus"
+  c-disabled="disabled"
+>{{ value }}</textarea>

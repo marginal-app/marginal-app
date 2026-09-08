@@ -30,19 +30,19 @@ def _slugs_from_catalog() -> list[str]:
     import django
 
     django.setup()
-    from ui.examples import EXAMPLES
+    from citry_preview.previews import PREVIEWS
 
-    return [example.slug for example in EXAMPLES]
+    return [preview.slug for preview in PREVIEWS]
 
 
 def main() -> int:
-    from ui.capture import DEFAULT_BASE_URL, capture_silhouette
+    from citry_preview.capture import DEFAULT_BASE_URL, capture_silhouette
 
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument(
         "slugs",
         nargs="*",
-        help="Example slugs from the gallery catalog",
+        help="Preview slugs from the gallery catalog",
     )
     parser.add_argument(
         "--all",

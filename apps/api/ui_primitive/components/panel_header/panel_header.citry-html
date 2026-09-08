@@ -1,0 +1,15 @@
+<header class="panel-header">
+  <h1>{{ title }}</h1>
+  <c-if cond="toggle_url">
+    <c-icon_button
+      c-icon="toggle_icon"
+      c-href="toggle_url"
+      c-label="toggle_label"
+      c-title="toggle_title"
+      c-attrs="toggle_attrs"
+    />
+  </c-if>
+  <c-else>
+    <span class="icon-button" aria-hidden="true">{{ toggle_icon }}</span>
+  </c-else>
+</header>
