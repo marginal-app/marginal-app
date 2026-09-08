@@ -5,10 +5,11 @@ export interface HighlightRecord {
   prefix: string;
   suffix: string;
   color: string;
+  comment?: string;
   createdAt: number;
 }
 
-export type HighlightDraft = Omit<HighlightRecord, 'id' | 'createdAt'>;
+export type HighlightDraft = Omit<HighlightRecord, 'id' | 'createdAt' | 'comment'>;
 
 export type SaveHighlightMessage = {
   type: 'SAVE_HIGHLIGHT';
@@ -25,4 +26,28 @@ export type HighlightAddedMessage = {
   payload: HighlightRecord;
 };
 
-export type HighlightMessage = SaveHighlightMessage | GetHighlightsMessage;
+export type UpdateCommentMessage = {
+  type: 'UPDATE_COMMENT';
+  payload: { id: string; comment: string };
+};
+
+export type CommentUpdatedMessage = {
+  type: 'COMMENT_UPDATED';
+  payload: { id: string; pageKey: string; comment: string };
+};
+
+export type OpenSidePanelMessage = {
+  type: 'OPEN_SIDE_PANEL';
+  payload: { highlightId: string };
+};
+
+export type GetFocusHighlightMessage = {
+  type: 'GET_AND_CLEAR_FOCUS_HIGHLIGHT';
+};
+
+export type HighlightMessage =
+  | SaveHighlightMessage
+  | GetHighlightsMessage
+  | UpdateCommentMessage
+  | OpenSidePanelMessage
+  | GetFocusHighlightMessage;
