@@ -1,5 +1,5 @@
 from dataclasses import dataclass
-from typing import Self
+from typing import ClassVar, Self
 
 from citry import Component
 
@@ -20,7 +20,7 @@ class EmptyState(Component):
         icon: str = "✎"
 
     class PreviewVariant(Kwargs):
-        group = "Atoms"
+        group: ClassVar[str] = "Atoms"
 
         @classmethod
         def variants(variant: type[Self]):

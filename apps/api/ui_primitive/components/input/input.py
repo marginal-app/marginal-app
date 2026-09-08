@@ -1,5 +1,5 @@
 from dataclasses import dataclass
-from typing import Self
+from typing import ClassVar, Self
 
 from citry import Component
 
@@ -22,7 +22,7 @@ class Input(Component):
         disabled: bool = False
 
     class PreviewVariant(Kwargs):
-        group = "Primitives"
+        group: ClassVar[str] = "Primitives"
 
         @classmethod
         def variants(variant: type[Self]):

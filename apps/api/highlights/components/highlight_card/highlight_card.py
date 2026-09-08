@@ -1,5 +1,5 @@
 from dataclasses import dataclass
-from typing import Self
+from typing import ClassVar, Self
 from uuid import UUID
 
 from citry import Component
@@ -58,7 +58,7 @@ class HighlightCard(Component):
         csrf_token: str = ""
 
     class PreviewVariant(Kwargs):
-        group = "Atoms"
+        group: ClassVar[str] = "Atoms"
 
         @classmethod
         def variants(variant: type[Self]):

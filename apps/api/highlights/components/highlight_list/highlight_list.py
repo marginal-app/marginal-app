@@ -1,5 +1,5 @@
 from dataclasses import dataclass
-from typing import Any, Self
+from typing import Any, ClassVar, Self
 
 from citry import Component
 
@@ -22,7 +22,7 @@ class HighlightList(Component):
         csrf_token: str = ""
 
     class PreviewVariant(Kwargs):
-        group = "Molecules"
+        group: ClassVar[str] = "Molecules"
 
         @classmethod
         def variants(variant: type[Self]):

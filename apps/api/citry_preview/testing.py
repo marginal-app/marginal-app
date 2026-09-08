@@ -5,7 +5,7 @@ from typing import Any
 
 from citry_preview.preview import Preview
 from citry_preview.rendering import render_component as _render_component
-from citry_preview.variants import previews_from_variants
+from citry_preview.variants import PreviewableComponent, previews_from_variants
 
 _STYLE_BLOCK = re.compile(r"<style\b[^>]*>.*?</style>", re.DOTALL)
 
@@ -30,7 +30,7 @@ def render_component(
     return _STYLE_BLOCK.sub("", html)
 
 
-def preview_by_slug(component_cls: type, slug: str) -> Preview:
+def preview_by_slug(component_cls: type[PreviewableComponent], slug: str) -> Preview:
     """Look up one of a component's own previews by slug.
 
     Runs the same `previews_from_variants()` the gallery uses, so

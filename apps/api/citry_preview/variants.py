@@ -14,7 +14,7 @@ of this component's Kwargs":
             message: str = ""
 
         class PreviewVariant(Kwargs):
-            group = "Primitives"
+            group: ClassVar[str] = "Primitives"
 
             @classmethod
             def variants(variant: type[Self]):
@@ -26,6 +26,18 @@ of this component's Kwargs":
                         description="Error tone — ping failed.",
                     ),
                 ]
+
+`group` needs the explicit `ClassVar[str]` annotation, not just `group =
+"Primitives"`. `PreviewVariant` subclasses the dataclass `Kwargs`, and an
+unannotated assignment in a dataclass subclass's body is ambiguous to a
+static checker the same way it's ambiguous to `dataclasses` itself — for
+`previews_from_variants`'s `component_cls: type[PreviewableComponent]`
+parameter below to accept a real component, pyrefly needs to confirm
+`SomeComponent.PreviewVariant.group` really is a `ClassVar[str]` and not an
+instance-scoped field; verified empirically that omitting the annotation
+makes every call site (`preview_by_slug(Status, ...)`, `discover_previews()`
+itself) fail with "is not a ClassVar" even though nothing about the runtime
+behavior changes.
 
 `discover_previews()` (in `citry_preview/discover.py`) finds every component
 with a `PreviewVariant` by asking Citry's own registry (`app.components`)
@@ -101,8 +113,14 @@ slug.
 """
 
 import dataclasses
+from typing import TYPE_CHECKING, ClassVar, Protocol
 
 from citry_preview.preview import Preview
+
+if TYPE_CHECKING:
+    from collections.abc import Sequence
+
+    from _typeshed import DataclassInstance
 
 
 @dataclasses.dataclass(frozen=True)
@@ -123,8 +141,35 @@ def meta[K](
     return Variant(kwargs=kwargs, slug=slug, title=title, description=description)
 
 
-def previews_from_variants(component_cls: type) -> list[Preview]:
+class _PreviewVariantLike(Protocol):
+    group: ClassVar[str]
+
+    @classmethod
+    def variants(cls) -> "Sequence[object]": ...
+
+
+class PreviewableComponent(Protocol):
+    """What `previews_from_variants` needs from a component — nothing more.
+
+    A structural type, not a specific component: it doesn't (and can't) know
+    any component's actual Kwargs fields, only that a `PreviewVariant` with
+    this shape exists. That's the real boundary of what this generic,
+    reflection-based code can know — same reasoning as Citry's own
+    `Component.template_data(self, kwargs: Any, slots: Any)`, just expressed
+    as a Protocol here instead of `Any` because there's an actual known
+    contract (name, Kwargs, PreviewVariant) that's worth stating precisely.
+    """
+
+    name: ClassVar[str | None]
+    Kwargs: ClassVar[type["DataclassInstance"]]
+    PreviewVariant: ClassVar[type[_PreviewVariantLike]]
+
+
+def previews_from_variants(component_cls: type[PreviewableComponent]) -> list[Preview]:
     name = component_cls.name
+    if name is None:
+        msg = f"{component_cls.__name__}: a registered component always has a name"
+        raise AssertionError(msg)
     title_base = component_cls.__name__
     preview_variant = component_cls.PreviewVariant
     group = preview_variant.group

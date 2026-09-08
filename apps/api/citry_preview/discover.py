@@ -1,5 +1,7 @@
+from typing import cast
+
 from citry_preview.preview import Preview
-from citry_preview.variants import merge_previews, previews_from_variants
+from citry_preview.variants import PreviewableComponent, merge_previews, previews_from_variants
 from config.citry_app import app
 
 
@@ -19,5 +21,8 @@ def discover_previews() -> list[Preview]:
         seen.add(id(component_cls))
         if getattr(component_cls, "PreviewVariant", None) is None:
             continue
-        groups.append(previews_from_variants(component_cls))
+        # The getattr check just confirmed PreviewVariant exists at runtime;
+        # Component itself doesn't declare it, so this cast states what was
+        # actually verified rather than leaving the call as `type[Component]`.
+        groups.append(previews_from_variants(cast(type[PreviewableComponent], component_cls)))
     return merge_previews(*groups)
