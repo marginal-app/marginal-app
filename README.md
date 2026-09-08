@@ -4,4 +4,6 @@ Self-hosted web highlighter monorepo (extension + sync + server)
 
 ## Apps
 
-- [`apps/api`](apps/api) — Django API (uv + Pyrefly) plus a `django-components` gallery at `/`
+- [`apps/api`](apps/api) — Django API (uv + Ruff + Pyrefly + pytest) plus a `django-components` gallery at `/`
+
+GitHub Actions runs Ruff, Pyrefly, and pytest on the API for every push and pull request.

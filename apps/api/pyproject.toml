@@ -13,7 +13,28 @@ dependencies = [
 dev = [
     "django-stubs>=6.1.0",
     "pyrefly>=1.2.0",
+    "pytest>=8.4.0",
+    "pytest-django>=4.11.0",
+    "ruff>=0.13.0",
 ]
+
+[tool.pytest.ini_options]
+DJANGO_SETTINGS_MODULE = "config.settings"
+pythonpath = ["."]
+python_files = ["tests.py", "test_*.py", "*_test.py"]
+addopts = ["-ra"]
+
+[tool.ruff]
+target-version = "py313"
+line-length = 100
+src = ["."]
+extend-exclude = ["**/migrations"]
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "UP", "B"]
+
+[tool.ruff.format]
+quote-style = "preserve"
 
 [tool.pyrefly]
 python-version = "3.13"

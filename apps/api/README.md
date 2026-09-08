@@ -2,7 +2,7 @@
 
 Django API for the marginal-app highlighter monorepo.
 
-This package is managed with [uv](https://docs.astral.sh/uv/) and type-checked with [Pyrefly](https://pyrefly.org/). `django-stubs` is a dev dependency so Pyrefly can resolve Django imports. Open this directory (`apps/api`) as the editor workspace so Helix and Zed pick up the project-local language server configs.
+This package is managed with [uv](https://docs.astral.sh/uv/). CI runs [Ruff](https://docs.astral.sh/ruff/) (lint + format), [Pyrefly](https://pyrefly.org/) (types), and [pytest](https://docs.pytest.org/) (via pytest-django). `django-stubs` is a dev dependency so Pyrefly can resolve Django imports. Open this directory (`apps/api`) as the editor workspace so Helix and Zed pick up the project-local language server configs.
 
 ## Prerequisites
 
@@ -14,7 +14,7 @@ This package is managed with [uv](https://docs.astral.sh/uv/) and type-checked w
 uv sync
 ```
 
-This creates `.venv`, installs Django and the Pyrefly language server from `uv.lock`, and uses the Python version pinned in `.python-version`.
+This creates `.venv`, installs Django and the dev tools (Ruff, Pyrefly, pytest) from `uv.lock`, and uses the Python version pinned in `.python-version`.
 
 ## Common commands
 
@@ -22,8 +22,10 @@ This creates `.venv`, installs Django and the Pyrefly language server from `uv.l
 uv run python manage.py check
 uv run python manage.py migrate
 uv run python manage.py runserver
-uv run python manage.py test
+uv run ruff check .
+uv run ruff format
 uv run pyrefly check
+uv run pytest
 ```
 
 ## UI examples
