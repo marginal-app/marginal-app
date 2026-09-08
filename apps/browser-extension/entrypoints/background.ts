@@ -7,7 +7,7 @@ import type {
 const DB_NAME = 'marginal-highlights';
 const STORE_NAME = 'highlights';
 
-function openDb(): Promise<IDBDatabase> {
+export function openDb(): Promise<IDBDatabase> {
   return new Promise((resolve, reject) => {
     const request = indexedDB.open(DB_NAME, 1);
     request.onupgradeneeded = () => {
@@ -22,7 +22,7 @@ function openDb(): Promise<IDBDatabase> {
   });
 }
 
-async function saveHighlight(draft: HighlightDraft): Promise<HighlightRecord> {
+export async function saveHighlight(draft: HighlightDraft): Promise<HighlightRecord> {
   const db = await openDb();
   const record: HighlightRecord = {
     ...draft,
@@ -40,7 +40,7 @@ async function saveHighlight(draft: HighlightDraft): Promise<HighlightRecord> {
   return record;
 }
 
-async function getHighlights(pageKey: string): Promise<HighlightRecord[]> {
+export async function getHighlights(pageKey: string): Promise<HighlightRecord[]> {
   const db = await openDb();
   return new Promise((resolve, reject) => {
     const tx = db.transaction(STORE_NAME, 'readonly');
@@ -50,7 +50,7 @@ async function getHighlights(pageKey: string): Promise<HighlightRecord[]> {
   });
 }
 
-async function updateComment(id: string, comment: string): Promise<HighlightRecord> {
+export async function updateComment(id: string, comment: string): Promise<HighlightRecord> {
   const db = await openDb();
   return new Promise((resolve, reject) => {
     const tx = db.transaction(STORE_NAME, 'readwrite');

@@ -9,7 +9,7 @@ import type {
 
 const PASTEL_COLORS = ['#FFF3B0', '#FFD6E0', '#C9F2C7', '#C7E8FF', '#E3D4FF'];
 
-function extractContext(blockEl: Element, quote: string, wordCount = 6) {
+export function extractContext(blockEl: Element, quote: string, wordCount = 6) {
   const text = blockEl.textContent ?? '';
   const idx = text.indexOf(quote);
   if (idx === -1) return { prefix: '', suffix: '' };
@@ -26,7 +26,7 @@ function extractContext(blockEl: Element, quote: string, wordCount = 6) {
   };
 }
 
-function paintRange(range: Range, color: string): HTMLElement | null {
+export function paintRange(range: Range, color: string): HTMLElement | null {
   const mark = document.createElement('mark');
   mark.style.backgroundColor = color;
   mark.style.borderRadius = '2px';
@@ -41,13 +41,13 @@ function paintRange(range: Range, color: string): HTMLElement | null {
   }
 }
 
-interface TextSpan {
+export interface TextSpan {
   node: Text;
   start: number;
   end: number;
 }
 
-function flattenText(root: Node): { text: string; spans: TextSpan[] } {
+export function flattenText(root: Node): { text: string; spans: TextSpan[] } {
   const walker = document.createTreeWalker(root, NodeFilter.SHOW_TEXT, {
     acceptNode(node) {
       const parent = (node as Text).parentElement;
@@ -71,7 +71,7 @@ function flattenText(root: Node): { text: string; spans: TextSpan[] } {
   return { text, spans };
 }
 
-function resolveOffset(
+export function resolveOffset(
   spans: TextSpan[],
   offset: number,
 ): { node: Text; offset: number } | null {
@@ -87,7 +87,7 @@ function resolveOffset(
   return null;
 }
 
-function resolveAndPaint(
+export function resolveAndPaint(
   record: HighlightRecord,
   spans: TextSpan[],
   text: string,
@@ -115,7 +115,7 @@ function resolveAndPaint(
   return paintRange(range, record.color);
 }
 
-function pathContains(event: Event, el: Element): boolean {
+export function pathContains(event: Event, el: Element): boolean {
   // Elements rendered inside a shadow root (our toolbar/comment box) get
   // retargeted to the shadow host when observed from a listener outside the
   // shadow tree, so `event.target` is useless for containment checks here —
