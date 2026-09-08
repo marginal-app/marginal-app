@@ -1,0 +1,33 @@
+.panel-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0.875rem 1rem;
+  border-bottom: 1px solid var(--border);
+  flex-shrink: 0;
+}
+
+.panel-header h1 {
+  font-size: 0.95rem;
+  font-weight: 600;
+  margin: 0;
+}
+
+.icon-button {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 28px;
+  border: none;
+  border-radius: var(--radius);
+  background: transparent;
+  color: var(--text-secondary);
+  font-size: 1rem;
+  text-decoration: none;
+}
+
+a.icon-button:hover {
+  background: var(--bg-elevated);
+  color: var(--text);
+}

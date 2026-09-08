@@ -1,0 +1,45 @@
+<form
+  class="settings"
+  method="post"
+  action="{{ action_url }}"
+  {% if action_url %}
+  hx-post="{{ action_url }}"
+  hx-target="closest .panel"
+  hx-swap="outerHTML"
+  {% endif %}
+>
+  {% csrf_token %}
+  <label class="field">
+    <span class="field-label">Server URL</span>
+    <input
+      type="text"
+      name="server_url"
+      value="{{ server_url }}"
+      placeholder="https://my-server.example.com"
+    >
+  </label>
+
+  <label class="field">
+    <span class="field-label">API Token</span>
+    <input
+      type="password"
+      name="api_token"
+      value="{{ api_token }}"
+      placeholder="dev-token"
+    >
+  </label>
+
+  <button
+    type="submit"
+    class="primary-button"
+    {% if busy or not can_submit %}disabled{% endif %}
+  >
+    {% if busy %}확인 중...{% else %}Save &amp; Test Connection{% endif %}
+  </button>
+
+  {% if status == "ok" %}
+    <p class="status status-ok">연결 성공 — 저장했습니다.</p>
+  {% elif status == "error" %}
+    <p class="status status-error">연결 실패: {{ error_message }}</p>
+  {% endif %}
+</form>

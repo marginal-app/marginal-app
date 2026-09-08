@@ -1,0 +1,38 @@
+{% extends "ui/base.html" %}
+
+{% block title %}Library{% endblock %}
+
+{% block extra_head %}
+<style>
+  body { background: #d8d8dc; }
+  .library-page { padding: 2rem 1rem; }
+  .library-page > p {
+    width: 360px;
+    margin: 0 auto 0.75rem;
+    font-size: 0.75rem;
+    color: #6b6b6b;
+  }
+  .library-page > p a { color: #5b5bd6; }
+</style>
+{% endblock %}
+
+{% block body %}
+<div class="library-page">
+  <p>
+    Live HTMX composition —
+    <a href="{% url 'component_gallery' %}">gallery</a>
+  </p>
+  <div class="silhouette">
+    {% component "library_panel"
+      view=panel_kwargs.view
+      highlights=panel_kwargs.highlights
+      toggle_url=panel_kwargs.toggle_url
+      settings_action_url=panel_kwargs.settings_action_url
+      server_url=panel_kwargs.server_url
+      api_token=panel_kwargs.api_token
+      settings_status=panel_kwargs.settings_status
+      settings_error=panel_kwargs.settings_error
+    %}{% endcomponent %}
+  </div>
+</div>
+{% endblock %}

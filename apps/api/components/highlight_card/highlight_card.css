@@ -1,0 +1,61 @@
+.highlight-item {
+  display: flex;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  overflow: hidden;
+  background: var(--bg-elevated);
+}
+
+.highlight-accent {
+  width: 4px;
+  flex-shrink: 0;
+}
+
+.highlight-body {
+  flex: 1;
+  min-width: 0;
+  padding: 0.625rem 0.75rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.375rem;
+}
+
+.quote {
+  margin: 0;
+  font-size: 0.9rem;
+  line-height: 1.45;
+}
+
+.comment-trigger {
+  all: unset;
+  display: block;
+  font-size: 0.8rem;
+  color: var(--text-secondary);
+  padding: 0.3rem 0.4rem;
+  margin: -0.3rem -0.4rem;
+  border-radius: 4px;
+  cursor: pointer;
+}
+
+button.comment-trigger:hover {
+  background: var(--bg);
+}
+
+.comment-trigger .placeholder {
+  font-style: italic;
+  opacity: 0.75;
+}
+
+.comment-edit {
+  display: flex;
+  flex-direction: column;
+  gap: 0.375rem;
+}
+
+.comment-edit textarea {
+  width: 100%;
+  min-height: 50px;
+  resize: vertical;
+  padding: 0.375rem;
+  font-size: 0.8rem;
+}

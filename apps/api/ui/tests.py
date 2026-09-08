@@ -1,0 +1,119 @@
+from django.test import SimpleTestCase, TestCase
+from django.urls import reverse
+from django_components import registry
+
+from highlights.models import Highlight
+from ui.examples import EXAMPLES
+
+
+class ComponentRenderTests(SimpleTestCase):
+    def test_empty_state_renders_without_a_view(self):
+        html = registry.get("empty_state").render()
+        self.assertIn("empty-state", html)
+        self.assertIn("하이라이트가 없습니다", html)
+
+    def test_highlight_card_variants_are_kwargs_not_separate_trees(self):
+        quote = registry.get("highlight_card").render(
+            kwargs={
+                "highlight_id": "a",
+                "quote": "isolated quote",
+                "color": "#f5d76e",
+            },
+        )
+        editing = registry.get("highlight_card").render(
+            kwargs={
+                "highlight_id": "a",
+                "quote": "isolated quote",
+                "color": "#f5d76e",
+                "comment": "draft",
+                "editing": True,
+            },
+        )
+        self.assertIn("isolated quote", quote)
+        self.assertIn("코멘트 추가", quote)
+        self.assertIn("<textarea", editing)
+        self.assertIn("draft", editing)
+        self.assertIn("저장", editing)
+
+    def test_library_panel_composes_empty_and_list(self):
+        empty = registry.get("library_panel").render(
+            kwargs={"view": "highlights", "highlights": []},
+        )
+        filled = registry.get("library_panel").render(
+            kwargs={
+                "view": "highlights",
+                "highlights": [
+                    {
+                        "highlight_id": "x",
+                        "quote": "composed",
+                        "color": "#8b8bff",
+                        "comment": "",
+                        "editing": False,
+                        "comment_edit_url": "",
+                        "comment_save_url": "",
+                    }
+                ],
+            },
+        )
+        self.assertIn("empty-state", empty)
+        self.assertNotIn("composed", empty)
+        self.assertIn("composed", filled)
+        self.assertIn("highlight-list", filled)
+
+
+class GalleryTests(TestCase):
+    def test_gallery_lists_every_example(self):
+        response = self.client.get(reverse("component_gallery"))
+        self.assertEqual(response.status_code, 200)
+        body = response.content.decode()
+        for example in EXAMPLES:
+            self.assertIn(example.title, body)
+            self.assertIn(f'data-example="{example.slug}"', body)
+
+    def test_each_silhouette_url_renders(self):
+        for example in EXAMPLES:
+            with self.subTest(example.slug):
+                response = self.client.get(
+                    reverse("component_silhouette", args=[example.slug]),
+                )
+                self.assertEqual(response.status_code, 200)
+                self.assertContains(response, example.title)
+
+
+class LibraryHtmxTests(TestCase):
+    def test_library_seeds_demo_highlights_and_swaps_comment_card(self):
+        response = self.client.get(reverse("library_highlights"))
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, "HTMX returns the same HighlightCard")
+
+        highlight = Highlight.objects.get(
+            id="22222222-2222-2222-2222-222222222222",
+        )
+        edit = self.client.get(
+            reverse("highlight_comment", args=[highlight.id]),
+            HTTP_HX_REQUEST="true",
+        )
+        self.assertEqual(edit.status_code, 200)
+        self.assertContains(edit, "<textarea")
+        self.assertContains(edit, "Review this silhouette, then merge.")
+
+        saved = self.client.post(
+            reverse("highlight_comment", args=[highlight.id]),
+            {"comment": "Approved from the silhouette."},
+            HTTP_HX_REQUEST="true",
+        )
+        self.assertEqual(saved.status_code, 200)
+        self.assertContains(saved, "Approved from the silhouette.")
+        self.assertNotContains(saved, "<textarea")
+        highlight.refresh_from_db()
+        self.assertEqual(highlight.comment, "Approved from the silhouette.")
+
+    def test_settings_htmx_swap_returns_the_same_panel(self):
+        response = self.client.post(
+            reverse("library_settings"),
+            {"server_url": "http://127.0.0.1:8000", "api_token": "dev-token"},
+            HTTP_HX_REQUEST="true",
+        )
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, 'class="panel"')
+        self.assertContains(response, "연결 성공")

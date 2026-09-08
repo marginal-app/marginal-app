@@ -22,8 +22,19 @@ This creates `.venv`, installs Django and the Pyrefly language server from `uv.l
 uv run python manage.py check
 uv run python manage.py migrate
 uv run python manage.py runserver
+uv run python manage.py test
 uv run pyrefly check
 ```
+
+## UI examples
+
+`django-components` lives in `components/`. Isolated silhouettes (the Cloud Agent review surface) are at:
+
+- http://127.0.0.1:8000/ — gallery of every example
+- http://127.0.0.1:8000/dev/components/<slug>/ — one component on a 360px panel
+- http://127.0.0.1:8000/library/ — HTMX composition of the same components
+
+Click **raw** on a gallery card to open the screenshot URL for that silhouette.
 
 ## Editors
 
