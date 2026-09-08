@@ -1,0 +1,47 @@
+.ds-input {
+  width: 100%;
+  padding: 0.45rem 0.55rem;
+  font-size: 0.85rem;
+  line-height: 1.35;
+  font-weight: 500;
+  color: var(--text);
+  caret-color: var(--accent);
+  background: var(--bg-elevated);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  font-family: inherit;
+  box-sizing: border-box;
+  box-shadow: 0 1px 2px rgba(20, 20, 30, 0.04);
+  transition:
+    border-color 120ms ease,
+    box-shadow 120ms ease,
+    background-color 120ms ease;
+}
+
+.ds-input::placeholder {
+  color: var(--text-secondary);
+  font-weight: 400;
+  opacity: 0.7;
+}
+
+.ds-input:hover:not(:disabled):not(:focus) {
+  border-color: color-mix(in srgb, var(--border) 40%, var(--text-secondary));
+}
+
+.ds-input:focus {
+  outline: none;
+}
+
+.ds-input:focus-visible {
+  background: var(--bg);
+  border-color: var(--accent);
+  box-shadow:
+    0 0 0 1px var(--accent),
+    0 0 0 4px color-mix(in srgb, var(--accent) 24%, transparent);
+}
+
+.ds-input:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+  box-shadow: none;
+}
