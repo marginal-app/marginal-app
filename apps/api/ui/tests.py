@@ -122,6 +122,21 @@ class GalleryTests(TestCase):
                 self.assertEqual(response.status_code, 200)
                 self.assertContains(response, example.title)
 
+    def test_page_silhouettes_keep_the_full_panel_frame(self):
+        response = self.client.get(reverse("component_silhouette", args=["panel-empty"]))
+        self.assertEqual(response.status_code, 200)
+        self.assertNotContains(response, "silhouette-atom")
+
+    def test_primitive_silhouettes_use_the_padded_atom_frame(self):
+        primitives = [example for example in EXAMPLES if example.group == "Primitives"]
+        if not primitives:
+            self.skipTest("no primitive examples discovered yet")
+        response = self.client.get(
+            reverse("component_silhouette", args=[primitives[0].slug]),
+        )
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, "silhouette-atom")
+
 
 class LibraryHtmxTests(TestCase):
     def test_library_seeds_demo_highlights_and_swaps_comment_card(self):
