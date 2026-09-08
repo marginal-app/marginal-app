@@ -1,0 +1,27 @@
+{
+  "languages": {
+    "Python": {
+      "language_servers": [
+        "pyrefly",
+        "!basedpyright",
+        "!pyright",
+        "!pylsp"
+      ]
+    }
+  },
+  "lsp": {
+    "pyrefly": {
+      "binary": {
+        "path": ".venv/bin/pyrefly",
+        "arguments": ["lsp"]
+      },
+      "initialization_options": {
+        "pythonPath": ".venv/bin/python",
+        "pyrefly": {
+          "typeCheckingMode": "default",
+          "diagnosticMode": "workspace"
+        }
+      }
+    }
+  }
+}
