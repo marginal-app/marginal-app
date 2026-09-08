@@ -9,7 +9,7 @@ class ButtonRenderTests(SimpleTestCase):
         )
         self.assertIn('class="ds-button"', html)
         self.assertNotIn("ds-button-small", html)
-        self.assertIn("Save & Test Connection", html)
+        self.assertIn("Save &amp; Test Connection", html)
         self.assertNotIn("disabled", html)
 
     def test_small_button(self):
