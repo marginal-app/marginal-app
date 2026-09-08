@@ -16,6 +16,7 @@ class ButtonConstructionTests(SimpleTestCase):
         self.assertNotIn("small", html)
         self.assertIn("Save &amp; Test Connection", html)
         self.assertNotIn("disabled", html)
+        self.assertNotIn("is-focused", html)
 
     def test_small_button(self):
         example = _example("button-small")
@@ -32,9 +33,18 @@ class ButtonConstructionTests(SimpleTestCase):
         self.assertIn("확인 중...", html)
         self.assertIn("disabled", html)
         self.assertNotIn("small", html)
+        self.assertNotIn("is-focused", html)
+
+    def test_focused_button(self):
+        example = _example("button-focus")
+        html = registry.get("button").render(kwargs=example.kwargs)
+        self.assertIn("is-focused", html)
+        self.assertIn("Save &amp; Test Connection", html)
+        self.assertNotIn("disabled", html)
 
     def test_named_states_are_primitives(self):
         slugs = {example.slug: example.group for example in EXAMPLES}
         self.assertEqual(slugs["button-default"], "Primitives")
         self.assertEqual(slugs["button-small"], "Primitives")
         self.assertEqual(slugs["button-disabled"], "Primitives")
+        self.assertEqual(slugs["button-focus"], "Primitives")

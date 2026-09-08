@@ -25,4 +25,12 @@ EXAMPLES = [
         group="Primitives",
         kwargs={"label": "확인 중...", "disabled": True},
     ),
+    Example(
+        slug="button-focus",
+        title="Button / focus-visible",
+        description="Keyboard focus ring — 2px accent over a background offset.",
+        component="button",
+        group="Primitives",
+        kwargs={"label": "Save & Test Connection", "focused": True},
+    ),
 ]
