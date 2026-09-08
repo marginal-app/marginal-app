@@ -1,0 +1,24 @@
+.ds-icon-button {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 28px;
+  border: none;
+  border-radius: var(--radius);
+  background: transparent;
+  color: var(--text-secondary);
+  font-size: 1rem;
+  cursor: pointer;
+  font-family: inherit;
+}
+
+.ds-icon-button:hover {
+  background: var(--bg-elevated);
+  color: var(--text);
+}
+
+.ds-icon-button:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
