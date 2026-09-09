@@ -1,0 +1,33 @@
+.catalog-row {
+  list-style: none;
+  margin: 0;
+  border-bottom: 1px solid var(--border);
+}
+
+.catalog-row-hit {
+  display: block;
+  padding: 0.85rem 1rem;
+  text-decoration: none;
+}
+
+.catalog-row-hit:hover {
+  background: var(--bg-elevated);
+}
+
+.catalog-row.is-selected .catalog-row-hit {
+  background: var(--bg-elevated);
+  box-shadow: inset 3px 0 0 var(--accent);
+}
+
+.catalog-row-title {
+  margin: 0;
+  font-size: 0.95rem;
+  font-weight: 600;
+}
+
+.catalog-row-location,
+.catalog-row-meta {
+  margin: 0.2rem 0 0;
+  font-size: 0.75rem;
+  color: var(--text-secondary);
+}

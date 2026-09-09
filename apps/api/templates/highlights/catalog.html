@@ -1,0 +1,38 @@
+{% extends "citry_preview/base.html" %}
+
+{% block title %}Catalog{% endblock %}
+
+{% block extra_head %}
+<style>
+  body { background: #d8d8dc; }
+  .catalog-page { padding: 2rem 1rem; }
+  .catalog-page > p {
+    width: 1024px;
+    margin: 0 auto 0.75rem;
+    font-size: 0.75rem;
+    color: #6b6b6b;
+  }
+  .catalog-page > p a { color: #5b5bd6; }
+  .catalog-page .silhouette-desk { margin: 0 auto; }
+</style>
+{% endblock %}
+
+{% block body %}
+<div class="catalog-page">
+  <p>
+    Live catalog desk —
+    <a href="{% url 'component_gallery' %}">gallery</a>
+  </p>
+  <div class="silhouette silhouette-desk">
+    <c-catalog_desk
+      c-rows="desk_kwargs['rows']"
+      c-selected="desk_kwargs['selected']"
+      c-pane_title="desk_kwargs['pane_title']"
+      c-source_href="desk_kwargs['source_href']"
+      c-highlights="desk_kwargs['highlights']"
+      c-csrf_token="desk_kwargs['csrf_token']"
+      c-dismiss_url="desk_kwargs['dismiss_url']"
+    />
+  </div>
+</div>
+{% endblock %}

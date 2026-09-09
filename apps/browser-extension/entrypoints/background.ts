@@ -3,41 +3,123 @@ import type {
   HighlightMessage,
   HighlightRecord,
 } from '@/utils/highlight-messages';
+import type { PageCatalogDraft } from '@/utils/page-catalog';
+import { pageIdentityFromPageKey, type PageIdentity } from '@/utils/page-key';
 
 const DB_NAME = 'marginal-highlights';
 const STORE_NAME = 'highlights';
+const CATALOG_STORE = 'catalogs';
+const DB_VERSION = 3;
+
+export type CatalogRecord = PageIdentity & {
+  title: string;
+  description: string;
+  updatedAt: number;
+};
+
+type StoredHighlight = HighlightRecord & {
+  origin?: string;
+  path?: string;
+  query?: string;
+};
+
+function migrateRecord(value: StoredHighlight): HighlightRecord {
+  if (value.origin != null && value.path != null && value.query != null) {
+    return value as HighlightRecord;
+  }
+  const identity = pageIdentityFromPageKey(value.pageKey);
+  return { ...value, ...identity };
+}
 
 export function openDb(): Promise<IDBDatabase> {
   return new Promise((resolve, reject) => {
-    const request = indexedDB.open(DB_NAME, 1);
-    request.onupgradeneeded = () => {
-      const store = request.result.createObjectStore(STORE_NAME, {
-        keyPath: 'id',
-      });
-      store.createIndex('by_pageKey', 'pageKey', { unique: false });
-      store.createIndex('by_createdAt', 'createdAt', { unique: false });
+    const request = indexedDB.open(DB_NAME, DB_VERSION);
+    request.onupgradeneeded = (event) => {
+      const db = request.result;
+      const tx = request.transaction;
+      const oldVersion = event.oldVersion;
+      if (oldVersion < 1) {
+        const store = db.createObjectStore(STORE_NAME, {
+          keyPath: 'id',
+        });
+        store.createIndex('by_pageKey', 'pageKey', { unique: false });
+        store.createIndex('by_createdAt', 'createdAt', { unique: false });
+      }
+      if (oldVersion < 2 && tx) {
+        const store = tx.objectStore(STORE_NAME);
+        if (!store.indexNames.contains('by_origin')) {
+          store.createIndex('by_origin', 'origin', { unique: false });
+        }
+        const cursorRequest = store.openCursor();
+        cursorRequest.onsuccess = () => {
+          const cursor = cursorRequest.result;
+          if (!cursor) return;
+          cursor.update(migrateRecord(cursor.value as HighlightRecord));
+          cursor.continue();
+        };
+      }
+      if (oldVersion < 3) {
+        if (!db.objectStoreNames.contains(CATALOG_STORE)) {
+          db.createObjectStore(CATALOG_STORE, { keyPath: 'pageKey' });
+        }
+      }
     };
     request.onsuccess = () => resolve(request.result);
     request.onerror = () => reject(request.error);
   });
 }
 
+function putCatalog(
+  tx: IDBTransaction,
+  identity: PageIdentity,
+  catalog: PageCatalogDraft | undefined,
+): void {
+  const store = tx.objectStore(CATALOG_STORE);
+  const request = store.get(identity.pageKey);
+  request.onsuccess = () => {
+    const current = request.result as CatalogRecord | undefined;
+    const title = catalog?.title.trim() || current?.title || '';
+    const description = catalog?.description.trim() || current?.description || '';
+    const row: CatalogRecord = {
+      ...identity,
+      title,
+      description,
+      updatedAt: Date.now(),
+    };
+    store.put(row);
+  };
+}
+
 export async function saveHighlight(draft: HighlightDraft): Promise<HighlightRecord> {
   const db = await openDb();
+  const { catalog, ...highlightDraft } = draft;
+  const identity = pageIdentityFromPageKey(highlightDraft.pageKey);
   const record: HighlightRecord = {
-    ...draft,
+    ...highlightDraft,
+    ...identity,
     id: `${Date.now()}-${Math.random().toString(36).slice(2)}`,
     createdAt: Date.now(),
   };
 
   await new Promise<void>((resolve, reject) => {
-    const tx = db.transaction(STORE_NAME, 'readwrite');
+    const tx = db.transaction([STORE_NAME, CATALOG_STORE], 'readwrite');
     tx.objectStore(STORE_NAME).add(record);
+    putCatalog(tx, identity, catalog);
     tx.oncomplete = () => resolve();
     tx.onerror = () => reject(tx.error);
   });
 
   return record;
+}
+
+export async function getCatalog(pageKey: string): Promise<CatalogRecord | undefined> {
+  const db = await openDb();
+  return new Promise((resolve, reject) => {
+    const tx = db.transaction(CATALOG_STORE, 'readonly');
+    const request = tx.objectStore(CATALOG_STORE).get(pageKey);
+    request.onsuccess = () => resolve(request.result as CatalogRecord | undefined);
+    request.onerror = () => reject(request.error);
+  });
 }
 
 export async function getHighlights(pageKey: string): Promise<HighlightRecord[]> {

@@ -60,6 +60,8 @@
     color: #6b6b6b;
   }
   .gallery-card a { font-size: 0.75rem; color: #5b5bd6; }
+  .gallery-card-desk { grid-column: 1 / -1; }
+  .gallery-card-desk .silhouette-desk { width: 100%; max-width: 1024px; }
 </style>
 {% endblock %}
 
@@ -68,6 +70,7 @@
   <nav class="gallery-nav">
     <h1>Citry preview gallery</h1>
     <a href="{% url 'library_highlights' %}">HTMX library demo</a>
+    <a href="{% url 'catalog_desk' %}">Catalog desk</a>
   </nav>
   <div class="gallery-intro">
     <p>
@@ -77,7 +80,7 @@
   </div>
   <div class="gallery-grid">
     {% for preview in previews %}
-      <article class="gallery-card">
+      <article class="gallery-card{% if preview.is_desk %} gallery-card-desk{% endif %}">
         <header>
           <div>
             <h2>{{ preview.title }}</h2>
@@ -86,7 +89,7 @@
           <a href="{% url 'component_silhouette' preview.slug %}">raw</a>
         </header>
         <div
-          class="silhouette{% if preview.is_atom %} silhouette-atom{% endif %}"
+          class="silhouette{% if preview.is_atom %} silhouette-atom{% endif %}{% if preview.is_desk %} silhouette-desk{% endif %}"
           data-preview="{{ preview.slug }}"
         >
           {{ preview.html|safe }}

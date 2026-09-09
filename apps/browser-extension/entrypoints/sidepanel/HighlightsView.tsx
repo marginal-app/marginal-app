@@ -6,15 +6,11 @@ import type {
   HighlightRecord,
   UpdateCommentMessage,
 } from '@/utils/highlight-messages';
+import { pageKeyFromHref } from '@/utils/page-key';
 
 function getPageKey(url: string | undefined): string | null {
   if (!url) return null;
-  try {
-    const parsed = new URL(url);
-    return parsed.origin + parsed.pathname;
-  } catch {
-    return null;
-  }
+  return pageKeyFromHref(url);
 }
 
 function HighlightsView() {

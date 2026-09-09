@@ -1,4 +1,7 @@
-"""Clip the 360px `.silhouette` panel. Review attach uses this; CI does not compare goldens yet."""
+"""Clip `.silhouette` or `.silhouette-desk`.
+
+Review attach uses this; CI does not compare goldens yet.
+"""
 
 from __future__ import annotations
 
@@ -6,7 +9,9 @@ from pathlib import Path
 
 DEFAULT_BASE_URL = "http://127.0.0.1:8000"
 SILHOUETTE_SELECTOR = ".silhouette"
+DESK_SELECTOR = ".silhouette-desk"
 VIEWPORT = {"width": 420, "height": 900}
+DESK_VIEWPORT = {"width": 1100, "height": 800}
 
 
 def silhouette_url(base_url: str, slug: str) -> str:
@@ -37,7 +42,12 @@ def capture_silhouette(
             )
             page = browser.new_page(viewport=VIEWPORT)
             page.goto(url, wait_until="networkidle")
-            panel = page.locator(SILHOUETTE_SELECTOR)
+            desk = page.locator(DESK_SELECTOR)
+            if desk.count() > 0:
+                page.set_viewport_size(DESK_VIEWPORT)
+                panel = desk
+            else:
+                panel = page.locator(SILHOUETTE_SELECTOR)
             panel.wait_for(state="visible")
             panel.screenshot(path=str(dest), animations="disabled")
             browser.close()

@@ -1,0 +1,51 @@
+<div id="catalog-desk" class="catalog-desk">
+  <div class="catalog-desk-list">
+    <c-if cond="is_empty">
+      <c-empty_state
+        c-message="'표시를 남긴 페이지가 없습니다.'"
+        c-hint="'본문을 밑줄 치거나 북마크하세요.'"
+      />
+    </c-if>
+    <c-else>
+      <ul class="catalog-row-list">
+        <c-for each="row in rows">
+          <c-catalog_row
+            c-catalog_id="row['catalog_id']"
+            c-title="row['title']"
+            c-origin="row['origin']"
+            c-path="row['path']"
+            c-query="row['query']"
+            c-highlight_count="row['highlight_count']"
+            c-bookmarked="row['bookmarked']"
+            c-selected="row['selected']"
+            c-select_url="row['select_url']"
+            c-source_href="row['source_href']"
+          />
+        </c-for>
+      </ul>
+    </c-else>
+  </div>
+  <c-tray
+    c-open="selected"
+    c-dismiss_url="dismiss_url"
+    c-dismiss_attrs="dismiss_attrs"
+  >
+    <c-if cond="selected">
+      <header class="catalog-pane-header">
+        <p class="catalog-pane-title">{{ pane_title }}</p>
+        <c-if cond="source_href">
+          <a class="catalog-pane-source" c-href="source_href" target="_blank" rel="noreferrer">원문</a>
+        </c-if>
+      </header>
+      <c-if cond="show_highlights">
+        <c-highlight_list c-highlights="highlights" c-csrf_token="csrf_token" />
+      </c-if>
+      <c-if cond="show_bookmark_empty">
+        <c-empty_state
+          c-message="'이 페이지에 밑줄이 없습니다.'"
+          c-hint="'북마크만 있습니다.'"
+        />
+      </c-if>
+    </c-if>
+  </c-tray>
+</div>

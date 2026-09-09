@@ -15,6 +15,9 @@
     width: 360px;
     margin: 0 auto 0.75rem;
   }
+  .silhouette-meta.is-desk {
+    width: 1024px;
+  }
   .silhouette-meta h1 {
     margin: 0;
     font-size: 0.9rem;
@@ -30,13 +33,13 @@
 
 {% block body %}
 <div class="silhouette-page">
-  <div class="silhouette-meta">
+  <div class="silhouette-meta{% if preview.is_desk %} is-desk{% endif %}">
     <h1>{{ preview.title }}</h1>
     <p>{{ preview.description }}</p>
     <p><a href="{% url 'component_gallery' %}">← gallery</a></p>
   </div>
   <div
-    class="silhouette{% if preview.is_atom %} silhouette-atom{% endif %}"
+    class="silhouette{% if preview.is_atom %} silhouette-atom{% endif %}{% if preview.is_desk %} silhouette-desk{% endif %}"
     data-preview="{{ preview.slug }}"
   >
     {{ preview.html|safe }}

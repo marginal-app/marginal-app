@@ -1,0 +1,62 @@
+.ds-tray-host {
+  position: absolute;
+  inset: 0;
+  overflow: hidden;
+  pointer-events: none;
+}
+
+.ds-tray-host.is-staged {
+  position: relative;
+  min-height: 16rem;
+  background: var(--bg-elevated);
+}
+
+.ds-tray-dismiss {
+  position: absolute;
+  inset: 0;
+  z-index: 0;
+  pointer-events: auto;
+}
+
+.ds-tray {
+  position: absolute;
+  inset: 0 0 0 auto;
+  z-index: 1;
+  width: 22.5rem;
+  max-width: 100%;
+  display: flex;
+  flex-direction: column;
+  background: var(--bg);
+  border-left: 1px solid var(--border);
+  transform: translateX(100%);
+  transition: transform 180ms ease;
+  pointer-events: none;
+}
+
+.ds-tray.is-open {
+  transform: translateX(0);
+  pointer-events: auto;
+  animation: ds-tray-in 180ms ease;
+}
+
+@keyframes ds-tray-in {
+  from {
+    transform: translateX(100%);
+  }
+}
+
+.ds-tray-body {
+  margin: 0;
+  padding: 0.85rem 1rem;
+  color: var(--text);
+  font-size: 0.9rem;
+  line-height: 1.5;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .ds-tray,
+  .ds-tray.is-open {
+    transition: none;
+    animation: none;
+  }
+}

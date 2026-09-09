@@ -6,6 +6,8 @@ import type {
   SaveHighlightMessage,
   UpdateCommentMessage,
 } from '@/utils/highlight-messages';
+import { pageCatalogFromDocument } from '@/utils/page-catalog';
+import { pageKeyFromLocation } from '@/utils/page-key';
 
 const PASTEL_COLORS = ['#FFF3B0', '#FFD6E0', '#C9F2C7', '#C7E8FF', '#E3D4FF'];
 
@@ -135,7 +137,7 @@ export default defineContentScript({
   matches: ['<all_urls>'],
   runAt: 'document_idle',
   async main(ctx) {
-    const pageKey = location.origin + location.pathname;
+    const pageKey = pageKeyFromLocation(location);
 
     let pending: {
       range: Range;
@@ -180,7 +182,14 @@ export default defineContentScript({
 
             const message: SaveHighlightMessage = {
               type: 'SAVE_HIGHLIGHT',
-              payload: { pageKey, quote, prefix, suffix, color },
+              payload: {
+                pageKey,
+                quote,
+                prefix,
+                suffix,
+                color,
+                catalog: pageCatalogFromDocument(document),
+              },
             };
             browser.runtime
               .sendMessage(message)

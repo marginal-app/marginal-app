@@ -1,0 +1,14 @@
+#!/bin/sh
+# Same ruff gate as .github/workflows/ci.yml. Only when apps/api is in the commit.
+set -e
+
+root=$(git rev-parse --show-toplevel)
+cd "$root"
+
+if ! git diff --cached --name-only | grep -q '^apps/api/'; then
+  exit 0
+fi
+
+cd apps/api
+uv run ruff check .
+uv run ruff format --check .

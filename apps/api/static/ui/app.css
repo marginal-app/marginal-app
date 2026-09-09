@@ -85,3 +85,8 @@ a {
   min-height: 0;
   padding: 1.25rem;
 }
+
+.silhouette-desk {
+  width: 1024px;
+  min-height: 28rem;
+}

@@ -1,0 +1,9 @@
+#!/bin/sh
+# Point this clone's .git/hooks at the committed hooks. Does not change git config.
+set -e
+
+root=$(git rev-parse --show-toplevel)
+hooks=$(git rev-parse --git-path hooks)
+mkdir -p "$hooks"
+ln -sf "$root/.githooks/pre-commit" "$hooks/pre-commit"
+echo "Installed $hooks/pre-commit -> $root/.githooks/pre-commit"
