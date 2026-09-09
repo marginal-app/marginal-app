@@ -1,8 +1,7 @@
-import { adoptStyles, OVERLAY_HOST_STYLES } from '@/components/overlay-styles';
+import { OVERLAY_HOST_STYLES } from '@/components/overlay-styles';
 import {
-  bindPopoverHost,
   closePopover,
-  defineOnce,
+  createOverlayHost,
   isPopoverOpen,
   openPopover,
 } from '@/components/popover';
@@ -68,15 +67,14 @@ button {
 }
 `;
 
-export class CommentPopover extends HTMLElement {
+export class CommentPopover {
   static readonly tag = 'marginal-comment-popover';
 
+  readonly host: HTMLElement;
   #textarea: HTMLTextAreaElement;
 
   constructor() {
-    super();
-    const root = this.attachShadow({ mode: 'open' });
-    adoptStyles(root, STYLES);
+    this.host = createOverlayHost(CommentPopover.tag, STYLES);
 
     const box = document.createElement('div');
     box.className = 'box';
@@ -92,7 +90,7 @@ export class CommentPopover extends HTMLElement {
     gotoButton.className = 'goto';
     gotoButton.textContent = '패널에서 보기';
     gotoButton.addEventListener('click', () => {
-      this.dispatchEvent(
+      this.host.dispatchEvent(
         new Event('goto-panel', { bubbles: true, composed: true }),
       );
     });
@@ -102,7 +100,7 @@ export class CommentPopover extends HTMLElement {
     saveButton.className = 'save';
     saveButton.textContent = '저장';
     saveButton.addEventListener('click', () => {
-      this.dispatchEvent(
+      this.host.dispatchEvent(
         new CustomEvent('comment-save', {
           detail: { comment: this.#textarea.value },
           bubbles: true,
@@ -113,18 +111,14 @@ export class CommentPopover extends HTMLElement {
 
     actions.append(gotoButton, saveButton);
     box.append(this.#textarea, actions);
-    root.append(box);
+    this.host.shadowRoot!.append(box);
 
-    this.addEventListener('keydown', (event: KeyboardEvent) => {
+    this.host.addEventListener('keydown', (event: KeyboardEvent) => {
       if (event.key !== 'Escape') return;
       event.stopPropagation();
       this.hide();
-      this.dispatchEvent(new Event('dismiss', { bubbles: true }));
+      this.host.dispatchEvent(new Event('dismiss', { bubbles: true }));
     });
-  }
-
-  connectedCallback() {
-    bindPopoverHost(this);
   }
 
   get comment(): string {
@@ -136,31 +130,23 @@ export class CommentPopover extends HTMLElement {
   }
 
   get open(): boolean {
-    return isPopoverOpen(this);
+    return isPopoverOpen(this.host);
   }
 
   showBelow(rect: DOMRectReadOnly, viewportWidth = window.innerWidth) {
-    const estimatedWidth = this.offsetWidth || 220;
-    this.style.top = `${rect.bottom + 8}px`;
-    this.style.left = `${Math.max(Math.min(rect.left, viewportWidth - estimatedWidth - 16), 8)}px`;
-    openPopover(this);
-    const width = this.offsetWidth || estimatedWidth;
-    this.style.left = `${Math.max(Math.min(rect.left, viewportWidth - width - 16), 8)}px`;
+    const estimatedWidth = this.host.offsetWidth || 220;
+    this.host.style.top = `${rect.bottom + 8}px`;
+    this.host.style.left = `${Math.max(Math.min(rect.left, viewportWidth - estimatedWidth - 16), 8)}px`;
+    openPopover(this.host);
+    const width = this.host.offsetWidth || estimatedWidth;
+    this.host.style.left = `${Math.max(Math.min(rect.left, viewportWidth - width - 16), 8)}px`;
   }
 
   hide() {
-    closePopover(this);
+    closePopover(this.host);
   }
 
   focusInput() {
     this.#textarea.focus();
-  }
-}
-
-defineOnce(CommentPopover.tag, CommentPopover);
-
-declare global {
-  interface HTMLElementTagNameMap {
-    'marginal-comment-popover': CommentPopover;
   }
 }

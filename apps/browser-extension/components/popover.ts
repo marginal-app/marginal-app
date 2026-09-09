@@ -1,3 +1,5 @@
+import { adoptStyles } from '@/components/overlay-styles';
+
 export function supportsPopover(el: HTMLElement): boolean {
   return typeof el.showPopover === 'function';
 }
@@ -36,16 +38,20 @@ export function bindPopoverHost(el: HTMLElement) {
   });
 }
 
+export function createOverlayHost(tag: string, css: string): HTMLElement {
+  // Isolated content scripts have no CustomElementRegistry (`customElements`
+  // is null). A hyphenated tag still gets a shadow root without define().
+  const host = document.createElement(tag);
+  const root = host.attachShadow({ mode: 'open' });
+  adoptStyles(root, css);
+  bindPopoverHost(host);
+  return host;
+}
+
 export function eventPathContains(event: Event, el: Element): boolean {
   // Elements rendered inside a shadow root get retargeted to the shadow
   // host when observed from a listener outside the shadow tree, so
   // `event.target` is useless for containment checks — `composedPath()`
   // still carries the real, un-retargeted path.
   return event.composedPath().includes(el);
-}
-
-export function defineOnce(tag: string, ctor: CustomElementConstructor) {
-  if (!customElements.get(tag)) {
-    customElements.define(tag, ctor);
-  }
 }

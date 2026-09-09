@@ -134,12 +134,12 @@ export default defineContentScript({
     let activeHighlightId: string | null = null;
     let activeMark: HTMLElement | null = null;
 
-    const toolbar = document.createElement(ColorToolbar.tag);
+    const toolbar = new ColorToolbar();
     toolbar.colors = HIGHLIGHT_COLORS;
 
-    const commentBox = document.createElement(CommentPopover.tag);
+    const commentBox = new CommentPopover();
 
-    document.documentElement.append(toolbar, commentBox);
+    document.documentElement.append(toolbar.host, commentBox.host);
 
     function hideToolbar() {
       toolbar.hide();
@@ -174,7 +174,7 @@ export default defineContentScript({
       });
     }
 
-    toolbar.addEventListener('color-pick', (event) => {
+    toolbar.host.addEventListener('color-pick', (event) => {
       if (!(event instanceof CustomEvent)) return;
       if (!pending) return;
       const color = event.detail.color as string;
@@ -206,11 +206,11 @@ export default defineContentScript({
       window.getSelection()?.removeAllRanges();
     });
 
-    toolbar.addEventListener('dismiss', () => {
+    toolbar.host.addEventListener('dismiss', () => {
       pending = null;
     });
 
-    commentBox.addEventListener('comment-save', (event) => {
+    commentBox.host.addEventListener('comment-save', (event) => {
       if (!(event instanceof CustomEvent)) return;
       if (!activeHighlightId) return;
       const comment = event.detail.comment as string;
@@ -227,7 +227,7 @@ export default defineContentScript({
       hideCommentBox();
     });
 
-    commentBox.addEventListener('goto-panel', () => {
+    commentBox.host.addEventListener('goto-panel', () => {
       if (!activeHighlightId) return;
       const message: OpenSidePanelMessage = {
         type: 'OPEN_SIDE_PANEL',
@@ -238,14 +238,14 @@ export default defineContentScript({
       });
     });
 
-    commentBox.addEventListener('dismiss', () => {
+    commentBox.host.addEventListener('dismiss', () => {
       activeHighlightId = null;
       activeMark = null;
     });
 
     document.addEventListener('mouseup', (event) => {
-      if (eventPathContains(event, toolbar)) return;
-      if (eventPathContains(event, commentBox)) return;
+      if (eventPathContains(event, toolbar.host)) return;
+      if (eventPathContains(event, commentBox.host)) return;
 
       const selection = window.getSelection();
       if (!selection || selection.isCollapsed) {
@@ -281,7 +281,7 @@ export default defineContentScript({
     document.addEventListener(
       'click',
       (event) => {
-        if (eventPathContains(event, commentBox)) return;
+        if (eventPathContains(event, commentBox.host)) return;
         hideCommentBox();
       },
       true,

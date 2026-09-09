@@ -1,8 +1,7 @@
-import { adoptStyles, OVERLAY_HOST_STYLES } from '@/components/overlay-styles';
+import { OVERLAY_HOST_STYLES } from '@/components/overlay-styles';
 import {
-  bindPopoverHost,
   closePopover,
-  defineOnce,
+  createOverlayHost,
   isPopoverOpen,
   openPopover,
 } from '@/components/popover';
@@ -40,30 +39,24 @@ ${OVERLAY_HOST_STYLES}
 }
 `;
 
-export class ColorToolbar extends HTMLElement {
+export class ColorToolbar {
   static readonly tag = 'marginal-color-toolbar';
 
+  readonly host: HTMLElement;
   #bar: HTMLDivElement;
 
   constructor() {
-    super();
-    const root = this.attachShadow({ mode: 'open' });
-    adoptStyles(root, STYLES);
-
+    this.host = createOverlayHost(ColorToolbar.tag, STYLES);
     this.#bar = document.createElement('div');
     this.#bar.className = 'bar';
-    root.append(this.#bar);
+    this.host.shadowRoot!.append(this.#bar);
 
-    this.addEventListener('keydown', (event: KeyboardEvent) => {
+    this.host.addEventListener('keydown', (event: KeyboardEvent) => {
       if (event.key !== 'Escape') return;
       event.stopPropagation();
       this.hide();
-      this.dispatchEvent(new Event('dismiss', { bubbles: true }));
+      this.host.dispatchEvent(new Event('dismiss', { bubbles: true }));
     });
-  }
-
-  connectedCallback() {
-    bindPopoverHost(this);
   }
 
   set colors(value: readonly string[]) {
@@ -76,7 +69,7 @@ export class ColorToolbar extends HTMLElement {
       dot.style.backgroundColor = color;
       dot.setAttribute('aria-label', `Highlight with ${color}`);
       dot.addEventListener('click', () => {
-        this.dispatchEvent(
+        this.host.dispatchEvent(
           new CustomEvent('color-pick', {
             detail: { color },
             bubbles: true,
@@ -89,28 +82,20 @@ export class ColorToolbar extends HTMLElement {
   }
 
   get open(): boolean {
-    return isPopoverOpen(this);
+    return isPopoverOpen(this.host);
   }
 
   showAbove(rect: DOMRectReadOnly) {
-    this.style.top = `${Math.max(rect.top, 8)}px`;
-    this.style.left = `${rect.left}px`;
-    openPopover(this);
-    const top = Math.max(rect.top - this.offsetHeight - 8, 8);
-    const left = rect.left + rect.width / 2 - this.offsetWidth / 2;
-    this.style.top = `${top}px`;
-    this.style.left = `${Math.max(left, 8)}px`;
+    this.host.style.top = `${Math.max(rect.top, 8)}px`;
+    this.host.style.left = `${rect.left}px`;
+    openPopover(this.host);
+    const top = Math.max(rect.top - this.host.offsetHeight - 8, 8);
+    const left = rect.left + rect.width / 2 - this.host.offsetWidth / 2;
+    this.host.style.top = `${top}px`;
+    this.host.style.left = `${Math.max(left, 8)}px`;
   }
 
   hide() {
-    closePopover(this);
-  }
-}
-
-defineOnce(ColorToolbar.tag, ColorToolbar);
-
-declare global {
-  interface HTMLElementTagNameMap {
-    'marginal-color-toolbar': ColorToolbar;
+    closePopover(this.host);
   }
 }

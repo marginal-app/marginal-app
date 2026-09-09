@@ -5,6 +5,12 @@ afterEach(() => {
   document.querySelectorAll(CommentPopover.tag).forEach((el) => el.remove());
 });
 
+function mountPopover() {
+  const popover = new CommentPopover();
+  document.body.append(popover.host);
+  return popover;
+}
+
 function rect(overrides: Partial<DOMRectReadOnly> = {}): DOMRectReadOnly {
   return {
     x: 0,
@@ -24,54 +30,50 @@ function rect(overrides: Partial<DOMRectReadOnly> = {}): DOMRectReadOnly {
 
 describe('CommentPopover', () => {
   it('round-trips the comment value through the textarea', () => {
-    const popover = document.createElement(CommentPopover.tag);
-    document.body.append(popover);
+    const popover = mountPopover();
 
     popover.comment = 'hello';
     expect(popover.comment).toBe('hello');
     expect(
-      popover.shadowRoot!.querySelector('textarea')?.value,
+      popover.host.shadowRoot!.querySelector('textarea')?.value,
     ).toBe('hello');
   });
 
   it('emits comment-save with the current textarea value', () => {
-    const popover = document.createElement(CommentPopover.tag);
-    document.body.append(popover);
+    const popover = mountPopover();
     popover.comment = 'note';
 
     let saved: string | undefined;
-    popover.addEventListener('comment-save', (event) => {
+    popover.host.addEventListener('comment-save', (event) => {
       saved = (event as CustomEvent<{ comment: string }>).detail.comment;
     });
-    popover.shadowRoot!.querySelector<HTMLButtonElement>('.save')?.click();
+    popover.host.shadowRoot!.querySelector<HTMLButtonElement>('.save')?.click();
 
     expect(saved).toBe('note');
   });
 
   it('emits goto-panel', () => {
-    const popover = document.createElement(CommentPopover.tag);
-    document.body.append(popover);
+    const popover = mountPopover();
 
     let jumped = false;
-    popover.addEventListener('goto-panel', () => {
+    popover.host.addEventListener('goto-panel', () => {
       jumped = true;
     });
-    popover.shadowRoot!.querySelector<HTMLButtonElement>('.goto')?.click();
+    popover.host.shadowRoot!.querySelector<HTMLButtonElement>('.goto')?.click();
 
     expect(jumped).toBe(true);
   });
 
   it('opens below a rect, clamped to the viewport, and hides again', () => {
-    const popover = document.createElement(CommentPopover.tag);
-    document.body.append(popover);
+    const popover = mountPopover();
 
     popover.showBelow(rect({ left: 900 }), 400);
 
     expect(popover.open).toBe(true);
-    const left = Number.parseFloat(popover.style.left);
+    const left = Number.parseFloat(popover.host.style.left);
     expect(left).toBeGreaterThanOrEqual(8);
     expect(left).toBeLessThan(400);
-    expect(popover.style.top).toBe('66px');
+    expect(popover.host.style.top).toBe('66px');
 
     popover.hide();
     expect(popover.open).toBe(false);
