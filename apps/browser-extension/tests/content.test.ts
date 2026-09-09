@@ -19,6 +19,7 @@ function makeRecord(overrides: Partial<HighlightRecord>): HighlightRecord {
     suffix: '',
     color: '#fff',
     createdAt: 0,
+    updatedAt: 0,
     ...overrides,
   };
 }

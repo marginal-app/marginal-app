@@ -10,13 +10,14 @@ export interface HighlightRecord {
   color: string;
   comment?: string;
   createdAt: number;
+  updatedAt: number;
 }
 
 import type { PageCatalogDraft } from '@/utils/page-catalog';
 
 export type HighlightDraft = Omit<
   HighlightRecord,
-  'id' | 'createdAt' | 'comment' | 'origin' | 'path' | 'query'
+  'id' | 'createdAt' | 'updatedAt' | 'comment' | 'origin' | 'path' | 'query'
 > & {
   catalog?: PageCatalogDraft;
 };
