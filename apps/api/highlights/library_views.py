@@ -6,7 +6,8 @@ from django.urls import reverse
 from django.views.decorators.http import require_http_methods
 
 from citry_preview.rendering import render_component
-from highlights.models import Highlight
+from highlights.models import Catalog, CatalogMembership, Highlight
+from identity.models import User
 from identity.request import AuthenticatedRequest
 from identity.tokens import user_from_bearer
 
@@ -32,19 +33,40 @@ def _is_htmx(request: HttpRequest) -> bool:
     return request.headers.get("HX-Request") == "true"
 
 
-def _seed_demo_highlights() -> list[Highlight]:
+def _authenticated_user(user: object) -> User | None:
+    if isinstance(user, User) and user.is_authenticated:
+        return user
+    return None
+
+
+def _seed_demo_highlights(user: User | None) -> list[Highlight]:
+    owner = _authenticated_user(user)
+    if owner is None:
+        return []
+    catalog = Catalog.get_or_create_from_page_key("https://example.com/hypothesis")
+    CatalogMembership.objects.get_or_create(
+        user=owner,
+        catalog=catalog,
+        defaults={"title": "Hypothesis"},
+    )
     rows: list[Highlight] = []
     for payload in DEMO_HIGHLIGHTS:
-        highlight, _created = Highlight.objects.get_or_create(
-            id=payload["id"],
-            defaults={
-                "page_key": payload["page_key"],
-                "quote": payload["quote"],
-                "color": payload["color"],
-                "comment": payload["comment"],
-            },
+        existing = Highlight.objects.filter(id=payload["id"]).first()
+        if existing is not None:
+            if existing.user.pk == owner.pk:
+                rows.append(existing)
+            continue
+        rows.append(
+            Highlight.objects.create(
+                id=payload["id"],
+                user=owner,
+                catalog=catalog,
+                page_key=payload["page_key"],
+                quote=payload["quote"],
+                color=payload["color"],
+                comment=payload["comment"],
+            )
         )
-        rows.append(highlight)
     return rows
 
 
@@ -70,7 +92,9 @@ def _library_kwargs(
     server_url: str = "http://127.0.0.1:8000",
     api_token: str = "dev-token",
 ) -> dict[str, object]:
-    highlights = [_highlight_kwargs(row) for row in _seed_demo_highlights()]
+    highlights = [
+        _highlight_kwargs(row) for row in _seed_demo_highlights(_authenticated_user(request.user))
+    ]
     return {
         "view": view,
         "highlights": highlights,

@@ -24,7 +24,10 @@ describe('saveHighlight / getHighlights', () => {
     };
 
     const record = await saveHighlight(draft);
-    expect(record.id).toBeTruthy();
+    expect(record.id).toMatch(
+      /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i,
+    );
+    expect(record.updatedAt).toBe(record.createdAt);
     expect(record.pageKey).toBe(draft.pageKey);
 
     const results = await getHighlights('https://example.com/');
@@ -109,6 +112,10 @@ describe('saveHighlight / getHighlights', () => {
     expect(results[0]?.origin).toBe('https://example.com');
     expect(results[0]?.path).toBe('/item');
     expect(results[0]?.query).toBe('');
+    expect(results[0]?.id).toMatch(
+      /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i,
+    );
+    expect(results[0]?.updatedAt).toBe(1);
   });
 
   it('upserts catalog title and description with the highlight', async () => {
@@ -126,6 +133,7 @@ describe('saveHighlight / getHighlights', () => {
     expect(row?.description).toBe('A page about the item.');
     expect(row?.origin).toBe('https://example.com');
     expect(row?.query).toBe('?id=321');
+    expect(row?.bookmarked).toBe(false);
   });
 
   it('keeps catalog meta when a later highlight omits it', async () => {
@@ -137,6 +145,7 @@ describe('saveHighlight / getHighlights', () => {
       color: '#fff',
       catalog: { title: 'The item', description: 'Kept.' },
     });
+    const first = await getCatalog('https://example.com/item?id=321');
     await saveHighlight({
       pageKey: 'https://example.com/item?id=321',
       quote: 'two',
@@ -148,6 +157,7 @@ describe('saveHighlight / getHighlights', () => {
     const row = await getCatalog('https://example.com/item?id=321');
     expect(row?.title).toBe('The item');
     expect(row?.description).toBe('Kept.');
+    expect(row?.updatedAt).toBe(first?.updatedAt);
   });
 });
 
@@ -163,9 +173,11 @@ describe('updateComment', () => {
 
     const updated = await updateComment(record.id, 'nice highlight');
     expect(updated.comment).toBe('nice highlight');
+    expect(updated.updatedAt).toBeGreaterThan(record.updatedAt);
 
     const [fetched] = await getHighlights('a');
     expect(fetched?.comment).toBe('nice highlight');
+    expect(fetched?.updatedAt).toBe(updated.updatedAt);
   });
 
   it('rejects when updating a comment for a non-existent highlight', async () => {

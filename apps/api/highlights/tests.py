@@ -1,7 +1,7 @@
 from django.test import TestCase
 from django.urls import reverse
 
-from highlights.models import Catalog, Highlight
+from highlights.models import Catalog, CatalogMembership, Highlight
 from identity.tokens import seed_dev_user
 
 
@@ -88,6 +88,15 @@ class CatalogDeskHtmxTests(TestCase):
         self.assertContains(response, "Item 321")
         self.assertContains(response, 'class="ds-tray"')
         self.assertNotContains(response, "ds-tray is-open")
+
+    def test_catalog_does_not_list_another_users_page(self):
+        other = seed_dev_user(username="other", token="other-token")
+        catalog = Catalog.get_or_create_from_page_key("https://secret.example/page")
+        CatalogMembership.objects.create(user=other, catalog=catalog, title="Secret")
+        response = self.client.get(reverse("catalog_desk"))
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, "Hypothesis")
+        self.assertNotContains(response, "Secret")
 
     def test_clicking_a_row_swaps_the_desk_with_the_tray_open(self):
         self.client.get(reverse("catalog_desk"))
