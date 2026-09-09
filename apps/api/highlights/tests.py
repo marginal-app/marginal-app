@@ -2,20 +2,26 @@ from django.test import TestCase
 from django.urls import reverse
 
 from highlights.models import Catalog, Highlight
-
-
-def test_ping_requires_token(client) -> None:
-    response = client.get("/api/ping")
-    assert response.status_code == 401
-
-
-def test_ping_ok_with_dev_token(client) -> None:
-    response = client.get("/api/ping", headers={"Authorization": "Bearer dev-token"})
-    assert response.status_code == 200
-    assert response.json() == {"ok": True}
+from identity.tokens import seed_dev_user
 
 
 class LibraryHtmxTests(TestCase):
+    def setUp(self):
+        seed_dev_user()
+        self.client.login(username="dev", password="dev")
+
+    def test_library_list_requires_a_session(self):
+        self.client.logout()
+        response = self.client.get(reverse("library_highlights"))
+        self.assertEqual(response.status_code, 302)
+        self.assertIn(reverse("identity_login"), response["Location"])
+
+    def test_library_settings_stays_open(self):
+        self.client.logout()
+        response = self.client.get(reverse("library_settings"))
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, "API Token")
+
     def test_library_seeds_demo_highlights_and_swaps_comment_card(self):
         response = self.client.get(reverse("library_highlights"))
         self.assertEqual(response.status_code, 200)
@@ -53,8 +59,28 @@ class LibraryHtmxTests(TestCase):
         self.assertContains(response, 'class="panel"')
         self.assertContains(response, "연결 성공")
 
+    def test_settings_rejects_an_unknown_token(self):
+        response = self.client.post(
+            reverse("library_settings"),
+            {"server_url": "http://127.0.0.1:8000", "api_token": "wrong-token"},
+            HTTP_HX_REQUEST="true",
+        )
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, "연결 실패")
+        self.assertContains(response, "서버가 401로 응답했습니다")
+
 
 class CatalogDeskHtmxTests(TestCase):
+    def setUp(self):
+        seed_dev_user()
+        self.client.login(username="dev", password="dev")
+
+    def test_catalog_requires_a_session(self):
+        self.client.logout()
+        response = self.client.get(reverse("catalog_desk"))
+        self.assertEqual(response.status_code, 302)
+        self.assertIn(reverse("identity_login"), response["Location"])
+
     def test_catalog_lists_seeded_pages(self):
         response = self.client.get(reverse("catalog_desk"))
         self.assertEqual(response.status_code, 200)
