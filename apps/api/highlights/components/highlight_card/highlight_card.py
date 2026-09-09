@@ -3,6 +3,7 @@ from typing import ClassVar, Self
 from uuid import UUID
 
 from citry import Component
+from django.contrib.auth.decorators import login_required
 from django.http import HttpRequest, HttpResponse
 from django.middleware.csrf import get_token
 from django.shortcuts import get_object_or_404, render
@@ -11,6 +12,7 @@ from django.urls import reverse
 from citry_preview.variants import meta
 from config.citry_app import app
 from highlights.models import Highlight
+from identity.request import AuthenticatedRequest
 
 QUOTE_ONLY = {
     "highlight_id": "preview-quote",
@@ -107,8 +109,9 @@ class HighlightCard(Component):
         }
 
 
+@login_required
 def highlight_card_edit_view(
-    request: HttpRequest,
+    request: AuthenticatedRequest,
     highlight_id: UUID,
 ) -> HttpResponse:
     highlight = get_object_or_404(Highlight, id=highlight_id)

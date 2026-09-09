@@ -1,3 +1,4 @@
+from django.contrib.auth.decorators import login_required
 from django.http import HttpRequest, HttpResponse
 from django.middleware.csrf import get_token
 from django.shortcuts import render
@@ -6,6 +7,8 @@ from django.views.decorators.http import require_http_methods
 
 from citry_preview.rendering import render_component
 from highlights.models import Highlight
+from identity.request import AuthenticatedRequest
+from identity.tokens import user_from_bearer
 
 DEMO_HIGHLIGHTS = (
     {
@@ -90,8 +93,9 @@ def _library_response(request: HttpRequest, kwargs: dict[str, object]) -> HttpRe
     return render(request, "highlights/library.html", {"panel_kwargs": kwargs})
 
 
+@login_required
 @require_http_methods(["GET"])
-def library_highlights_view(request: HttpRequest) -> HttpResponse:
+def library_highlights_view(request: AuthenticatedRequest) -> HttpResponse:
     return _library_response(request, _library_kwargs(request, view="highlights"))
 
 
@@ -100,11 +104,21 @@ def library_settings_view(request: HttpRequest) -> HttpResponse:
     if request.method == "POST":
         server_url = request.POST.get("server_url", "").strip()
         api_token = request.POST.get("api_token", "").strip()
-        if server_url and api_token:
+        if not server_url or not api_token:
             kwargs = _library_kwargs(
                 request,
                 view="settings",
-                status="ok",
+                status="error",
+                error="Server URL과 API Token이 필요합니다",
+                server_url=server_url,
+                api_token=api_token,
+            )
+        elif user_from_bearer(api_token) is None:
+            kwargs = _library_kwargs(
+                request,
+                view="settings",
+                status="error",
+                error="서버가 401로 응답했습니다",
                 server_url=server_url,
                 api_token=api_token,
             )
@@ -112,8 +126,7 @@ def library_settings_view(request: HttpRequest) -> HttpResponse:
             kwargs = _library_kwargs(
                 request,
                 view="settings",
-                status="error",
-                error="Server URL과 API Token이 필요합니다",
+                status="ok",
                 server_url=server_url,
                 api_token=api_token,
             )

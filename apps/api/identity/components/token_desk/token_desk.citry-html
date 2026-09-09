@@ -1,0 +1,32 @@
+<div class="identity-desk">
+  <c-card>
+    <div class="identity-desk-panel">
+      <header class="identity-desk-header">
+        <h1 class="identity-desk-title">API 토큰</h1>
+        <c-if cond="username">
+          <p class="identity-desk-user">{{ username }}</p>
+        </c-if>
+      </header>
+      <c-if cond="has_issued">
+        <p class="identity-token-once">이 토큰은 지금만 보입니다.</p>
+        <code class="identity-token-plain">{{ issued_token }}</code>
+      </c-if>
+      <c-elif cond="has_hint_only">
+        <p class="identity-token-hint">끝자리 {{ hint }}</p>
+      </c-elif>
+      <c-else>
+        <p class="identity-token-empty">확장과 연결할 토큰이 없습니다.</p>
+      </c-else>
+      <form class="identity-desk-form" method="post" c-action="action_url">
+        <input type="hidden" name="csrfmiddlewaretoken" c-value="csrf_token">
+        <button type="submit" class="primary-button">{{ submit_label }}</button>
+      </form>
+      <c-if cond="logout_url">
+        <form method="post" c-action="logout_url">
+          <input type="hidden" name="csrfmiddlewaretoken" c-value="csrf_token">
+          <button type="submit" class="identity-logout">로그아웃</button>
+        </form>
+      </c-if>
+    </div>
+  </c-card>
+</div>

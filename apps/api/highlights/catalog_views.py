@@ -1,4 +1,5 @@
-from django.http import HttpRequest, HttpResponse
+from django.contrib.auth.decorators import login_required
+from django.http import HttpResponse
 from django.middleware.csrf import get_token
 from django.shortcuts import get_object_or_404, render
 from django.urls import reverse
@@ -7,6 +8,7 @@ from django.views.decorators.http import require_http_methods
 from citry_preview.rendering import render_component
 from highlights.library_views import _highlight_kwargs, _is_htmx, _seed_demo_highlights
 from highlights.models import Bookmark, Catalog, Highlight
+from identity.request import AuthenticatedRequest
 
 
 def _seed_catalog_desk() -> None:
@@ -42,7 +44,7 @@ def _row_kwargs(catalog: Catalog, *, selected_id: int | None) -> dict[str, objec
     }
 
 
-def _desk_kwargs(request: HttpRequest, catalog: Catalog | None) -> dict[str, object]:
+def _desk_kwargs(request: AuthenticatedRequest, catalog: Catalog | None) -> dict[str, object]:
     _seed_catalog_desk()
     selected_id = catalog.id if catalog else None
     rows = [
@@ -67,18 +69,20 @@ def _desk_kwargs(request: HttpRequest, catalog: Catalog | None) -> dict[str, obj
     }
 
 
-def _desk_response(request: HttpRequest, kwargs: dict[str, object]) -> HttpResponse:
+def _desk_response(request: AuthenticatedRequest, kwargs: dict[str, object]) -> HttpResponse:
     if _is_htmx(request):
         return HttpResponse(render_component("catalog_desk", kwargs))
     return render(request, "highlights/catalog.html", {"desk_kwargs": kwargs})
 
 
+@login_required
 @require_http_methods(["GET"])
-def catalog_desk_view(request: HttpRequest) -> HttpResponse:
+def catalog_desk_view(request: AuthenticatedRequest) -> HttpResponse:
     return _desk_response(request, _desk_kwargs(request, None))
 
 
+@login_required
 @require_http_methods(["GET"])
-def catalog_desk_detail_view(request: HttpRequest, catalog_id: int) -> HttpResponse:
+def catalog_desk_detail_view(request: AuthenticatedRequest, catalog_id: int) -> HttpResponse:
     catalog = get_object_or_404(Catalog, id=catalog_id)
     return _desk_response(request, _desk_kwargs(request, catalog))

@@ -1,8 +1,10 @@
 import json
 
-from django.http import HttpRequest, JsonResponse
+from django.http import JsonResponse
 from django.views.decorators.csrf import csrf_exempt
 from django.views.decorators.http import require_http_methods
+
+from identity.request import AuthenticatedRequest
 
 from .auth import require_api_token
 from .models import Bookmark, Catalog, Highlight
@@ -12,7 +14,7 @@ from .page_key import canonicalize_page_key, catalog_meta_from_payload
 @csrf_exempt
 @require_api_token
 @require_http_methods(["GET", "POST"])
-def highlights_view(request: HttpRequest) -> JsonResponse:
+def highlights_view(request: AuthenticatedRequest) -> JsonResponse:
     if request.method == "POST":
         data = json.loads(request.body)
         page_key = canonicalize_page_key(data["pageKey"])
@@ -38,7 +40,7 @@ def highlights_view(request: HttpRequest) -> JsonResponse:
 @csrf_exempt
 @require_api_token
 @require_http_methods(["PATCH"])
-def highlight_detail_view(request: HttpRequest, id: str) -> JsonResponse:
+def highlight_detail_view(request: AuthenticatedRequest, id: str) -> JsonResponse:
     try:
         highlight = Highlight.objects.get(id=id)
     except Highlight.DoesNotExist:
@@ -54,7 +56,7 @@ def highlight_detail_view(request: HttpRequest, id: str) -> JsonResponse:
 @csrf_exempt
 @require_api_token
 @require_http_methods(["POST"])
-def bookmarks_view(request: HttpRequest) -> JsonResponse:
+def bookmarks_view(request: AuthenticatedRequest) -> JsonResponse:
     data = json.loads(request.body)
     title, description = catalog_meta_from_payload(data)
     bookmark, created = Bookmark.upsert_from_page_key(
@@ -67,5 +69,5 @@ def bookmarks_view(request: HttpRequest) -> JsonResponse:
 
 @require_api_token
 @require_http_methods(["GET"])
-def ping_view(request: HttpRequest) -> JsonResponse:
+def ping_view(request: AuthenticatedRequest) -> JsonResponse:
     return JsonResponse({"ok": True})

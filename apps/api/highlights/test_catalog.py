@@ -4,10 +4,15 @@ import pytest
 
 from highlights.models import Catalog, Highlight
 
-AUTH = {"Authorization": "Bearer dev-token"}
 
-
-def _post_highlight(client, page_key: str, quote: str = "q", catalog: dict | None = None) -> dict:
+def _post_highlight(
+    client,
+    page_key: str,
+    quote: str = "q",
+    catalog: dict | None = None,
+    *,
+    auth_headers: dict[str, str],
+) -> dict:
     payload: dict = {
         "pageKey": page_key,
         "quote": quote,
@@ -19,15 +24,19 @@ def _post_highlight(client, page_key: str, quote: str = "q", catalog: dict | Non
         "/api/highlights",
         data=json.dumps(payload),
         content_type="application/json",
-        headers=AUTH,
+        headers=auth_headers,
     )
     assert response.status_code == 201
     return response.json()
 
 
 @pytest.mark.django_db
-def test_highlight_post_upserts_catalog_row(client) -> None:
-    _post_highlight(client, "https://example.com/item?id=321#comments")
+def test_highlight_post_upserts_catalog_row(client, auth_headers) -> None:
+    _post_highlight(
+        client,
+        "https://example.com/item?id=321#comments",
+        auth_headers=auth_headers,
+    )
 
     row = Catalog.objects.get()
     assert row.origin == "https://example.com"
@@ -36,18 +45,22 @@ def test_highlight_post_upserts_catalog_row(client) -> None:
 
 
 @pytest.mark.django_db
-def test_second_highlight_on_same_page_does_not_duplicate_catalog(client) -> None:
-    _post_highlight(client, "https://example.com/item?id=321", quote="one")
-    _post_highlight(client, "https://example.com/item?id=321#x", quote="two")
+def test_second_highlight_on_same_page_does_not_duplicate_catalog(client, auth_headers) -> None:
+    _post_highlight(
+        client, "https://example.com/item?id=321", quote="one", auth_headers=auth_headers
+    )
+    _post_highlight(
+        client, "https://example.com/item?id=321#x", quote="two", auth_headers=auth_headers
+    )
 
     assert Catalog.objects.count() == 1
     assert Highlight.objects.count() == 2
 
 
 @pytest.mark.django_db
-def test_different_query_creates_another_catalog_row(client) -> None:
-    _post_highlight(client, "https://example.com/item?id=321")
-    _post_highlight(client, "https://example.com/item?id=322")
+def test_different_query_creates_another_catalog_row(client, auth_headers) -> None:
+    _post_highlight(client, "https://example.com/item?id=321", auth_headers=auth_headers)
+    _post_highlight(client, "https://example.com/item?id=322", auth_headers=auth_headers)
 
     keys = set(Catalog.objects.values_list("origin", "path", "query"))
     assert keys == {
@@ -57,11 +70,12 @@ def test_different_query_creates_another_catalog_row(client) -> None:
 
 
 @pytest.mark.django_db
-def test_highlight_post_writes_catalog_title_and_description(client) -> None:
+def test_highlight_post_writes_catalog_title_and_description(client, auth_headers) -> None:
     _post_highlight(
         client,
         "https://example.com/item?id=321",
         catalog={"title": "The item", "description": "A page about the item."},
+        auth_headers=auth_headers,
     )
 
     row = Catalog.objects.get()
@@ -70,14 +84,17 @@ def test_highlight_post_writes_catalog_title_and_description(client) -> None:
 
 
 @pytest.mark.django_db
-def test_later_highlight_does_not_wipe_catalog_meta_with_empty(client) -> None:
+def test_later_highlight_does_not_wipe_catalog_meta_with_empty(client, auth_headers) -> None:
     _post_highlight(
         client,
         "https://example.com/item?id=321",
         quote="one",
         catalog={"title": "The item", "description": "Kept."},
+        auth_headers=auth_headers,
     )
-    _post_highlight(client, "https://example.com/item?id=321", quote="two")
+    _post_highlight(
+        client, "https://example.com/item?id=321", quote="two", auth_headers=auth_headers
+    )
 
     row = Catalog.objects.get()
     assert row.title == "The item"
@@ -85,18 +102,20 @@ def test_later_highlight_does_not_wipe_catalog_meta_with_empty(client) -> None:
 
 
 @pytest.mark.django_db
-def test_later_highlight_refreshes_catalog_meta_when_sent(client) -> None:
+def test_later_highlight_refreshes_catalog_meta_when_sent(client, auth_headers) -> None:
     _post_highlight(
         client,
         "https://example.com/item?id=321",
         quote="one",
         catalog={"title": "Old", "description": "Old desc."},
+        auth_headers=auth_headers,
     )
     _post_highlight(
         client,
         "https://example.com/item?id=321",
         quote="two",
         catalog={"title": "New", "description": "New desc."},
+        auth_headers=auth_headers,
     )
 
     row = Catalog.objects.get()

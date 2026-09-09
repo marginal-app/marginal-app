@@ -9,8 +9,6 @@ from highlights.page_key import (
     page_key_from_href,
 )
 
-AUTH = {"Authorization": "Bearer dev-token"}
-
 
 def test_page_key_keeps_query_and_drops_hash() -> None:
     assert (
@@ -54,7 +52,7 @@ def test_legacy_non_url_page_key_stays_as_path() -> None:
 
 
 @pytest.mark.django_db
-def test_highlights_post_canonicalizes_page_key(client) -> None:
+def test_highlights_post_canonicalizes_page_key(client, auth_headers) -> None:
     response = client.post(
         "/api/highlights",
         data=json.dumps(
@@ -65,7 +63,7 @@ def test_highlights_post_canonicalizes_page_key(client) -> None:
             }
         ),
         content_type="application/json",
-        headers=AUTH,
+        headers=auth_headers,
     )
     assert response.status_code == 201
     body = response.json()
@@ -75,7 +73,7 @@ def test_highlights_post_canonicalizes_page_key(client) -> None:
 
 
 @pytest.mark.django_db
-def test_highlights_get_filters_by_canonical_page_key(client) -> None:
+def test_highlights_get_filters_by_canonical_page_key(client, auth_headers) -> None:
     Highlight.objects.create(
         page_key="https://example.com/item?id=321",
         quote="one",
@@ -90,12 +88,12 @@ def test_highlights_get_filters_by_canonical_page_key(client) -> None:
     matched = client.get(
         "/api/highlights",
         {"pageKey": "https://example.com/item?id=321#comments"},
-        headers=AUTH,
+        headers=auth_headers,
     )
     other = client.get(
         "/api/highlights",
         {"pageKey": "https://example.com/item?id=322"},
-        headers=AUTH,
+        headers=auth_headers,
     )
     assert matched.status_code == 200
     assert [row["quote"] for row in matched.json()] == ["one"]
