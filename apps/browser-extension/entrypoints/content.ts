@@ -1,3 +1,6 @@
+import { ColorToolbar, HIGHLIGHT_COLORS } from '@/components/color-toolbar';
+import { CommentPopover } from '@/components/comment-popover';
+import { eventPathContains } from '@/components/popover';
 import type {
   CommentUpdatedMessage,
   GetHighlightsMessage,
@@ -8,8 +11,6 @@ import type {
 } from '@/utils/highlight-messages';
 import { pageCatalogFromDocument } from '@/utils/page-catalog';
 import { pageKeyFromLocation } from '@/utils/page-key';
-
-const PASTEL_COLORS = ['#FFF3B0', '#FFD6E0', '#C9F2C7', '#C7E8FF', '#E3D4FF'];
 
 export function extractContext(blockEl: Element, quote: string, wordCount = 6) {
   const text = blockEl.textContent ?? '';
@@ -117,26 +118,10 @@ export function resolveAndPaint(
   return paintRange(range, record.color);
 }
 
-export function pathContains(event: Event, el: Element): boolean {
-  // Elements rendered inside a shadow root (our toolbar/comment box) get
-  // retargeted to the shadow host when observed from a listener outside the
-  // shadow tree, so `event.target` is useless for containment checks here —
-  // `composedPath()` still carries the real, un-retargeted path.
-  return event.composedPath().includes(el);
-}
-
-function styleSmallButton(button: HTMLButtonElement) {
-  button.style.border = 'none';
-  button.style.borderRadius = '4px';
-  button.style.padding = '4px 8px';
-  button.style.fontSize = '12px';
-  button.style.cursor = 'pointer';
-}
-
 export default defineContentScript({
   matches: ['<all_urls>'],
   runAt: 'document_idle',
-  async main(ctx) {
+  main() {
     const pageKey = pageKeyFromLocation(location);
 
     let pending: {
@@ -149,134 +134,31 @@ export default defineContentScript({
     let activeHighlightId: string | null = null;
     let activeMark: HTMLElement | null = null;
 
-    const ui = await createShadowRootUi(ctx, {
-      name: 'marginal-toolbar',
-      position: 'overlay',
-      anchor: () => document.body,
-      zIndex: 2147483647,
-      onMount(container) {
-        const toolbar = document.createElement('div');
-        toolbar.style.position = 'fixed';
-        toolbar.style.display = 'none';
-        toolbar.style.gap = '6px';
-        toolbar.style.padding = '6px';
-        toolbar.style.background = '#1f1f1f';
-        toolbar.style.borderRadius = '999px';
-        toolbar.style.boxShadow = '0 2px 8px rgba(0,0,0,0.3)';
-        toolbar.style.zIndex = '2147483647';
+    const toolbar = new ColorToolbar();
+    toolbar.colors = HIGHLIGHT_COLORS;
 
-        PASTEL_COLORS.forEach((color) => {
-          const dot = document.createElement('button');
-          dot.style.width = '18px';
-          dot.style.height = '18px';
-          dot.style.borderRadius = '50%';
-          dot.style.border = 'none';
-          dot.style.cursor = 'pointer';
-          dot.style.backgroundColor = color;
+    const commentBox = new CommentPopover();
 
-          dot.addEventListener('click', () => {
-            if (!pending) return;
-            const { range, quote, prefix, suffix } = pending;
-
-            const mark = paintRange(range, color);
-
-            const message: SaveHighlightMessage = {
-              type: 'SAVE_HIGHLIGHT',
-              payload: {
-                pageKey,
-                quote,
-                prefix,
-                suffix,
-                color,
-                catalog: pageCatalogFromDocument(document),
-              },
-            };
-            browser.runtime
-              .sendMessage(message)
-              .then((record: HighlightRecord) => {
-                if (mark) attachCommentHandler(mark, record.id, '');
-              })
-              .catch((error) => {
-                console.error('하이라이트 저장 실패', error);
-              });
-
-            hideToolbar();
-            window.getSelection()?.removeAllRanges();
-          });
-
-          toolbar.appendChild(dot);
-        });
-
-        const commentBox = document.createElement('div');
-        commentBox.style.position = 'fixed';
-        commentBox.style.display = 'none';
-        commentBox.style.flexDirection = 'column';
-        commentBox.style.gap = '6px';
-        commentBox.style.width = '220px';
-        commentBox.style.padding = '10px';
-        commentBox.style.background = '#1f1f1f';
-        commentBox.style.borderRadius = '8px';
-        commentBox.style.boxShadow = '0 2px 8px rgba(0,0,0,0.3)';
-        commentBox.style.zIndex = '2147483647';
-
-        const textarea = document.createElement('textarea');
-        textarea.style.width = '100%';
-        textarea.style.minHeight = '60px';
-        textarea.style.resize = 'vertical';
-        textarea.style.border = 'none';
-        textarea.style.borderRadius = '4px';
-        textarea.style.padding = '6px';
-        textarea.style.fontSize = '13px';
-        textarea.style.boxSizing = 'border-box';
-        commentBox.appendChild(textarea);
-
-        const actions = document.createElement('div');
-        actions.style.display = 'flex';
-        actions.style.justifyContent = 'space-between';
-        actions.style.gap = '6px';
-
-        const gotoButton = document.createElement('button');
-        gotoButton.textContent = '패널에서 보기';
-        styleSmallButton(gotoButton);
-
-        const saveButton = document.createElement('button');
-        saveButton.textContent = '저장';
-        styleSmallButton(saveButton);
-
-        actions.appendChild(gotoButton);
-        actions.appendChild(saveButton);
-        commentBox.appendChild(actions);
-
-        container.appendChild(toolbar);
-        container.appendChild(commentBox);
-        return { toolbar, commentBox, textarea, gotoButton, saveButton };
-      },
-    });
-    ui.mount();
-    const { toolbar: toolbarEl, commentBox, textarea, gotoButton, saveButton } =
-      ui.mounted!;
+    document.documentElement.append(toolbar.host, commentBox.host);
 
     function hideToolbar() {
-      toolbarEl.style.display = 'none';
+      toolbar.hide();
       pending = null;
     }
 
     function hideCommentBox() {
-      commentBox.style.display = 'none';
+      commentBox.hide();
       activeHighlightId = null;
       activeMark = null;
     }
 
     function openCommentBox(mark: HTMLElement, highlightId: string) {
+      hideToolbar();
       activeHighlightId = highlightId;
       activeMark = mark;
-      textarea.value = mark.dataset.comment ?? '';
-
-      const rect = mark.getBoundingClientRect();
-      commentBox.style.display = 'flex';
-      commentBox.style.top = `${rect.bottom + 8}px`;
-      commentBox.style.left = `${Math.min(rect.left, window.innerWidth - 236)}px`;
-      textarea.focus();
+      commentBox.comment = mark.dataset.comment ?? '';
+      commentBox.showBelow(mark.getBoundingClientRect());
+      commentBox.focusInput();
     }
 
     function attachCommentHandler(
@@ -292,13 +174,51 @@ export default defineContentScript({
       });
     }
 
-    saveButton.addEventListener('click', () => {
+    toolbar.host.addEventListener('color-pick', (event) => {
+      if (!(event instanceof CustomEvent)) return;
+      if (!pending) return;
+      const color = event.detail.color as string;
+      const { range, quote, prefix, suffix } = pending;
+
+      const mark = paintRange(range, color);
+
+      const message: SaveHighlightMessage = {
+        type: 'SAVE_HIGHLIGHT',
+        payload: {
+          pageKey,
+          quote,
+          prefix,
+          suffix,
+          color,
+          catalog: pageCatalogFromDocument(document),
+        },
+      };
+      browser.runtime
+        .sendMessage(message)
+        .then((record: HighlightRecord) => {
+          if (mark) attachCommentHandler(mark, record.id, '');
+        })
+        .catch((error) => {
+          console.error('하이라이트 저장 실패', error);
+        });
+
+      hideToolbar();
+      window.getSelection()?.removeAllRanges();
+    });
+
+    toolbar.host.addEventListener('dismiss', () => {
+      pending = null;
+    });
+
+    commentBox.host.addEventListener('comment-save', (event) => {
+      if (!(event instanceof CustomEvent)) return;
       if (!activeHighlightId) return;
-      if (activeMark) activeMark.dataset.comment = textarea.value;
+      const comment = event.detail.comment as string;
+      if (activeMark) activeMark.dataset.comment = comment;
 
       const message: UpdateCommentMessage = {
         type: 'UPDATE_COMMENT',
-        payload: { id: activeHighlightId, comment: textarea.value },
+        payload: { id: activeHighlightId, comment },
       };
       browser.runtime.sendMessage(message).catch((error) => {
         console.error('코멘트 저장 실패', error);
@@ -307,7 +227,7 @@ export default defineContentScript({
       hideCommentBox();
     });
 
-    gotoButton.addEventListener('click', () => {
+    commentBox.host.addEventListener('goto-panel', () => {
       if (!activeHighlightId) return;
       const message: OpenSidePanelMessage = {
         type: 'OPEN_SIDE_PANEL',
@@ -318,9 +238,14 @@ export default defineContentScript({
       });
     });
 
+    commentBox.host.addEventListener('dismiss', () => {
+      activeHighlightId = null;
+      activeMark = null;
+    });
+
     document.addEventListener('mouseup', (event) => {
-      if (pathContains(event, toolbarEl)) return;
-      if (pathContains(event, commentBox)) return;
+      if (eventPathContains(event, toolbar.host)) return;
+      if (eventPathContains(event, commentBox.host)) return;
 
       const selection = window.getSelection();
       if (!selection || selection.isCollapsed) {
@@ -349,16 +274,14 @@ export default defineContentScript({
       const { prefix, suffix } = extractContext(blockEl, quote);
       pending = { range: range.cloneRange(), quote, prefix, suffix };
 
-      const rect = range.getBoundingClientRect();
-      toolbarEl.style.display = 'flex';
-      toolbarEl.style.top = `${Math.max(rect.top - toolbarEl.offsetHeight - 8, 8)}px`;
-      toolbarEl.style.left = `${rect.left + rect.width / 2 - toolbarEl.offsetWidth / 2}px`;
+      hideCommentBox();
+      toolbar.showAbove(range.getBoundingClientRect());
     });
 
     document.addEventListener(
       'click',
       (event) => {
-        if (pathContains(event, commentBox)) return;
+        if (eventPathContains(event, commentBox.host)) return;
         hideCommentBox();
       },
       true,
