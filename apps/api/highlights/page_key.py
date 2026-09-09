@@ -2,6 +2,13 @@ from dataclasses import dataclass
 from urllib.parse import urlparse
 
 
+def catalog_meta_from_payload(data: dict) -> tuple[str, str]:
+    raw = data.get("catalog")
+    if not isinstance(raw, dict):
+        return "", ""
+    return str(raw.get("title") or "").strip(), str(raw.get("description") or "").strip()
+
+
 @dataclass(frozen=True)
 class PageIdentity:
     origin: str

@@ -12,10 +12,14 @@ export interface HighlightRecord {
   createdAt: number;
 }
 
+import type { PageCatalogDraft } from '@/utils/page-catalog';
+
 export type HighlightDraft = Omit<
   HighlightRecord,
   'id' | 'createdAt' | 'comment' | 'origin' | 'path' | 'query'
->;
+> & {
+  catalog?: PageCatalogDraft;
+};
 
 export type SaveHighlightMessage = {
   type: 'SAVE_HIGHLIGHT';

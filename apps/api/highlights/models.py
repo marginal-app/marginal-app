@@ -9,6 +9,8 @@ class Catalog(models.Model):
     origin = models.TextField()
     path = models.TextField()
     query = models.TextField(blank=True, default="")
+    title = models.TextField(blank=True, default="")
+    description = models.TextField(blank=True, default="")
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
 
@@ -21,15 +23,29 @@ class Catalog(models.Model):
         ]
 
     @classmethod
-    def upsert_from_page_key(cls, page_key: str) -> "Catalog":
+    def upsert_from_page_key(
+        cls,
+        page_key: str,
+        *,
+        title: str = "",
+        description: str = "",
+    ) -> "Catalog":
         identity = page_identity_from_page_key(page_key)
         row, created = cls.objects.get_or_create(
             origin=identity.origin,
             path=identity.path,
             query=identity.query,
+            defaults={"title": title, "description": description},
         )
         if not created:
-            row.save(update_fields=["updated_at"])
+            fields = ["updated_at"]
+            if title:
+                row.title = title
+                fields.append("title")
+            if description:
+                row.description = description
+                fields.append("description")
+            row.save(update_fields=fields)
         return row
 
 
@@ -43,8 +59,18 @@ class Bookmark(models.Model):
     updated_at = models.DateTimeField(auto_now=True)
 
     @classmethod
-    def upsert_from_page_key(cls, page_key: str) -> tuple["Bookmark", bool]:
-        catalog = Catalog.upsert_from_page_key(page_key)
+    def upsert_from_page_key(
+        cls,
+        page_key: str,
+        *,
+        title: str = "",
+        description: str = "",
+    ) -> tuple["Bookmark", bool]:
+        catalog = Catalog.upsert_from_page_key(
+            page_key,
+            title=title,
+            description=description,
+        )
         row, created = cls.objects.get_or_create(catalog=catalog)
         if not created:
             row.save(update_fields=["updated_at"])

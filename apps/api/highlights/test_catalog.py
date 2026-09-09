@@ -7,16 +7,17 @@ from highlights.models import Catalog, Highlight
 AUTH = {"Authorization": "Bearer dev-token"}
 
 
-def _post_highlight(client, page_key: str, quote: str = "q") -> dict:
+def _post_highlight(client, page_key: str, quote: str = "q", catalog: dict | None = None) -> dict:
+    payload: dict = {
+        "pageKey": page_key,
+        "quote": quote,
+        "color": "#fff",
+    }
+    if catalog is not None:
+        payload["catalog"] = catalog
     response = client.post(
         "/api/highlights",
-        data=json.dumps(
-            {
-                "pageKey": page_key,
-                "quote": quote,
-                "color": "#fff",
-            }
-        ),
+        data=json.dumps(payload),
         content_type="application/json",
         headers=AUTH,
     )
@@ -53,3 +54,51 @@ def test_different_query_creates_another_catalog_row(client) -> None:
         ("https://example.com", "/item", "?id=321"),
         ("https://example.com", "/item", "?id=322"),
     }
+
+
+@pytest.mark.django_db
+def test_highlight_post_writes_catalog_title_and_description(client) -> None:
+    _post_highlight(
+        client,
+        "https://example.com/item?id=321",
+        catalog={"title": "The item", "description": "A page about the item."},
+    )
+
+    row = Catalog.objects.get()
+    assert row.title == "The item"
+    assert row.description == "A page about the item."
+
+
+@pytest.mark.django_db
+def test_later_highlight_does_not_wipe_catalog_meta_with_empty(client) -> None:
+    _post_highlight(
+        client,
+        "https://example.com/item?id=321",
+        quote="one",
+        catalog={"title": "The item", "description": "Kept."},
+    )
+    _post_highlight(client, "https://example.com/item?id=321", quote="two")
+
+    row = Catalog.objects.get()
+    assert row.title == "The item"
+    assert row.description == "Kept."
+
+
+@pytest.mark.django_db
+def test_later_highlight_refreshes_catalog_meta_when_sent(client) -> None:
+    _post_highlight(
+        client,
+        "https://example.com/item?id=321",
+        quote="one",
+        catalog={"title": "Old", "description": "Old desc."},
+    )
+    _post_highlight(
+        client,
+        "https://example.com/item?id=321",
+        quote="two",
+        catalog={"title": "New", "description": "New desc."},
+    )
+
+    row = Catalog.objects.get()
+    assert row.title == "New"
+    assert row.description == "New desc."

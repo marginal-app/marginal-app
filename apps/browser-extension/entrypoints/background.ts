@@ -3,11 +3,19 @@ import type {
   HighlightMessage,
   HighlightRecord,
 } from '@/utils/highlight-messages';
-import { pageIdentityFromPageKey } from '@/utils/page-key';
+import type { PageCatalogDraft } from '@/utils/page-catalog';
+import { pageIdentityFromPageKey, type PageIdentity } from '@/utils/page-key';
 
 const DB_NAME = 'marginal-highlights';
 const STORE_NAME = 'highlights';
-const DB_VERSION = 2;
+const CATALOG_STORE = 'catalogs';
+const DB_VERSION = 3;
+
+export type CatalogRecord = PageIdentity & {
+  title: string;
+  description: string;
+  updatedAt: number;
+};
 
 type StoredHighlight = HighlightRecord & {
   origin?: string;
@@ -50,30 +58,68 @@ export function openDb(): Promise<IDBDatabase> {
           cursor.continue();
         };
       }
+      if (oldVersion < 3) {
+        if (!db.objectStoreNames.contains(CATALOG_STORE)) {
+          db.createObjectStore(CATALOG_STORE, { keyPath: 'pageKey' });
+        }
+      }
     };
     request.onsuccess = () => resolve(request.result);
     request.onerror = () => reject(request.error);
   });
 }
 
+function putCatalog(
+  tx: IDBTransaction,
+  identity: PageIdentity,
+  catalog: PageCatalogDraft | undefined,
+): void {
+  const store = tx.objectStore(CATALOG_STORE);
+  const request = store.get(identity.pageKey);
+  request.onsuccess = () => {
+    const current = request.result as CatalogRecord | undefined;
+    const title = catalog?.title.trim() || current?.title || '';
+    const description = catalog?.description.trim() || current?.description || '';
+    const row: CatalogRecord = {
+      ...identity,
+      title,
+      description,
+      updatedAt: Date.now(),
+    };
+    store.put(row);
+  };
+}
+
 export async function saveHighlight(draft: HighlightDraft): Promise<HighlightRecord> {
   const db = await openDb();
-  const identity = pageIdentityFromPageKey(draft.pageKey);
+  const { catalog, ...highlightDraft } = draft;
+  const identity = pageIdentityFromPageKey(highlightDraft.pageKey);
   const record: HighlightRecord = {
-    ...draft,
+    ...highlightDraft,
     ...identity,
     id: `${Date.now()}-${Math.random().toString(36).slice(2)}`,
     createdAt: Date.now(),
   };
 
   await new Promise<void>((resolve, reject) => {
-    const tx = db.transaction(STORE_NAME, 'readwrite');
+    const tx = db.transaction([STORE_NAME, CATALOG_STORE], 'readwrite');
     tx.objectStore(STORE_NAME).add(record);
+    putCatalog(tx, identity, catalog);
     tx.oncomplete = () => resolve();
     tx.onerror = () => reject(tx.error);
   });
 
   return record;
+}
+
+export async function getCatalog(pageKey: string): Promise<CatalogRecord | undefined> {
+  const db = await openDb();
+  return new Promise((resolve, reject) => {
+    const tx = db.transaction(CATALOG_STORE, 'readonly');
+    const request = tx.objectStore(CATALOG_STORE).get(pageKey);
+    request.onsuccess = () => resolve(request.result as CatalogRecord | undefined);
+    request.onerror = () => reject(request.error);
+  });
 }
 
 export async function getHighlights(pageKey: string): Promise<HighlightRecord[]> {

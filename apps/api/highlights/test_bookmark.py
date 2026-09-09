@@ -7,10 +7,13 @@ from highlights.models import Bookmark, Catalog, Highlight
 AUTH = {"Authorization": "Bearer dev-token"}
 
 
-def _post_bookmark(client, page_key: str):
+def _post_bookmark(client, page_key: str, catalog: dict | None = None):
+    payload: dict = {"pageKey": page_key}
+    if catalog is not None:
+        payload["catalog"] = catalog
     return client.post(
         "/api/bookmarks",
-        data=json.dumps({"pageKey": page_key}),
+        data=json.dumps(payload),
         content_type="application/json",
         headers=AUTH,
     )
@@ -65,3 +68,16 @@ def test_bookmark_and_highlight_share_the_catalog_row(client) -> None:
     assert Bookmark.objects.count() == 1
     assert Highlight.objects.count() == 1
     assert Bookmark.objects.get().catalog_id == Catalog.objects.get().id
+
+
+@pytest.mark.django_db
+def test_bookmark_post_writes_catalog_title_and_description(client) -> None:
+    response = _post_bookmark(
+        client,
+        "https://example.com/item?id=321",
+        catalog={"title": "The item", "description": "Saved without a quote."},
+    )
+    assert response.status_code == 201
+    row = Catalog.objects.get()
+    assert row.title == "The item"
+    assert row.description == "Saved without a quote."

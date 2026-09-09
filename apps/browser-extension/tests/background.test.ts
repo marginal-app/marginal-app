@@ -1,6 +1,11 @@
 import { beforeEach, describe, expect, it } from 'vitest';
 import { IDBFactory } from 'fake-indexeddb';
-import { getHighlights, saveHighlight, updateComment } from '@/entrypoints/background';
+import {
+  getCatalog,
+  getHighlights,
+  saveHighlight,
+  updateComment,
+} from '@/entrypoints/background';
 
 beforeEach(() => {
   // Fresh, empty IndexedDB per test so records from one test can't leak
@@ -104,6 +109,45 @@ describe('saveHighlight / getHighlights', () => {
     expect(results[0]?.origin).toBe('https://example.com');
     expect(results[0]?.path).toBe('/item');
     expect(results[0]?.query).toBe('');
+  });
+
+  it('upserts catalog title and description with the highlight', async () => {
+    await saveHighlight({
+      pageKey: 'https://example.com/item?id=321',
+      quote: 'q',
+      prefix: '',
+      suffix: '',
+      color: '#fff',
+      catalog: { title: 'The item', description: 'A page about the item.' },
+    });
+
+    const row = await getCatalog('https://example.com/item?id=321');
+    expect(row?.title).toBe('The item');
+    expect(row?.description).toBe('A page about the item.');
+    expect(row?.origin).toBe('https://example.com');
+    expect(row?.query).toBe('?id=321');
+  });
+
+  it('keeps catalog meta when a later highlight omits it', async () => {
+    await saveHighlight({
+      pageKey: 'https://example.com/item?id=321',
+      quote: 'one',
+      prefix: '',
+      suffix: '',
+      color: '#fff',
+      catalog: { title: 'The item', description: 'Kept.' },
+    });
+    await saveHighlight({
+      pageKey: 'https://example.com/item?id=321',
+      quote: 'two',
+      prefix: '',
+      suffix: '',
+      color: '#fff',
+    });
+
+    const row = await getCatalog('https://example.com/item?id=321');
+    expect(row?.title).toBe('The item');
+    expect(row?.description).toBe('Kept.');
   });
 });
 
