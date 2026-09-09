@@ -1,6 +1,9 @@
 export interface HighlightRecord {
   id: string;
   pageKey: string;
+  origin: string;
+  path: string;
+  query: string;
   quote: string;
   prefix: string;
   suffix: string;
@@ -9,7 +12,10 @@ export interface HighlightRecord {
   createdAt: number;
 }
 
-export type HighlightDraft = Omit<HighlightRecord, 'id' | 'createdAt' | 'comment'>;
+export type HighlightDraft = Omit<
+  HighlightRecord,
+  'id' | 'createdAt' | 'comment' | 'origin' | 'path' | 'query'
+>;
 
 export type SaveHighlightMessage = {
   type: 'SAVE_HIGHLIGHT';

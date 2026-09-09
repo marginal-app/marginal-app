@@ -11,6 +11,9 @@ function makeRecord(overrides: Partial<HighlightRecord>): HighlightRecord {
   return {
     id: 'id',
     pageKey: 'pageKey',
+    origin: '',
+    path: 'pageKey',
+    query: '',
     quote: '',
     prefix: '',
     suffix: '',

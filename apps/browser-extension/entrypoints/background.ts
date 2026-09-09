@@ -3,19 +3,53 @@ import type {
   HighlightMessage,
   HighlightRecord,
 } from '@/utils/highlight-messages';
+import { pageIdentityFromPageKey } from '@/utils/page-key';
 
 const DB_NAME = 'marginal-highlights';
 const STORE_NAME = 'highlights';
+const DB_VERSION = 2;
+
+type StoredHighlight = HighlightRecord & {
+  origin?: string;
+  path?: string;
+  query?: string;
+};
+
+function migrateRecord(value: StoredHighlight): HighlightRecord {
+  if (value.origin != null && value.path != null && value.query != null) {
+    return value as HighlightRecord;
+  }
+  const identity = pageIdentityFromPageKey(value.pageKey);
+  return { ...value, ...identity };
+}
 
 export function openDb(): Promise<IDBDatabase> {
   return new Promise((resolve, reject) => {
-    const request = indexedDB.open(DB_NAME, 1);
-    request.onupgradeneeded = () => {
-      const store = request.result.createObjectStore(STORE_NAME, {
-        keyPath: 'id',
-      });
-      store.createIndex('by_pageKey', 'pageKey', { unique: false });
-      store.createIndex('by_createdAt', 'createdAt', { unique: false });
+    const request = indexedDB.open(DB_NAME, DB_VERSION);
+    request.onupgradeneeded = (event) => {
+      const db = request.result;
+      const tx = request.transaction;
+      const oldVersion = event.oldVersion;
+      if (oldVersion < 1) {
+        const store = db.createObjectStore(STORE_NAME, {
+          keyPath: 'id',
+        });
+        store.createIndex('by_pageKey', 'pageKey', { unique: false });
+        store.createIndex('by_createdAt', 'createdAt', { unique: false });
+      }
+      if (oldVersion < 2 && tx) {
+        const store = tx.objectStore(STORE_NAME);
+        if (!store.indexNames.contains('by_origin')) {
+          store.createIndex('by_origin', 'origin', { unique: false });
+        }
+        const cursorRequest = store.openCursor();
+        cursorRequest.onsuccess = () => {
+          const cursor = cursorRequest.result;
+          if (!cursor) return;
+          cursor.update(migrateRecord(cursor.value as HighlightRecord));
+          cursor.continue();
+        };
+      }
     };
     request.onsuccess = () => resolve(request.result);
     request.onerror = () => reject(request.error);
@@ -24,8 +58,10 @@ export function openDb(): Promise<IDBDatabase> {
 
 export async function saveHighlight(draft: HighlightDraft): Promise<HighlightRecord> {
   const db = await openDb();
+  const identity = pageIdentityFromPageKey(draft.pageKey);
   const record: HighlightRecord = {
     ...draft,
+    ...identity,
     id: `${Date.now()}-${Math.random().toString(36).slice(2)}`,
     createdAt: Date.now(),
   };
