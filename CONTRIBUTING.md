@@ -188,3 +188,13 @@ The 360px `.silhouette` frame is the extension panel. Catalog list and the highl
 `Preview.group == "Desk"` renders `.silhouette-desk` (~1024px). `capture.py` clips that node and uses a wider viewport. `"Primitives"` stays on the padded 360px `.silhouette-atom`. The gallery is still one URL. Do not add a second harness on the extension.
 
 This is its own principle. Do not fold it into [UI that paints pixels](#ui-that-paints-pixels).
+
+## Ruff before a commit
+
+CI runs `uv run ruff check .` and `uv run ruff format --check .` in `apps/api`. A commit that touches that tree runs the same two commands first. Do not wait for the GitHub job.
+
+The hook is `.githooks/pre-commit`. Install it on a clone with `scripts/install-git-hooks`. That only writes `.git/hooks/pre-commit`. It does not change git config.
+
+`--no-verify` is not a pass.
+
+This is its own principle. Do not fold it into [Desk silhouettes](#desk-silhouettes).
