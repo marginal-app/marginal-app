@@ -1,6 +1,7 @@
 import json
 import uuid
 
+from django.db import transaction
 from django.http import JsonResponse
 from django.utils import timezone
 from django.views.decorators.csrf import csrf_exempt
@@ -9,7 +10,7 @@ from django.views.decorators.http import require_http_methods
 from identity.request import AuthenticatedRequest
 
 from .auth import require_api_token
-from .clock import datetime_from_ms
+from .clock import datetime_from_ms, epoch_ms
 from .models import Catalog, CatalogMembership, Highlight, HighlightConflict
 from .page_key import canonicalize_page_key, catalog_meta_from_payload
 
@@ -100,6 +101,116 @@ def bookmarks_view(request: AuthenticatedRequest) -> JsonResponse:
         bookmarked=True,
     )
     return JsonResponse(membership.to_dict(), status=201 if created else 200)
+
+
+def _max_cursor_ms(rows: list, fallback: int) -> int:
+    if not rows:
+        return fallback
+    return max(epoch_ms(row.updated_at) for row in rows)
+
+
+@csrf_exempt
+@require_api_token
+@require_http_methods(["GET"])
+def sync_pull_view(request: AuthenticatedRequest) -> JsonResponse:
+    raw_since = request.GET.get("since", "0")
+    try:
+        since = int(raw_since)
+    except (TypeError, ValueError):
+        return JsonResponse({"error": "invalid since"}, status=400)
+    if since < 0:
+        return JsonResponse({"error": "invalid since"}, status=400)
+
+    since_dt = datetime_from_ms(since + 1)
+    user = request.bearer_user
+    highlights = [
+        row
+        for row in Highlight.objects.filter(user=user, updated_at__gte=since_dt).select_related(
+            "catalog"
+        )
+        if epoch_ms(row.updated_at) > since
+    ]
+    memberships = [
+        row
+        for row in CatalogMembership.objects.filter(
+            user=user, updated_at__gte=since_dt
+        ).select_related("catalog")
+        if epoch_ms(row.updated_at) > since
+    ]
+    cursor = max(
+        _max_cursor_ms(highlights, since),
+        _max_cursor_ms(memberships, since),
+    )
+    return JsonResponse(
+        {
+            "cursor": cursor,
+            "highlights": [row.to_dict() for row in highlights],
+            "memberships": [row.to_dict() for row in memberships],
+        }
+    )
+
+
+@csrf_exempt
+@require_api_token
+@require_http_methods(["POST"])
+def sync_push_view(request: AuthenticatedRequest) -> JsonResponse:
+    data = json.loads(request.body)
+    membership_payloads = data.get("memberships") or []
+    highlight_payloads = data.get("highlights") or []
+    if not isinstance(membership_payloads, list) or not isinstance(highlight_payloads, list):
+        return JsonResponse({"error": "invalid payload"}, status=400)
+
+    user = request.bearer_user
+    memberships: list[CatalogMembership] = []
+    highlights: list[Highlight] = []
+    try:
+        with transaction.atomic():
+            for raw in membership_payloads:
+                if not isinstance(raw, dict) or not raw.get("pageKey"):
+                    return JsonResponse({"error": "invalid membership"}, status=400)
+                page_key = canonicalize_page_key(str(raw["pageKey"]))
+                catalog = Catalog.get_or_create_from_page_key(page_key)
+                bookmarked = raw.get("bookmarked")
+                membership, _created = CatalogMembership.upsert(
+                    user,
+                    catalog,
+                    title=str(raw.get("title") or ""),
+                    description=str(raw.get("description") or ""),
+                    bookmarked=bookmarked if isinstance(bookmarked, bool) else None,
+                )
+                membership.save(update_fields=["updated_at"])
+                memberships.append(membership)
+
+            for raw in highlight_payloads:
+                if not isinstance(raw, dict):
+                    return JsonResponse({"error": "invalid highlight"}, status=400)
+                highlight_id = _parse_uuid(raw.get("id"))
+                if highlight_id is None or not raw.get("pageKey"):
+                    return JsonResponse({"error": "invalid highlight"}, status=400)
+                title, description = catalog_meta_from_payload(raw)
+                highlight, _created = Highlight.upsert_for_user(
+                    user,
+                    highlight_id=highlight_id,
+                    page_key=canonicalize_page_key(str(raw["pageKey"])),
+                    quote=str(raw.get("quote") or ""),
+                    prefix=str(raw.get("prefix") or ""),
+                    suffix=str(raw.get("suffix") or ""),
+                    color=str(raw.get("color") or ""),
+                    comment=str(raw.get("comment") or ""),
+                    created_at=_created_at_from_payload(raw),
+                    title=title,
+                    description=description,
+                )
+                highlights.append(highlight)
+    except HighlightConflict:
+        return JsonResponse({"error": "conflict"}, status=409)
+
+    return JsonResponse(
+        {
+            "highlights": [row.to_dict() for row in highlights],
+            "memberships": [row.to_dict() for row in memberships],
+        }
+    )
 
 
 @require_api_token
