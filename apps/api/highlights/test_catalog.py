@@ -1,8 +1,9 @@
 import json
+import uuid
 
 import pytest
 
-from highlights.models import Catalog, Highlight
+from highlights.models import Catalog, CatalogMembership, Highlight
 
 
 def _post_highlight(
@@ -12,8 +13,10 @@ def _post_highlight(
     catalog: dict | None = None,
     *,
     auth_headers: dict[str, str],
+    highlight_id: uuid.UUID | None = None,
 ) -> dict:
     payload: dict = {
+        "id": str(highlight_id or uuid.uuid4()),
         "pageKey": page_key,
         "quote": quote,
         "color": "#fff",
@@ -42,6 +45,7 @@ def test_highlight_post_upserts_catalog_row(client, auth_headers) -> None:
     assert row.origin == "https://example.com"
     assert row.path == "/item"
     assert row.query == "?id=321"
+    assert CatalogMembership.objects.get().bookmarked is False
 
 
 @pytest.mark.django_db
@@ -54,6 +58,7 @@ def test_second_highlight_on_same_page_does_not_duplicate_catalog(client, auth_h
     )
 
     assert Catalog.objects.count() == 1
+    assert CatalogMembership.objects.count() == 1
     assert Highlight.objects.count() == 2
 
 
@@ -70,7 +75,7 @@ def test_different_query_creates_another_catalog_row(client, auth_headers) -> No
 
 
 @pytest.mark.django_db
-def test_highlight_post_writes_catalog_title_and_description(client, auth_headers) -> None:
+def test_highlight_post_writes_membership_title_and_description(client, auth_headers) -> None:
     _post_highlight(
         client,
         "https://example.com/item?id=321",
@@ -78,13 +83,13 @@ def test_highlight_post_writes_catalog_title_and_description(client, auth_header
         auth_headers=auth_headers,
     )
 
-    row = Catalog.objects.get()
+    row = CatalogMembership.objects.get()
     assert row.title == "The item"
     assert row.description == "A page about the item."
 
 
 @pytest.mark.django_db
-def test_later_highlight_does_not_wipe_catalog_meta_with_empty(client, auth_headers) -> None:
+def test_later_highlight_does_not_wipe_membership_meta_with_empty(client, auth_headers) -> None:
     _post_highlight(
         client,
         "https://example.com/item?id=321",
@@ -96,13 +101,13 @@ def test_later_highlight_does_not_wipe_catalog_meta_with_empty(client, auth_head
         client, "https://example.com/item?id=321", quote="two", auth_headers=auth_headers
     )
 
-    row = Catalog.objects.get()
+    row = CatalogMembership.objects.get()
     assert row.title == "The item"
     assert row.description == "Kept."
 
 
 @pytest.mark.django_db
-def test_later_highlight_refreshes_catalog_meta_when_sent(client, auth_headers) -> None:
+def test_later_highlight_refreshes_membership_meta_when_sent(client, auth_headers) -> None:
     _post_highlight(
         client,
         "https://example.com/item?id=321",
@@ -118,6 +123,17 @@ def test_later_highlight_refreshes_catalog_meta_when_sent(client, auth_headers) 
         auth_headers=auth_headers,
     )
 
-    row = Catalog.objects.get()
+    row = CatalogMembership.objects.get()
     assert row.title == "New"
     assert row.description == "New desc."
+
+
+@pytest.mark.django_db
+def test_highlight_post_requires_client_id(client, auth_headers) -> None:
+    response = client.post(
+        "/api/highlights",
+        data=json.dumps({"pageKey": "https://example.com/", "quote": "q", "color": "#fff"}),
+        content_type="application/json",
+        headers=auth_headers,
+    )
+    assert response.status_code == 400

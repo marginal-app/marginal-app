@@ -7,37 +7,42 @@ from django.views.decorators.http import require_http_methods
 
 from citry_preview.rendering import render_component
 from highlights.library_views import _highlight_kwargs, _is_htmx, _seed_demo_highlights
-from highlights.models import Bookmark, Catalog, Highlight
+from highlights.models import Catalog, CatalogMembership, Highlight
+from identity.models import User
 from identity.request import AuthenticatedRequest
 
 
-def _seed_catalog_desk() -> None:
-    _seed_demo_highlights()
-    Catalog.objects.get_or_create(
-        origin="https://example.com",
-        path="/hypothesis",
-        query="",
+def _seed_catalog_desk(user: User) -> None:
+    _seed_demo_highlights(user)
+    hypothesis = Catalog.get_or_create_from_page_key("https://example.com/hypothesis")
+    CatalogMembership.objects.get_or_create(
+        user=user,
+        catalog=hypothesis,
         defaults={"title": "Hypothesis"},
     )
-    item, _ = Catalog.objects.get_or_create(
-        origin="https://example.com",
-        path="/item",
-        query="?id=321",
-        defaults={"title": "Item 321"},
+    item = Catalog.get_or_create_from_page_key("https://example.com/item?id=321")
+    CatalogMembership.objects.get_or_create(
+        user=user,
+        catalog=item,
+        defaults={"title": "Item 321", "bookmarked": True},
     )
-    Bookmark.objects.get_or_create(catalog=item)
 
 
-def _row_kwargs(catalog: Catalog, *, selected_id: int | None) -> dict[str, object]:
+def _row_kwargs(
+    membership: CatalogMembership,
+    *,
+    selected_id: int | None,
+) -> dict[str, object]:
+    catalog = membership.catalog
     page_key = catalog.page_key
     return {
         "catalog_id": str(catalog.id),
-        "title": catalog.title,
+        "title": membership.title,
         "origin": catalog.origin,
         "path": catalog.path,
         "query": catalog.query,
-        "highlight_count": Highlight.objects.filter(page_key=page_key).count(),
-        "bookmarked": Bookmark.objects.filter(catalog=catalog).exists(),
+        "highlight_count": Highlight.objects.filter(user=membership.user, catalog=catalog).count(),
+        "bookmarked": membership.bookmarked,
         "selected": selected_id == catalog.id,
         "select_url": reverse("catalog_desk_detail", args=[catalog.id]),
         "source_href": page_key,
@@ -45,23 +50,29 @@ def _row_kwargs(catalog: Catalog, *, selected_id: int | None) -> dict[str, objec
 
 
 def _desk_kwargs(request: AuthenticatedRequest, catalog: Catalog | None) -> dict[str, object]:
-    _seed_catalog_desk()
+    _seed_catalog_desk(request.user)
     selected_id = catalog.id if catalog else None
-    rows = [
-        _row_kwargs(row, selected_id=selected_id) for row in Catalog.objects.order_by("-updated_at")
-    ]
+    memberships = (
+        CatalogMembership.objects.filter(user=request.user)
+        .select_related("catalog")
+        .order_by("-updated_at")
+    )
+    rows = [_row_kwargs(row, selected_id=selected_id) for row in memberships]
     highlights: list[dict[str, object]] = []
+    pane_title = ""
     if catalog:
+        membership = CatalogMembership.objects.filter(user=request.user, catalog=catalog).first()
+        pane_title = membership.title if membership and membership.title else catalog.page_key
         highlights = [
             _highlight_kwargs(highlight)
-            for highlight in Highlight.objects.filter(page_key=catalog.page_key).order_by(
+            for highlight in Highlight.objects.filter(user=request.user, catalog=catalog).order_by(
                 "created_at"
             )
         ]
     return {
         "rows": rows,
         "selected": catalog is not None,
-        "pane_title": (catalog.title or catalog.page_key) if catalog else "",
+        "pane_title": pane_title,
         "source_href": catalog.page_key if catalog else "",
         "highlights": highlights,
         "csrf_token": get_token(request),
@@ -84,5 +95,9 @@ def catalog_desk_view(request: AuthenticatedRequest) -> HttpResponse:
 @login_required
 @require_http_methods(["GET"])
 def catalog_desk_detail_view(request: AuthenticatedRequest, catalog_id: int) -> HttpResponse:
-    catalog = get_object_or_404(Catalog, id=catalog_id)
-    return _desk_response(request, _desk_kwargs(request, catalog))
+    membership = get_object_or_404(
+        CatalogMembership.objects.select_related("catalog"),
+        user=request.user,
+        catalog_id=catalog_id,
+    )
+    return _desk_response(request, _desk_kwargs(request, membership.catalog))

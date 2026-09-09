@@ -114,7 +114,7 @@ def highlight_card_edit_view(
     request: AuthenticatedRequest,
     highlight_id: UUID,
 ) -> HttpResponse:
-    highlight = get_object_or_404(Highlight, id=highlight_id)
+    highlight = get_object_or_404(Highlight, id=highlight_id, user=request.user)
     if request.method == "POST":
         highlight.comment = request.POST.get("comment", "")
         highlight.save(update_fields=["comment", "updated_at"])

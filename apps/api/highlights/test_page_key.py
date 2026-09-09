@@ -1,13 +1,15 @@
 import json
+import uuid
 
 import pytest
 
-from highlights.models import Highlight
+from highlights.models import Catalog, Highlight
 from highlights.page_key import (
     canonicalize_page_key,
     page_identity_from_page_key,
     page_key_from_href,
 )
+from identity.tokens import seed_dev_user
 
 
 def test_page_key_keeps_query_and_drops_hash() -> None:
@@ -57,6 +59,7 @@ def test_highlights_post_canonicalizes_page_key(client, auth_headers) -> None:
         "/api/highlights",
         data=json.dumps(
             {
+                "id": str(uuid.uuid4()),
                 "pageKey": "https://example.com/item?id=321#comments",
                 "quote": "q",
                 "color": "#fff",
@@ -74,12 +77,19 @@ def test_highlights_post_canonicalizes_page_key(client, auth_headers) -> None:
 
 @pytest.mark.django_db
 def test_highlights_get_filters_by_canonical_page_key(client, auth_headers) -> None:
+    user = seed_dev_user()
+    first = Catalog.get_or_create_from_page_key("https://example.com/item?id=321")
+    second = Catalog.get_or_create_from_page_key("https://example.com/item?id=322")
     Highlight.objects.create(
+        user=user,
+        catalog=first,
         page_key="https://example.com/item?id=321",
         quote="one",
         color="#fff",
     )
     Highlight.objects.create(
+        user=user,
+        catalog=second,
         page_key="https://example.com/item?id=322",
         quote="two",
         color="#fff",
