@@ -155,6 +155,7 @@ v1 primitives — one pull request each:
 | `card` | default | bordered panel chrome |
 | `icon_button` | default | `.icon-button` |
 | `status` | ok, error | `.status` |
+| `tray` | closed, open | slide-in panel (`translateX`) |
 
 A primitive PR:
 

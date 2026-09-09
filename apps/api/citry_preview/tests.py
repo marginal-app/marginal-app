@@ -82,6 +82,8 @@ class PreviewCatalogTests(SimpleTestCase):
                 "panel-empty",
                 "panel-highlights",
                 "panel-settings",
+                "tray-closed",
+                "tray-open",
             }.issubset(slugs)
         )
 
