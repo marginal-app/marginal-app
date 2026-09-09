@@ -92,8 +92,11 @@ class CatalogDeskConstructionTests(SimpleTestCase):
             self.assertEqual(preview_by_slug(CatalogDesk, slug).group, "Desk")
 
     def test_desk_css_does_not_restyle_the_tray(self):
-        css = Path(__file__).resolve().parent.joinpath(
-            "components/catalog_desk/catalog_desk.css"
-        ).read_text()
+        css = (
+            Path(__file__)
+            .resolve()
+            .parent.joinpath("components/catalog_desk/catalog_desk.css")
+            .read_text()
+        )
         self.assertNotIn("ds-tray", css)
         self.assertNotIn("22.5rem", css)

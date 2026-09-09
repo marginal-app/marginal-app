@@ -1,4 +1,7 @@
-"""Clip `.silhouette` or `.silhouette-desk`. Review attach uses this; CI does not compare goldens yet."""
+"""Clip `.silhouette` or `.silhouette-desk`.
+
+Review attach uses this; CI does not compare goldens yet.
+"""
 
 from __future__ import annotations
 

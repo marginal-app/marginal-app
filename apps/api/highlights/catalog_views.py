@@ -46,8 +46,7 @@ def _desk_kwargs(request: HttpRequest, catalog: Catalog | None) -> dict[str, obj
     _seed_catalog_desk()
     selected_id = catalog.id if catalog else None
     rows = [
-        _row_kwargs(row, selected_id=selected_id)
-        for row in Catalog.objects.order_by("-updated_at")
+        _row_kwargs(row, selected_id=selected_id) for row in Catalog.objects.order_by("-updated_at")
     ]
     highlights: list[dict[str, object]] = []
     if catalog:
