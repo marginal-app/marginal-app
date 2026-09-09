@@ -4,6 +4,7 @@ import {
   saveHighlight,
   updateComment,
 } from '@/utils/highlight-store';
+import { runSync, scheduleSync } from '@/utils/sync';
 
 export {
   getCatalog,
@@ -26,9 +27,18 @@ export default defineBackground(() => {
       .catch((error: unknown) => console.error(error));
   }
 
+  void runSync().catch((error: unknown) => console.error(error));
+
+  browser.storage.onChanged.addListener((changes, area) => {
+    if (area === 'local' && changes.settings) {
+      scheduleSync(0);
+    }
+  });
+
   browser.runtime.onMessage.addListener((message: HighlightMessage, sender) => {
     if (message.type === 'SAVE_HIGHLIGHT') {
       return saveHighlight(message.payload).then((record) => {
+        scheduleSync();
         browser.runtime
           .sendMessage({ type: 'HIGHLIGHT_ADDED', payload: record })
           .catch(() => {
@@ -45,6 +55,7 @@ export default defineBackground(() => {
     if (message.type === 'UPDATE_COMMENT') {
       return updateComment(message.payload.id, message.payload.comment).then(
         (record) => {
+          scheduleSync();
           browser.runtime
             .sendMessage({
               type: 'COMMENT_UPDATED',
