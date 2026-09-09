@@ -1,0 +1,28 @@
+<div class="identity-desk">
+  <c-card>
+    <div class="identity-desk-panel">
+      <h1 class="identity-desk-title">로그인</h1>
+      <form class="identity-desk-form" method="post" c-action="action_url">
+        <input type="hidden" name="csrfmiddlewaretoken" c-value="csrf_token">
+        <c-field
+          c-label="'사용자 이름'"
+          c-name="'username'"
+          c-value="username"
+          c-input_type="'text'"
+        />
+        <c-field
+          c-label="'비밀번호'"
+          c-name="'password'"
+          c-input_type="'password'"
+        />
+        <button type="submit" class="primary-button">로그인</button>
+        <c-if cond="has_error">
+          <c-status
+            c-tone="'error'"
+            c-message="'사용자 이름 또는 비밀번호가 올바르지 않습니다'"
+          />
+        </c-if>
+      </form>
+    </div>
+  </c-card>
+</div>

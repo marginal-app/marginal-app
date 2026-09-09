@@ -87,6 +87,11 @@ class PreviewCatalogTests(SimpleTestCase):
                 "catalog-desk-empty",
                 "catalog-desk-idle",
                 "catalog-desk-selected",
+                "identity-login-idle",
+                "identity-login-error",
+                "identity-token-empty",
+                "identity-token-issued",
+                "identity-token-has",
             }.issubset(slugs)
         )
 

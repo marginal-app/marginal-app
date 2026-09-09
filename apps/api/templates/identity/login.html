@@ -1,0 +1,35 @@
+{% extends "citry_preview/base.html" %}
+
+{% block title %}로그인{% endblock %}
+
+{% block extra_head %}
+<style>
+  body { background: #d8d8dc; }
+  .identity-page { padding: 2rem 1rem; }
+  .identity-page > p {
+    width: 1024px;
+    margin: 0 auto 0.75rem;
+    font-size: 0.75rem;
+    color: #6b6b6b;
+  }
+  .identity-page > p a { color: #5b5bd6; }
+  .identity-page .silhouette-desk { margin: 0 auto; }
+</style>
+{% endblock %}
+
+{% block body %}
+<div class="identity-page">
+  <p>
+    Account login —
+    <a href="{% url 'component_gallery' %}">gallery</a>
+  </p>
+  <div class="silhouette silhouette-desk">
+    <c-login_form
+      c-action_url="desk_kwargs['action_url']"
+      c-csrf_token="desk_kwargs['csrf_token']"
+      c-username="desk_kwargs['username']"
+      c-has_error="desk_kwargs['has_error']"
+    />
+  </div>
+</div>
+{% endblock %}

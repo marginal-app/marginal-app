@@ -1,0 +1,25 @@
+.identity-desk {
+  min-height: 28rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 2rem;
+  background: var(--bg);
+}
+
+.identity-desk-panel {
+  width: 22rem;
+}
+
+.identity-desk-title {
+  margin: 0 0 1rem;
+  font-size: 1.1rem;
+  font-weight: 600;
+}
+
+.identity-desk-form {
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+  gap: 0.875rem;
+}
