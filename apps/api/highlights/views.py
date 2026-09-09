@@ -5,7 +5,7 @@ from django.views.decorators.csrf import csrf_exempt
 from django.views.decorators.http import require_http_methods
 
 from .auth import require_api_token
-from .models import Highlight
+from .models import Catalog, Highlight
 from .page_key import canonicalize_page_key
 
 
@@ -15,14 +15,16 @@ from .page_key import canonicalize_page_key
 def highlights_view(request: HttpRequest) -> JsonResponse:
     if request.method == "POST":
         data = json.loads(request.body)
+        page_key = canonicalize_page_key(data["pageKey"])
         highlight = Highlight.objects.create(
-            page_key=canonicalize_page_key(data["pageKey"]),
+            page_key=page_key,
             quote=data["quote"],
             prefix=data.get("prefix", ""),
             suffix=data.get("suffix", ""),
             color=data["color"],
             comment=data.get("comment", ""),
         )
+        Catalog.upsert_from_page_key(page_key)
         return JsonResponse(highlight.to_dict(), status=201)
 
     page_key = request.GET.get("pageKey")
