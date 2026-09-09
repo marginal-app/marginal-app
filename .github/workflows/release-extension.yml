@@ -1,0 +1,45 @@
+name: Release extension
+
+on:
+  push:
+    tags:
+      - 'v*'
+
+concurrency:
+  group: release-extension-${{ github.ref }}
+  cancel-in-progress: false
+
+permissions:
+  contents: write
+
+jobs:
+  zip-dev:
+    name: zip development chrome
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+
+      - uses: pnpm/action-setup@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "24"
+          cache: pnpm
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Zip development Chrome extension
+        run: pnpm --filter @marginal-app/browser-extension zip:dev
+
+      - name: Attach zip to GitHub release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          tag="${GITHUB_REF_NAME}"
+          zip="$(ls apps/browser-extension/.output/marginal-*-chrome-dev.zip)"
+          if gh release view "$tag" >/dev/null 2>&1; then
+            gh release upload "$tag" "$zip" --clobber
+          else
+            gh release create "$tag" "$zip" --title "$tag" --generate-notes
+          fi
