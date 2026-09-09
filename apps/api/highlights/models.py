@@ -33,6 +33,33 @@ class Catalog(models.Model):
         return row
 
 
+class Bookmark(models.Model):
+    catalog = models.OneToOneField(
+        Catalog,
+        on_delete=models.CASCADE,
+        related_name="bookmark",
+    )
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    @classmethod
+    def upsert_from_page_key(cls, page_key: str) -> tuple["Bookmark", bool]:
+        catalog = Catalog.upsert_from_page_key(page_key)
+        row, created = cls.objects.get_or_create(catalog=catalog)
+        if not created:
+            row.save(update_fields=["updated_at"])
+        return row, created
+
+    def to_dict(self) -> dict:
+        page_key = self.catalog.origin + self.catalog.path + self.catalog.query
+        return {
+            "id": self.id,
+            "pageKey": page_key,
+            "createdAt": int(self.created_at.timestamp() * 1000),
+            "updatedAt": int(self.updated_at.timestamp() * 1000),
+        }
+
+
 class Highlight(models.Model):
     id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
     page_key = models.TextField(db_index=True)

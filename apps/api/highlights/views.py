@@ -5,7 +5,7 @@ from django.views.decorators.csrf import csrf_exempt
 from django.views.decorators.http import require_http_methods
 
 from .auth import require_api_token
-from .models import Catalog, Highlight
+from .models import Bookmark, Catalog, Highlight
 from .page_key import canonicalize_page_key
 
 
@@ -48,6 +48,15 @@ def highlight_detail_view(request: HttpRequest, id: str) -> JsonResponse:
         highlight.comment = data["comment"]
         highlight.save(update_fields=["comment", "updated_at"])
     return JsonResponse(highlight.to_dict())
+
+
+@csrf_exempt
+@require_api_token
+@require_http_methods(["POST"])
+def bookmarks_view(request: HttpRequest) -> JsonResponse:
+    data = json.loads(request.body)
+    bookmark, created = Bookmark.upsert_from_page_key(data["pageKey"])
+    return JsonResponse(bookmark.to_dict(), status=201 if created else 200)
 
 
 @require_api_token
