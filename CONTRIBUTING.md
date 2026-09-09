@@ -180,3 +180,11 @@ A Cloud Agent attaches the same runtime PNG this way:
 - Do not use `gh pr create` / `gh pr edit --attach` from a Cloud Agent. The agent token cannot upload GitHub user-attachments (`unsupported authentication type`).
 
 A human opening a PR from their laptop still uses `--attach` as in [Reviewing UI from a silhouette](#reviewing-ui-from-a-silhouette). The review contract is unchanged: the PNG is attached to the PR, not committed, and not a CI oracle.
+
+## Desk silhouettes
+
+The 360px `.silhouette` frame is the extension panel. Catalog list and the highlight tray live on a second frame.
+
+`Preview.group == "Desk"` renders `.silhouette-desk` (~1024px). `capture.py` clips that node and uses a wider viewport. `"Primitives"` stays on the padded 360px `.silhouette-atom`. The gallery is still one URL. Do not add a second harness on the extension.
+
+This is its own principle. Do not fold it into [UI that paints pixels](#ui-that-paints-pixels).

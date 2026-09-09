@@ -16,6 +16,7 @@ class RenderedPreview:
     group: str
     html: str
     is_atom: bool = False
+    is_desk: bool = False
 
 
 def _render_preview(preview: Preview, request: HttpRequest) -> str:  # noqa: ARG001
@@ -30,6 +31,7 @@ def _rendered(preview: Preview, request: HttpRequest) -> RenderedPreview:
         group=preview.group,
         html=_render_preview(preview, request),
         is_atom=preview.group == "Primitives",
+        is_desk=preview.group == "Desk",
     )
 
 
