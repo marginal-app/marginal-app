@@ -6,6 +6,7 @@ from django.views.decorators.http import require_http_methods
 
 from .auth import require_api_token
 from .models import Highlight
+from .page_key import canonicalize_page_key
 
 
 @csrf_exempt
@@ -15,7 +16,7 @@ def highlights_view(request: HttpRequest) -> JsonResponse:
     if request.method == "POST":
         data = json.loads(request.body)
         highlight = Highlight.objects.create(
-            page_key=data["pageKey"],
+            page_key=canonicalize_page_key(data["pageKey"]),
             quote=data["quote"],
             prefix=data.get("prefix", ""),
             suffix=data.get("suffix", ""),
@@ -27,7 +28,7 @@ def highlights_view(request: HttpRequest) -> JsonResponse:
     page_key = request.GET.get("pageKey")
     queryset = Highlight.objects.all()
     if page_key:
-        queryset = queryset.filter(page_key=page_key)
+        queryset = queryset.filter(page_key=canonicalize_page_key(page_key))
     return JsonResponse([h.to_dict() for h in queryset], safe=False)
 
 
