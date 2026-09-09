@@ -1,0 +1,17 @@
+<li c-class="class_name">
+  <a
+    class="catalog-row-hit"
+    c-href="href"
+    c-bind="htmx_attrs"
+  >
+    <p class="catalog-row-title">{{ heading }}</p>
+    <p class="catalog-row-location">{{ location }}</p>
+    <p class="catalog-row-meta">
+      <c-if cond="highlight_count">밑줄 {{ highlight_count }}</c-if>
+      <c-if cond="bookmarked">
+        <c-if cond="highlight_count"> · </c-if>
+        북마크
+      </c-if>
+    </p>
+  </a>
+</li>

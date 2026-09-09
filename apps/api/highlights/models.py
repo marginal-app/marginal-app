@@ -22,6 +22,10 @@ class Catalog(models.Model):
             ),
         ]
 
+    @property
+    def page_key(self) -> str:
+        return f"{self.origin}{self.path}{self.query}"
+
     @classmethod
     def upsert_from_page_key(
         cls,

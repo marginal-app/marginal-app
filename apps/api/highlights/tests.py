@@ -1,7 +1,7 @@
 from django.test import TestCase
 from django.urls import reverse
 
-from highlights.models import Highlight
+from highlights.models import Catalog, Highlight
 
 
 def test_ping_requires_token(client) -> None:
@@ -52,3 +52,45 @@ class LibraryHtmxTests(TestCase):
         self.assertEqual(response.status_code, 200)
         self.assertContains(response, 'class="panel"')
         self.assertContains(response, "연결 성공")
+
+
+class CatalogDeskHtmxTests(TestCase):
+    def test_catalog_lists_seeded_pages(self):
+        response = self.client.get(reverse("catalog_desk"))
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, "Hypothesis")
+        self.assertContains(response, "Item 321")
+        self.assertContains(response, 'class="ds-tray"')
+        self.assertNotContains(response, "ds-tray is-open")
+
+    def test_clicking_a_row_swaps_the_desk_with_the_tray_open(self):
+        self.client.get(reverse("catalog_desk"))
+        catalog = Catalog.objects.get(path="/hypothesis")
+        response = self.client.get(
+            reverse("catalog_desk_detail", args=[catalog.id]),
+            HTTP_HX_REQUEST="true",
+        )
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, 'id="catalog-desk"')
+        self.assertContains(response, "ds-tray is-open")
+        self.assertContains(response, "HTMX returns the same HighlightCard")
+        self.assertContains(response, "is-selected")
+        self.assertContains(response, 'class="ds-tray-dismiss"')
+        self.assertContains(response, 'hx-get="/catalog/"')
+
+    def test_dismiss_returns_the_idle_desk(self):
+        self.client.get(reverse("catalog_desk"))
+        catalog = Catalog.objects.get(path="/hypothesis")
+        self.client.get(
+            reverse("catalog_desk_detail", args=[catalog.id]),
+            HTTP_HX_REQUEST="true",
+        )
+        response = self.client.get(
+            reverse("catalog_desk"),
+            HTTP_HX_REQUEST="true",
+        )
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, 'id="catalog-desk"')
+        self.assertContains(response, "Hypothesis")
+        self.assertNotContains(response, "ds-tray is-open")
+        self.assertNotContains(response, 'class="ds-tray-dismiss"')

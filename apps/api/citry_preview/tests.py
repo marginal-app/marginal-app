@@ -84,6 +84,9 @@ class PreviewCatalogTests(SimpleTestCase):
                 "panel-settings",
                 "tray-closed",
                 "tray-open",
+                "catalog-desk-empty",
+                "catalog-desk-idle",
+                "catalog-desk-selected",
             }.issubset(slugs)
         )
 
@@ -140,3 +143,19 @@ class GalleryTests(TestCase):
         )
         self.assertEqual(response.status_code, 200)
         self.assertContains(response, "silhouette-atom")
+
+    def test_desk_silhouettes_use_the_desk_frame(self):
+        response = self.client.get(
+            reverse("component_silhouette", args=["catalog-desk-selected"]),
+        )
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, "silhouette-desk")
+        self.assertNotContains(response, "silhouette-atom")
+
+    def test_desk_silhouettes_use_the_desk_frame(self):
+        response = self.client.get(
+            reverse("component_silhouette", args=["catalog-desk-selected"]),
+        )
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, "silhouette-desk")
+        self.assertNotContains(response, "silhouette-atom")
