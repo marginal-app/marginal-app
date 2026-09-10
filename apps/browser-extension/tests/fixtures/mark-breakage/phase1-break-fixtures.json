@@ -1,0 +1,5142 @@
+{
+  "meta": {
+    "phase": 1,
+    "policy": "break-only / maximize counterexamples. Happy paths (single text node inside p|li|h*, unique prefix+quote+suffix restore, fresh flatten per record) are deferred.",
+    "count": 89,
+    "families": {
+      "A_reject": 38,
+      "B_live_split": 14,
+      "C_parser_x": 22,
+      "D_restore_orphan": 10,
+      "E_sequence": 5
+    },
+    "schema": {
+      "id": "Stable fixture id, family letter + two digits (A01…A38, B01…E05).",
+      "family": "A_reject | B_live_split | C_parser_x | D_restore_orphan | E_sequence",
+      "title": "Short name.",
+      "why_breaks": "Why the current content script / surroundContents / flatten / mouseup path loses.",
+      "html": "Compact snippet (no interstitial whitespace between blocks) assigned onto the load target.",
+      "load": "container-innerHTML (default) | iframe-srcdoc | open-shadow | closed-shadow | domparser-body",
+      "selection": "null for restore-only rows, else {api:'range', pathFrom:'container', start:{path,offset}, end:{path,offset}, quote}. path is childNode indices AFTER html parse. Offsets are UTF-16 code units.",
+      "record": "null, or a HighlightRecord subset {id,quote,prefix,suffix,color}. Some rows use extra.records for multi-restore.",
+      "ops": "Ordered harness steps (load, select, paint, flatten, flattenOnce, restore, restoreStale, mouseup, …).",
+      "expect": "{paint, exceptionName, markCount, toolbar, restore, wrongSpan, ghostRecord, notes}",
+      "oracle": "{kind, checks[]} — how to assert without a fuzzy matcher.",
+      "browserOnly": "true → skip jsdom; run under Playwright Chromium.",
+      "tags": "Searchable facets.",
+      "extra": "Optional parserRecovery, records, mutation, harnessNotes, quoteNotes."
+    },
+    "harness_hints": {
+      "jsdom": {
+        "ok": [
+          "Most A_reject via paintRange (Range + surroundContents exist).",
+          "B_live_split stale flatten / IndexSizeError.",
+          "D_restore_orphan resolveAndPaint.",
+          "C_parser_x recovery via innerHTML (parse5 ≈ HTML parser for these cases)."
+        ],
+        "skip": [
+          "browserOnly=true",
+          "Real window.getSelection / mouseup hit-testing",
+          "iframe contentDocument (A35)",
+          "contenteditable caret (A36)",
+          "open/closed shadow (A38)",
+          "SVG/MathML range endpoints (A31, A32, C14, C15)",
+          "noscript scripting split (C21)"
+        ]
+      },
+      "playwrightChromium": {
+        "ok": [
+          "browserOnly fixtures",
+          "E_* mouseup product path against the real closest() + toolbar",
+          "iframe-srcdoc and attachShadow probes",
+          "Confirming parserRecovery.typical against live innerHTML"
+        ],
+        "notes": [
+          "Do not load the unpacked extension and do not boot WXT for this pack.",
+          "Drive exported paintRange / resolveAndPaint / flattenText, or dispatch mouseup on a fixture document.",
+          "Re-read container.innerHTML (and childNodes) before applying paths on C_parser_x.",
+          "A fuzzy / repair harness is deferred — do not implement it in the same PR as this pack."
+        ]
+      },
+      "product_hooks": {
+        "paintRange": "apps/browser-extension/entrypoints/content.ts — range.surroundContents(mark), catch → null",
+        "flattenText": "TreeWalker SHOW_TEXT, reject SCRIPT/STYLE/NOSCRIPT",
+        "resolveAndPaint": "indexOf(prefix+quote+suffix) then indexOf(quote); first match wins",
+        "mouseup": "closest('p, li, h1, h2, h3, h4, h5, h6'); otherwise hide toolbar",
+        "savePendingHighlight": "sends SAVE_HIGHLIGHT even when paintRange returns null (E05)"
+      }
+    }
+  },
+  "fixtures": [
+    {
+      "id": "A01",
+      "family": "A_reject",
+      "title": "Partial <em> start — range begins in preceding text",
+      "why_breaks": "surroundContents rejects a range that starts in a text node and ends inside a sibling <em>; the <em> is partially contained.",
+      "html": "<p>Hello <em>world</em> today</p>",
+      "load": "container-innerHTML",
+      "selection": {
+        "api": "range",
+        "pathFrom": "container",
+        "start": {
+          "path": [0, 0],
+          "offset": 3
+        },
+        "end": {
+          "path": [0, 1, 0],
+          "offset": 3
+        },
+        "quote": "lo wor"
+      },
+      "record": null,
+      "ops": [
+        "load",
+        "select",
+        "paint"
+      ],
+      "expect": {
+        "paint": "null",
+        "exceptionName": "InvalidStateError",
+        "markCount": 0,
+        "toolbar": null,
+        "restore": null,
+        "wrongSpan": false,
+        "ghostRecord": false,
+        "notes": "Range.surroundContents throws; paintRange catches and returns null."
+      },
+      "oracle": {
+        "kind": "surroundContents-throws",
+        "via": "paintRange-returns-null",
+        "checks": [
+          {
+            "query": "mark",
+            "count": 0
+          },
+          {
+            "fn": "paintRange",
+            "returns": null
+          }
+        ]
+      },
+      "browserOnly": false,
+      "tags": [
+        "cross-inline",
+        "partial-boundary",
+        "em"
+      ]
+    },
+    {
+      "id": "A02",
+      "family": "A_reject",
+      "title": "Partial <strong> end — range exits the bold",
+      "why_breaks": "Start inside <strong>, end in the following text node. The <strong> is partially contained.",
+      "html": "<p>See <strong>bold text</strong> now</p>",
+      "load": "container-innerHTML",
+      "selection": {
+        "api": "range",
+        "pathFrom": "container",
+        "start": {
+          "path": [0, 1, 0],
+          "offset": 5
+        },
+        "end": {
+          "path": [0, 2],
+          "offset": 4
+        },
+        "quote": "text now"
+      },
+      "record": null,
+      "ops": [
+        "load",
+        "select",
+        "paint"
+      ],
+      "expect": {
+        "paint": "null",
+        "exceptionName": "InvalidStateError",
+        "markCount": 0,
+        "toolbar": null,
+        "restore": null,
+        "wrongSpan": false,
+        "ghostRecord": false,
+        "notes": "Range.surroundContents throws; paintRange catches and returns null."
+      },
+      "oracle": {
+        "kind": "surroundContents-throws",
+        "via": "paintRange-returns-null",
+        "checks": [
+          {
+            "query": "mark",
+            "count": 0
+          },
+          {
+            "fn": "paintRange",
+            "returns": null
+          }
+        ]
+      },
+      "browserOnly": false,
+      "tags": [
+        "cross-inline",
+        "partial-boundary",
+        "strong"
+      ]
+    },
+    {
+      "id": "A03",
+      "family": "A_reject",
+      "title": "Nested <em> inside <strong>, range stops inside the inner italic",
+      "why_breaks": "Start in the strong's leading text, end inside nested <em>. Both formatting nodes are partially contained.",
+      "html": "<p>x <strong>aa<em>bb</em>cc</strong> y</p>",
+      "load": "container-innerHTML",
+      "selection": {
+        "api": "range",
+        "pathFrom": "container",
+        "start": {
+          "path": [0, 1, 0],
+          "offset": 1
+        },
+        "end": {
+          "path": [0, 1, 1, 0],
+          "offset": 2
+        },
+        "quote": "abb"
+      },
+      "record": null,
+      "ops": [
+        "load",
+        "select",
+        "paint"
+      ],
+      "expect": {
+        "paint": "null",
+        "exceptionName": "InvalidStateError",
+        "markCount": 0,
+        "toolbar": null,
+        "restore": null,
+        "wrongSpan": false,
+        "ghostRecord": false,
+        "notes": "Range.surroundContents throws; paintRange catches and returns null."
+      },
+      "oracle": {
+        "kind": "surroundContents-throws",
+        "via": "paintRange-returns-null",
+        "checks": [
+          {
+            "query": "mark",
+            "count": 0
+          },
+          {
+            "fn": "paintRange",
+            "returns": null
+          }
+        ]
+      },
+      "browserOnly": false,
+      "tags": [
+        "cross-inline",
+        "nested",
+        "strong",
+        "em"
+      ]
+    },
+    {
+      "id": "A04",
+      "family": "A_reject",
+      "title": "Two sibling <span>s, selection crosses the boundary",
+      "why_breaks": "Start in first span text, end in second. Each span is partially contained.",
+      "html": "<p><span>alpha</span><span dir=\"rtl\">שלום</span></p>",
+      "load": "container-innerHTML",
+      "selection": {
+        "api": "range",
+        "pathFrom": "container",
+        "start": {
+          "path": [0, 0, 0],
+          "offset": 3
+        },
+        "end": {
+          "path": [0, 1, 0],
+          "offset": 2
+        },
+        "quote": "phaשל"
+      },
+      "record": null,
+      "ops": [
+        "load",
+        "select",
+        "paint"
+      ],
+      "expect": {
+        "paint": "null",
+        "exceptionName": "InvalidStateError",
+        "markCount": 0,
+        "toolbar": null,
+        "restore": null,
+        "wrongSpan": false,
+        "ghostRecord": false,
+        "notes": "Range.surroundContents throws; paintRange catches and returns null."
+      },
+      "oracle": {
+        "kind": "surroundContents-throws",
+        "via": "paintRange-returns-null",
+        "checks": [
+          {
+            "query": "mark",
+            "count": 0
+          },
+          {
+            "fn": "paintRange",
+            "returns": null
+          }
+        ]
+      },
+      "browserOnly": false,
+      "tags": [
+        "cross-inline",
+        "sibling-spans",
+        "bidi",
+        "unicode"
+      ]
+    },
+    {
+      "id": "A05",
+      "family": "A_reject",
+      "title": "Partial <a href> — start before the link, end inside it",
+      "why_breaks": "The <a> is partially contained. Product also later fails restore of any ghost quote that spans the link.",
+      "html": "<p>visit <a href=\"/x\">the site</a> today</p>",
+      "load": "container-innerHTML",
+      "selection": {
+        "api": "range",
+        "pathFrom": "container",
+        "start": {
+          "path": [0, 0],
+          "offset": 3
+        },
+        "end": {
+          "path": [0, 1, 0],
+          "offset": 7
+        },
+        "quote": "it the si"
+      },
+      "record": null,
+      "ops": [
+        "load",
+        "select",
+        "paint"
+      ],
+      "expect": {
+        "paint": "null",
+        "exceptionName": "InvalidStateError",
+        "markCount": 0,
+        "toolbar": null,
+        "restore": null,
+        "wrongSpan": false,
+        "ghostRecord": false,
+        "notes": "Range.surroundContents throws; paintRange catches and returns null."
+      },
+      "oracle": {
+        "kind": "surroundContents-throws",
+        "via": "paintRange-returns-null",
+        "checks": [
+          {
+            "query": "mark",
+            "count": 0
+          },
+          {
+            "fn": "paintRange",
+            "returns": null
+          }
+        ]
+      },
+      "browserOnly": false,
+      "tags": [
+        "cross-inline",
+        "anchor"
+      ]
+    },
+    {
+      "id": "A06",
+      "family": "A_reject",
+      "title": "Partial <code> boundary",
+      "why_breaks": "Range starts in preceding text and ends inside <code>.",
+      "html": "<p>run <code>npm test</code> now</p>",
+      "load": "container-innerHTML",
+      "selection": {
+        "api": "range",
+        "pathFrom": "container",
+        "start": {
+          "path": [0, 0],
+          "offset": 1
+        },
+        "end": {
+          "path": [0, 1, 0],
+          "offset": 3
+        },
+        "quote": "un npm"
+      },
+      "record": null,
+      "ops": [
+        "load",
+        "select",
+        "paint"
+      ],
+      "expect": {
+        "paint": "null",
+        "exceptionName": "InvalidStateError",
+        "markCount": 0,
+        "toolbar": null,
+        "restore": null,
+        "wrongSpan": false,
+        "ghostRecord": false,
+        "notes": "Range.surroundContents throws; paintRange catches and returns null."
+      },
+      "oracle": {
+        "kind": "surroundContents-throws",
+        "via": "paintRange-returns-null",
+        "checks": [
+          {
+            "query": "mark",
+            "count": 0
+          },
+          {
+            "fn": "paintRange",
+            "returns": null
+          }
+        ]
+      },
+      "browserOnly": false,
+      "tags": [
+        "cross-inline",
+        "code"
+      ]
+    },
+    {
+      "id": "A07",
+      "family": "A_reject",
+      "title": "Existing <mark> — start before, end inside",
+      "why_breaks": "Start before an existing highlight, end inside it. The live <mark> is partially contained so a second paint cannot wrap.",
+      "html": "<p>The <mark>quick brown</mark> fox</p>",
+      "load": "container-innerHTML",
+      "selection": {
+        "api": "range",
+        "pathFrom": "container",
+        "start": {
+          "path": [0, 0],
+          "offset": 1
+        },
+        "end": {
+          "path": [0, 1, 0],
+          "offset": 5
+        },
+        "quote": "he qui"
+      },
+      "record": null,
+      "ops": [
+        "load",
+        "select",
+        "paint"
+      ],
+      "expect": {
+        "paint": "null",
+        "exceptionName": "InvalidStateError",
+        "markCount": 0,
+        "toolbar": null,
+        "restore": null,
+        "wrongSpan": false,
+        "ghostRecord": false,
+        "notes": "Range.surroundContents throws; paintRange catches and returns null."
+      },
+      "oracle": {
+        "kind": "surroundContents-throws",
+        "via": "paintRange-returns-null",
+        "checks": [
+          {
+            "query": "mark",
+            "count": 0
+          },
+          {
+            "fn": "paintRange",
+            "returns": null
+          }
+        ]
+      },
+      "browserOnly": false,
+      "tags": [
+        "existing-mark",
+        "partial-boundary"
+      ]
+    },
+    {
+      "id": "A08",
+      "family": "A_reject",
+      "title": "Existing <mark> — start inside, end after",
+      "why_breaks": "Inverse of A07: the already-painted mark is only partially selected.",
+      "html": "<p>The <mark>quick brown</mark> fox</p>",
+      "load": "container-innerHTML",
+      "selection": {
+        "api": "range",
+        "pathFrom": "container",
+        "start": {
+          "path": [0, 1, 0],
+          "offset": 8
+        },
+        "end": {
+          "path": [0, 2],
+          "offset": 4
+        },
+        "quote": "own fox"
+      },
+      "record": null,
+      "ops": [
+        "load",
+        "select",
+        "paint"
+      ],
+      "expect": {
+        "paint": "null",
+        "exceptionName": "InvalidStateError",
+        "markCount": 0,
+        "toolbar": null,
+        "restore": null,
+        "wrongSpan": false,
+        "ghostRecord": false,
+        "notes": "Range.surroundContents throws; paintRange catches and returns null."
+      },
+      "oracle": {
+        "kind": "surroundContents-throws",
+        "via": "paintRange-returns-null",
+        "checks": [
+          {
+            "query": "mark",
+            "count": 0
+          },
+          {
+            "fn": "paintRange",
+            "returns": null
+          }
+        ]
+      },
+      "browserOnly": false,
+      "tags": [
+        "existing-mark",
+        "partial-boundary"
+      ]
+    },
+    {
+      "id": "A09",
+      "family": "A_reject",
+      "title": "Existing <mark> fully inside the range — nested wrap",
+      "why_breaks": "Start in text before the mark, end in text after. The <mark> is fully contained, so surroundContents may wrap it in a second mark. Nested marks (or a reject) are both phase-1 breaks versus a single merged highlight.",
+      "html": "<p>The <mark>quick brown</mark> fox</p>",
+      "load": "container-innerHTML",
+      "selection": {
+        "api": "range",
+        "pathFrom": "container",
+        "start": {
+          "path": [0, 0],
+          "offset": 0
+        },
+        "end": {
+          "path": [0, 2],
+          "offset": 4
+        },
+        "quote": "The quick brown fox"
+      },
+      "record": null,
+      "ops": [
+        "load",
+        "select",
+        "paint"
+      ],
+      "expect": {
+        "paint": "nested-or-null",
+        "exceptionName": null,
+        "markCount": null,
+        "toolbar": null,
+        "restore": null,
+        "wrongSpan": false,
+        "ghostRecord": false,
+        "notes": "If surroundContents succeeds, a <mark> wraps an existing <mark>. Either reject or nested marks — both are phase-1 breaks versus a single merged highlight."
+      },
+      "oracle": {
+        "kind": "nested-mark-or-reject",
+        "checks": [
+          {
+            "any": [
+              {
+                "fn": "paintRange",
+                "returns": null
+              },
+              {
+                "query": "mark mark",
+                "minCount": 1
+              }
+            ]
+          }
+        ]
+      },
+      "browserOnly": false,
+      "tags": [
+        "existing-mark",
+        "nested-mark"
+      ]
+    },
+    {
+      "id": "A10",
+      "family": "A_reject",
+      "title": "Nested marks — range from outer text into inner mark",
+      "why_breaks": "Double-painted DOM. Selecting from outer mark text into the inner mark partially contains the inner <mark>.",
+      "html": "<p><mark>outer <mark>inner</mark> tail</mark></p>",
+      "load": "container-innerHTML",
+      "selection": {
+        "api": "range",
+        "pathFrom": "container",
+        "start": {
+          "path": [0, 0, 0],
+          "offset": 2
+        },
+        "end": {
+          "path": [0, 0, 1, 0],
+          "offset": 3
+        },
+        "quote": "ter inn"
+      },
+      "record": null,
+      "ops": [
+        "load",
+        "select",
+        "paint"
+      ],
+      "expect": {
+        "paint": "null",
+        "exceptionName": "InvalidStateError",
+        "markCount": 0,
+        "toolbar": null,
+        "restore": null,
+        "wrongSpan": false,
+        "ghostRecord": false,
+        "notes": "Range.surroundContents throws; paintRange catches and returns null."
+      },
+      "oracle": {
+        "kind": "surroundContents-throws",
+        "via": "paintRange-returns-null",
+        "checks": [
+          {
+            "query": "mark",
+            "count": 0
+          },
+          {
+            "fn": "paintRange",
+            "returns": null
+          }
+        ]
+      },
+      "browserOnly": false,
+      "tags": [
+        "existing-mark",
+        "nested-mark"
+      ]
+    },
+    {
+      "id": "A11",
+      "family": "A_reject",
+      "title": "<br> inside a partially selected <span>",
+      "why_breaks": "Void <br> alone between sibling texts of the same parent can wrap; crossing into a <span> that contains the <br> partially contains the span.",
+      "html": "<p>line <span>one<br>two</span> end</p>",
+      "load": "container-innerHTML",
+      "selection": {
+        "api": "range",
+        "pathFrom": "container",
+        "start": {
+          "path": [0, 0],
+          "offset": 2
+        },
+        "end": {
+          "path": [0, 1, 2],
+          "offset": 2
+        },
+        "quote": "ne one\ntw"
+      },
+      "record": null,
+      "ops": [
+        "load",
+        "select",
+        "paint"
+      ],
+      "expect": {
+        "paint": "null",
+        "exceptionName": "InvalidStateError",
+        "markCount": 0,
+        "toolbar": null,
+        "restore": null,
+        "wrongSpan": false,
+        "ghostRecord": false,
+        "notes": "Range.surroundContents throws; paintRange catches and returns null."
+      },
+      "oracle": {
+        "kind": "surroundContents-throws",
+        "via": "paintRange-returns-null",
+        "checks": [
+          {
+            "query": "mark",
+            "count": 0
+          },
+          {
+            "fn": "paintRange",
+            "returns": null
+          }
+        ]
+      },
+      "browserOnly": false,
+      "tags": [
+        "void",
+        "br",
+        "cross-inline"
+      ],
+      "quoteNotes": "range.toString() may use a newline for <br>; do not assume a space."
+    },
+    {
+      "id": "A12",
+      "family": "A_reject",
+      "title": "<img> inside a partially selected <span>",
+      "why_breaks": "Same shape as A11: the interesting reject is the partial <span>, not the void itself. A wrap that swallowed an <img> would also be a break.",
+      "html": "<p>see <span>cat <img alt=\"c\" src=\"about:blank\"> dog</span> there</p>",
+      "load": "container-innerHTML",
+      "selection": {
+        "api": "range",
+        "pathFrom": "container",
+        "start": {
+          "path": [0, 0],
+          "offset": 1
+        },
+        "end": {
+          "path": [0, 1, 0],
+          "offset": 3
+        },
+        "quote": "ee cat"
+      },
+      "record": null,
+      "ops": [
+        "load",
+        "select",
+        "paint"
+      ],
+      "expect": {
+        "paint": "null",
+        "exceptionName": "InvalidStateError",
+        "markCount": 0,
+        "toolbar": null,
+        "restore": null,
+        "wrongSpan": false,
+        "ghostRecord": false,
+        "notes": "Range.surroundContents throws; paintRange catches and returns null."
+      },
+      "oracle": {
+        "kind": "surroundContents-throws",
+        "via": "paintRange-returns-null",
+        "checks": [
+          {
+            "query": "mark",
+            "count": 0
+          },
+          {
+            "fn": "paintRange",
+            "returns": null
+          }
+        ]
+      },
+      "browserOnly": false,
+      "tags": [
+        "void",
+        "img",
+        "cross-inline"
+      ]
+    },
+    {
+      "id": "A13",
+      "family": "A_reject",
+      "title": "<wbr> plus partial <span>",
+      "why_breaks": "<wbr> between texts of one parent may wrap; start before the span and end after the <wbr> so the span is partial.",
+      "html": "<p>pre <span>super<wbr>cali</span> post</p>",
+      "load": "container-innerHTML",
+      "selection": {
+        "api": "range",
+        "pathFrom": "container",
+        "start": {
+          "path": [0, 0],
+          "offset": 1
+        },
+        "end": {
+          "path": [0, 1, 2],
+          "offset": 2
+        },
+        "quote": "re supercal"
+      },
+      "record": null,
+      "ops": [
+        "load",
+        "select",
+        "paint"
+      ],
+      "expect": {
+        "paint": "null",
+        "exceptionName": "InvalidStateError",
+        "markCount": 0,
+        "toolbar": null,
+        "restore": null,
+        "wrongSpan": false,
+        "ghostRecord": false,
+        "notes": "Range.surroundContents throws; paintRange catches and returns null."
+      },
+      "oracle": {
+        "kind": "surroundContents-throws",
+        "via": "paintRange-returns-null",
+        "checks": [
+          {
+            "query": "mark",
+            "count": 0
+          },
+          {
+            "fn": "paintRange",
+            "returns": null
+          }
+        ]
+      },
+      "browserOnly": false,
+      "tags": [
+        "void",
+        "wbr",
+        "cross-inline"
+      ]
+    },
+    {
+      "id": "A14",
+      "family": "A_reject",
+      "title": "Cross <p> to <p>",
+      "why_breaks": "Each <p> is partially contained. Compact HTML so no interstitial whitespace text nodes.",
+      "html": "<p>First para ends.</p><p>Second starts here.</p>",
+      "load": "container-innerHTML",
+      "selection": {
+        "api": "range",
+        "pathFrom": "container",
+        "start": {
+          "path": [0, 0],
+          "offset": 11
+        },
+        "end": {
+          "path": [1, 0],
+          "offset": 6
+        },
+        "quote": "ends.Second"
+      },
+      "record": null,
+      "ops": [
+        "load",
+        "select",
+        "paint"
+      ],
+      "expect": {
+        "paint": "null",
+        "exceptionName": "InvalidStateError",
+        "markCount": 0,
+        "toolbar": null,
+        "restore": null,
+        "wrongSpan": false,
+        "ghostRecord": false,
+        "notes": "Range.surroundContents throws; paintRange catches and returns null."
+      },
+      "oracle": {
+        "kind": "surroundContents-throws",
+        "via": "paintRange-returns-null",
+        "checks": [
+          {
+            "query": "mark",
+            "count": 0
+          },
+          {
+            "fn": "paintRange",
+            "returns": null
+          }
+        ]
+      },
+      "browserOnly": false,
+      "tags": [
+        "cross-block",
+        "p"
+      ]
+    },
+    {
+      "id": "A15",
+      "family": "A_reject",
+      "title": "Cross <h2> into following <p>",
+      "why_breaks": "Heading and paragraph are each partially contained.",
+      "html": "<h2>Title words</h2><p>Body words</p>",
+      "load": "container-innerHTML",
+      "selection": {
+        "api": "range",
+        "pathFrom": "container",
+        "start": {
+          "path": [0, 0],
+          "offset": 6
+        },
+        "end": {
+          "path": [1, 0],
+          "offset": 4
+        },
+        "quote": "wordsBody"
+      },
+      "record": null,
+      "ops": [
+        "load",
+        "select",
+        "paint"
+      ],
+      "expect": {
+        "paint": "null",
+        "exceptionName": "InvalidStateError",
+        "markCount": 0,
+        "toolbar": null,
+        "restore": null,
+        "wrongSpan": false,
+        "ghostRecord": false,
+        "notes": "Range.surroundContents throws; paintRange catches and returns null."
+      },
+      "oracle": {
+        "kind": "surroundContents-throws",
+        "via": "paintRange-returns-null",
+        "checks": [
+          {
+            "query": "mark",
+            "count": 0
+          },
+          {
+            "fn": "paintRange",
+            "returns": null
+          }
+        ]
+      },
+      "browserOnly": false,
+      "tags": [
+        "cross-block",
+        "heading"
+      ]
+    },
+    {
+      "id": "A16",
+      "family": "A_reject",
+      "title": "Cross <li> to <li> in a <ul>",
+      "why_breaks": "List items are blocks. surroundContents cannot wrap a range that ends in a sibling <li>.",
+      "html": "<ul><li>Apple pie</li><li>Berry tart</li></ul>",
+      "load": "container-innerHTML",
+      "selection": {
+        "api": "range",
+        "pathFrom": "container",
+        "start": {
+          "path": [0, 0, 0],
+          "offset": 6
+        },
+        "end": {
+          "path": [0, 1, 0],
+          "offset": 5
+        },
+        "quote": "pieBerry"
+      },
+      "record": null,
+      "ops": [
+        "load",
+        "select",
+        "paint"
+      ],
+      "expect": {
+        "paint": "null",
+        "exceptionName": "InvalidStateError",
+        "markCount": 0,
+        "toolbar": null,
+        "restore": null,
+        "wrongSpan": false,
+        "ghostRecord": false,
+        "notes": "Range.surroundContents throws; paintRange catches and returns null."
+      },
+      "oracle": {
+        "kind": "surroundContents-throws",
+        "via": "paintRange-returns-null",
+        "checks": [
+          {
+            "query": "mark",
+            "count": 0
+          },
+          {
+            "fn": "paintRange",
+            "returns": null
+          }
+        ]
+      },
+      "browserOnly": false,
+      "tags": [
+        "cross-block",
+        "list",
+        "ul"
+      ]
+    },
+    {
+      "id": "A17",
+      "family": "A_reject",
+      "title": "Cross <li> to <li> in an <ol>",
+      "why_breaks": "Same partial-boundary reject as A16 on an ordered list.",
+      "html": "<ol><li>One item</li><li>Two item</li></ol>",
+      "load": "container-innerHTML",
+      "selection": {
+        "api": "range",
+        "pathFrom": "container",
+        "start": {
+          "path": [0, 0, 0],
+          "offset": 4
+        },
+        "end": {
+          "path": [0, 1, 0],
+          "offset": 3
+        },
+        "quote": "itemTwo"
+      },
+      "record": null,
+      "ops": [
+        "load",
+        "select",
+        "paint"
+      ],
+      "expect": {
+        "paint": "null",
+        "exceptionName": "InvalidStateError",
+        "markCount": 0,
+        "toolbar": null,
+        "restore": null,
+        "wrongSpan": false,
+        "ghostRecord": false,
+        "notes": "Range.surroundContents throws; paintRange catches and returns null."
+      },
+      "oracle": {
+        "kind": "surroundContents-throws",
+        "via": "paintRange-returns-null",
+        "checks": [
+          {
+            "query": "mark",
+            "count": 0
+          },
+          {
+            "fn": "paintRange",
+            "returns": null
+          }
+        ]
+      },
+      "browserOnly": false,
+      "tags": [
+        "cross-block",
+        "list",
+        "ol"
+      ]
+    },
+    {
+      "id": "A18",
+      "family": "A_reject",
+      "title": "Cross <dt> to <dd>",
+      "why_breaks": "Definition lists are not p|li|h*, so the product mouseup also refuses. Paint still rejects if driven directly.",
+      "html": "<dl><dt>Term here</dt><dd>Definition text</dd></dl>",
+      "load": "container-innerHTML",
+      "selection": {
+        "api": "range",
+        "pathFrom": "container",
+        "start": {
+          "path": [0, 0, 0],
+          "offset": 5
+        },
+        "end": {
+          "path": [0, 1, 0],
+          "offset": 10
+        },
+        "quote": "hereDefinition"
+      },
+      "record": null,
+      "ops": [
+        "load",
+        "select",
+        "paint"
+      ],
+      "expect": {
+        "paint": "null",
+        "exceptionName": "InvalidStateError",
+        "markCount": 0,
+        "toolbar": null,
+        "restore": null,
+        "wrongSpan": false,
+        "ghostRecord": false,
+        "notes": "Range.surroundContents throws; paintRange catches and returns null."
+      },
+      "oracle": {
+        "kind": "surroundContents-throws",
+        "via": "paintRange-returns-null",
+        "checks": [
+          {
+            "query": "mark",
+            "count": 0
+          },
+          {
+            "fn": "paintRange",
+            "returns": null
+          }
+        ]
+      },
+      "browserOnly": false,
+      "tags": [
+        "cross-block",
+        "dl",
+        "mouseup-adjacent"
+      ]
+    },
+    {
+      "id": "A19",
+      "family": "A_reject",
+      "title": "Table cell to sibling cell",
+      "why_breaks": "Explicit <tbody> so child-node paths stay stable. Each <td> is partially contained.",
+      "html": "<table><tbody><tr><td>left cell</td><td>right cell</td></tr></tbody></table>",
+      "load": "container-innerHTML",
+      "selection": {
+        "api": "range",
+        "pathFrom": "container",
+        "start": {
+          "path": [0, 0, 0, 0, 0],
+          "offset": 5
+        },
+        "end": {
+          "path": [0, 0, 0, 1, 0],
+          "offset": 5
+        },
+        "quote": "cellright"
+      },
+      "record": null,
+      "ops": [
+        "load",
+        "select",
+        "paint"
+      ],
+      "expect": {
+        "paint": "null",
+        "exceptionName": "InvalidStateError",
+        "markCount": 0,
+        "toolbar": null,
+        "restore": null,
+        "wrongSpan": false,
+        "ghostRecord": false,
+        "notes": "Range.surroundContents throws; paintRange catches and returns null."
+      },
+      "oracle": {
+        "kind": "surroundContents-throws",
+        "via": "paintRange-returns-null",
+        "checks": [
+          {
+            "query": "mark",
+            "count": 0
+          },
+          {
+            "fn": "paintRange",
+            "returns": null
+          }
+        ]
+      },
+      "browserOnly": false,
+      "tags": [
+        "table",
+        "td",
+        "cross-cell"
+      ]
+    },
+    {
+      "id": "A20",
+      "family": "A_reject",
+      "title": "Table row to next row",
+      "why_breaks": "Range starts in r1 and ends in r2. Rows and cells are partially contained.",
+      "html": "<table><tbody><tr><td>r1c1</td></tr><tr><td>r2c1</td></tr></tbody></table>",
+      "load": "container-innerHTML",
+      "selection": {
+        "api": "range",
+        "pathFrom": "container",
+        "start": {
+          "path": [0, 0, 0, 0, 0],
+          "offset": 2
+        },
+        "end": {
+          "path": [0, 0, 1, 0, 0],
+          "offset": 2
+        },
+        "quote": "c1r2"
+      },
+      "record": null,
+      "ops": [
+        "load",
+        "select",
+        "paint"
+      ],
+      "expect": {
+        "paint": "null",
+        "exceptionName": "InvalidStateError",
+        "markCount": 0,
+        "toolbar": null,
+        "restore": null,
+        "wrongSpan": false,
+        "ghostRecord": false,
+        "notes": "Range.surroundContents throws; paintRange catches and returns null."
+      },
+      "oracle": {
+        "kind": "surroundContents-throws",
+        "via": "paintRange-returns-null",
+        "checks": [
+          {
+            "query": "mark",
+            "count": 0
+          },
+          {
+            "fn": "paintRange",
+            "returns": null
+          }
+        ]
+      },
+      "browserOnly": false,
+      "tags": [
+        "table",
+        "tr",
+        "cross-row"
+      ]
+    },
+    {
+      "id": "A21",
+      "family": "A_reject",
+      "title": "<th> to <td> in the same row",
+      "why_breaks": "Header cell to data cell — still a partial-boundary reject.",
+      "html": "<table><tbody><tr><th>Head</th><td>Data</td></tr></tbody></table>",
+      "load": "container-innerHTML",
+      "selection": {
+        "api": "range",
+        "pathFrom": "container",
+        "start": {
+          "path": [0, 0, 0, 0, 0],
+          "offset": 2
+        },
+        "end": {
+          "path": [0, 0, 0, 1, 0],
+          "offset": 2
+        },
+        "quote": "adDa"
+      },
+      "record": null,
+      "ops": [
+        "load",
+        "select",
+        "paint"
+      ],
+      "expect": {
+        "paint": "null",
+        "exceptionName": "InvalidStateError",
+        "markCount": 0,
+        "toolbar": null,
+        "restore": null,
+        "wrongSpan": false,
+        "ghostRecord": false,
+        "notes": "Range.surroundContents throws; paintRange catches and returns null."
+      },
+      "oracle": {
+        "kind": "surroundContents-throws",
+        "via": "paintRange-returns-null",
+        "checks": [
+          {
+            "query": "mark",
+            "count": 0
+          },
+          {
+            "fn": "paintRange",
+            "returns": null
+          }
+        ]
+      },
+      "browserOnly": false,
+      "tags": [
+        "table",
+        "th",
+        "td"
+      ]
+    },
+    {
+      "id": "A22",
+      "family": "A_reject",
+      "title": "Caption to first cell",
+      "why_breaks": "<caption> and <td> live in different table sections; the range partially contains both.",
+      "html": "<table><caption>Cap text</caption><tbody><tr><td>Body cell</td></tr></tbody></table>",
+      "load": "container-innerHTML",
+      "selection": {
+        "api": "range",
+        "pathFrom": "container",
+        "start": {
+          "path": [0, 0, 0],
+          "offset": 4
+        },
+        "end": {
+          "path": [0, 1, 0, 0, 0],
+          "offset": 4
+        },
+        "quote": "textBody"
+      },
+      "record": null,
+      "ops": [
+        "load",
+        "select",
+        "paint"
+      ],
+      "expect": {
+        "paint": "null",
+        "exceptionName": "InvalidStateError",
+        "markCount": 0,
+        "toolbar": null,
+        "restore": null,
+        "wrongSpan": false,
+        "ghostRecord": false,
+        "notes": "Range.surroundContents throws; paintRange catches and returns null."
+      },
+      "oracle": {
+        "kind": "surroundContents-throws",
+        "via": "paintRange-returns-null",
+        "checks": [
+          {
+            "query": "mark",
+            "count": 0
+          },
+          {
+            "fn": "paintRange",
+            "returns": null
+          }
+        ]
+      },
+      "browserOnly": false,
+      "tags": [
+        "table",
+        "caption"
+      ]
+    },
+    {
+      "id": "A23",
+      "family": "A_reject",
+      "title": "<blockquote> to following <p>",
+      "why_breaks": "Cross-block. Mouseup on the blockquote side also misses p|li|h* if the range's closest() is the quote.",
+      "html": "<blockquote>Quoted line</blockquote><p>Reply line</p>",
+      "load": "container-innerHTML",
+      "selection": {
+        "api": "range",
+        "pathFrom": "container",
+        "start": {
+          "path": [0, 0],
+          "offset": 7
+        },
+        "end": {
+          "path": [1, 0],
+          "offset": 5
+        },
+        "quote": "lineReply"
+      },
+      "record": null,
+      "ops": [
+        "load",
+        "select",
+        "paint"
+      ],
+      "expect": {
+        "paint": "null",
+        "exceptionName": "InvalidStateError",
+        "markCount": 0,
+        "toolbar": null,
+        "restore": null,
+        "wrongSpan": false,
+        "ghostRecord": false,
+        "notes": "Range.surroundContents throws; paintRange catches and returns null."
+      },
+      "oracle": {
+        "kind": "surroundContents-throws",
+        "via": "paintRange-returns-null",
+        "checks": [
+          {
+            "query": "mark",
+            "count": 0
+          },
+          {
+            "fn": "paintRange",
+            "returns": null
+          }
+        ]
+      },
+      "browserOnly": false,
+      "tags": [
+        "cross-block",
+        "blockquote"
+      ]
+    },
+    {
+      "id": "A24",
+      "family": "A_reject",
+      "title": "<pre> with an inner <span>",
+      "why_breaks": "A single text node in <pre> would paint. Crossing the <span> is the reject.",
+      "html": "<pre>foo <span>bar</span> baz</pre>",
+      "load": "container-innerHTML",
+      "selection": {
+        "api": "range",
+        "pathFrom": "container",
+        "start": {
+          "path": [0, 0],
+          "offset": 2
+        },
+        "end": {
+          "path": [0, 1, 0],
+          "offset": 2
+        },
+        "quote": "o ba"
+      },
+      "record": null,
+      "ops": [
+        "load",
+        "select",
+        "paint"
+      ],
+      "expect": {
+        "paint": "null",
+        "exceptionName": "InvalidStateError",
+        "markCount": 0,
+        "toolbar": null,
+        "restore": null,
+        "wrongSpan": false,
+        "ghostRecord": false,
+        "notes": "Range.surroundContents throws; paintRange catches and returns null."
+      },
+      "oracle": {
+        "kind": "surroundContents-throws",
+        "via": "paintRange-returns-null",
+        "checks": [
+          {
+            "query": "mark",
+            "count": 0
+          },
+          {
+            "fn": "paintRange",
+            "returns": null
+          }
+        ]
+      },
+      "browserOnly": false,
+      "tags": [
+        "cross-inline",
+        "pre"
+      ]
+    },
+    {
+      "id": "A25",
+      "family": "A_reject",
+      "title": "<ruby> / <rt> partial",
+      "why_breaks": "Start in the ruby base text conceptually, end in <rt>. After parse, paths are ruby > #text + rt > #text. The <rt> is partially contained if we stop inside it; starting before <ruby> also partially contains <ruby>.",
+      "html": "<p><ruby>東京<rt>Tōkyō</rt></ruby> city</p>",
+      "load": "container-innerHTML",
+      "selection": {
+        "api": "range",
+        "pathFrom": "container",
+        "start": {
+          "path": [0, 0, 0],
+          "offset": 1
+        },
+        "end": {
+          "path": [0, 0, 1, 0],
+          "offset": 3
+        },
+        "quote": "京Tōk"
+      },
+      "record": null,
+      "ops": [
+        "load",
+        "select",
+        "paint"
+      ],
+      "expect": {
+        "paint": "null",
+        "exceptionName": "InvalidStateError",
+        "markCount": 0,
+        "toolbar": null,
+        "restore": null,
+        "wrongSpan": false,
+        "ghostRecord": false,
+        "notes": "Range.surroundContents throws; paintRange catches and returns null."
+      },
+      "oracle": {
+        "kind": "surroundContents-throws",
+        "via": "paintRange-returns-null",
+        "checks": [
+          {
+            "query": "mark",
+            "count": 0
+          },
+          {
+            "fn": "paintRange",
+            "returns": null
+          }
+        ]
+      },
+      "browserOnly": false,
+      "tags": [
+        "ruby",
+        "unicode"
+      ]
+    },
+    {
+      "id": "A26",
+      "family": "A_reject",
+      "title": "<sup> boundary",
+      "why_breaks": "Range starts in preceding text and ends inside the superscript.",
+      "html": "<p>E = mc<sup>2</sup> energy</p>",
+      "load": "container-innerHTML",
+      "selection": {
+        "api": "range",
+        "pathFrom": "container",
+        "start": {
+          "path": [0, 0],
+          "offset": 5
+        },
+        "end": {
+          "path": [0, 1, 0],
+          "offset": 1
+        },
+        "quote": "mc2"
+      },
+      "record": null,
+      "ops": [
+        "load",
+        "select",
+        "paint"
+      ],
+      "expect": {
+        "paint": "null",
+        "exceptionName": "InvalidStateError",
+        "markCount": 0,
+        "toolbar": null,
+        "restore": null,
+        "wrongSpan": false,
+        "ghostRecord": false,
+        "notes": "Range.surroundContents throws; paintRange catches and returns null."
+      },
+      "oracle": {
+        "kind": "surroundContents-throws",
+        "via": "paintRange-returns-null",
+        "checks": [
+          {
+            "query": "mark",
+            "count": 0
+          },
+          {
+            "fn": "paintRange",
+            "returns": null
+          }
+        ]
+      },
+      "browserOnly": false,
+      "tags": [
+        "cross-inline",
+        "sup"
+      ]
+    },
+    {
+      "id": "A27",
+      "family": "A_reject",
+      "title": "Cross out of a <button>",
+      "why_breaks": "Start inside button label, end in following text. <button> is partially contained. Nested interactive content is also illegal HTML in other fixtures.",
+      "html": "<p>click <button>Save now</button> please</p>",
+      "load": "container-innerHTML",
+      "selection": {
+        "api": "range",
+        "pathFrom": "container",
+        "start": {
+          "path": [0, 1, 0],
+          "offset": 5
+        },
+        "end": {
+          "path": [0, 2],
+          "offset": 4
+        },
+        "quote": "now ple"
+      },
+      "record": null,
+      "ops": [
+        "load",
+        "select",
+        "paint"
+      ],
+      "expect": {
+        "paint": "null",
+        "exceptionName": "InvalidStateError",
+        "markCount": 0,
+        "toolbar": null,
+        "restore": null,
+        "wrongSpan": false,
+        "ghostRecord": false,
+        "notes": "Range.surroundContents throws; paintRange catches and returns null."
+      },
+      "oracle": {
+        "kind": "surroundContents-throws",
+        "via": "paintRange-returns-null",
+        "checks": [
+          {
+            "query": "mark",
+            "count": 0
+          },
+          {
+            "fn": "paintRange",
+            "returns": null
+          }
+        ]
+      },
+      "browserOnly": false,
+      "tags": [
+        "form",
+        "button",
+        "cross-inline"
+      ]
+    },
+    {
+      "id": "A28",
+      "family": "A_reject",
+      "title": "<input> inside a partially selected <label>",
+      "why_breaks": "Void form control. Crossing into the <label> rejects; wrapping a range that only covers the input's sibling texts would swallow the control.",
+      "html": "<p>name <label>x<input type=\"text\" value=\"Ada\">y</label> here</p>",
+      "load": "container-innerHTML",
+      "selection": {
+        "api": "range",
+        "pathFrom": "container",
+        "start": {
+          "path": [0, 0],
+          "offset": 2
+        },
+        "end": {
+          "path": [0, 1, 0],
+          "offset": 1
+        },
+        "quote": "me x"
+      },
+      "record": null,
+      "ops": [
+        "load",
+        "select",
+        "paint"
+      ],
+      "expect": {
+        "paint": "null",
+        "exceptionName": "InvalidStateError",
+        "markCount": 0,
+        "toolbar": null,
+        "restore": null,
+        "wrongSpan": false,
+        "ghostRecord": false,
+        "notes": "Range.surroundContents throws; paintRange catches and returns null."
+      },
+      "oracle": {
+        "kind": "surroundContents-throws",
+        "via": "paintRange-returns-null",
+        "checks": [
+          {
+            "query": "mark",
+            "count": 0
+          },
+          {
+            "fn": "paintRange",
+            "returns": null
+          }
+        ]
+      },
+      "browserOnly": false,
+      "tags": [
+        "form",
+        "input",
+        "void"
+      ]
+    },
+    {
+      "id": "A29",
+      "family": "A_reject",
+      "title": "<textarea> boundary — start before, end cannot enter rawtext usefully",
+      "why_breaks": "Textarea's value is not a child text node of the paragraph flatten in the same way as visible siblings. Range from preceding text to following text fully contains the <textarea> and partially contains the <p>. If the harness sets start/end on the sibling texts, surroundContents may wrap including the textarea (product break) or throw. Prefer end inside a following <em> so the reject is unambiguous.",
+      "html": "<p>note <textarea>hello</textarea> <em>after</em></p>",
+      "load": "container-innerHTML",
+      "selection": {
+        "api": "range",
+        "pathFrom": "container",
+        "start": {
+          "path": [0, 0],
+          "offset": 2
+        },
+        "end": {
+          "path": [0, 3, 0],
+          "offset": 3
+        },
+        "quote": "te after"
+      },
+      "record": null,
+      "ops": [
+        "load",
+        "select",
+        "paint"
+      ],
+      "expect": {
+        "paint": "null",
+        "exceptionName": "InvalidStateError",
+        "markCount": 0,
+        "toolbar": null,
+        "restore": null,
+        "wrongSpan": false,
+        "ghostRecord": false,
+        "notes": "Range.surroundContents throws; paintRange catches and returns null."
+      },
+      "oracle": {
+        "kind": "surroundContents-throws",
+        "via": "paintRange-returns-null",
+        "checks": [
+          {
+            "query": "mark",
+            "count": 0
+          },
+          {
+            "fn": "paintRange",
+            "returns": null
+          }
+        ]
+      },
+      "browserOnly": false,
+      "tags": [
+        "form",
+        "textarea"
+      ],
+      "quoteNotes": "Do not read textarea.value as flattenText content; walker only sees DOM text nodes. Expected range.toString() is typically 'te after' (sibling texts only) unless the UA includes the placeholder/value."
+    },
+    {
+      "id": "A30",
+      "family": "A_reject",
+      "title": "<select> / <option> adjacent to painted text",
+      "why_breaks": "Start in preceding text, end inside the first option's text if the UA exposes it; otherwise end in following text and treat wrapping the <select> as a break. Path assumes option text is [0,1,0,0] after parse (select > option > #text).",
+      "html": "<p>pick <select><option>One</option><option>Two</option></select> ok</p>",
+      "load": "container-innerHTML",
+      "selection": {
+        "api": "range",
+        "pathFrom": "container",
+        "start": {
+          "path": [0, 0],
+          "offset": 2
+        },
+        "end": {
+          "path": [0, 1, 0, 0],
+          "offset": 2
+        },
+        "quote": "ck On"
+      },
+      "record": null,
+      "ops": [
+        "load",
+        "select",
+        "paint"
+      ],
+      "expect": {
+        "paint": "null",
+        "exceptionName": "InvalidStateError",
+        "markCount": 0,
+        "toolbar": null,
+        "restore": null,
+        "wrongSpan": false,
+        "ghostRecord": false,
+        "notes": "Range.surroundContents throws; paintRange catches and returns null."
+      },
+      "oracle": {
+        "kind": "surroundContents-throws",
+        "via": "paintRange-returns-null",
+        "checks": [
+          {
+            "query": "mark",
+            "count": 0
+          },
+          {
+            "fn": "paintRange",
+            "returns": null
+          }
+        ]
+      },
+      "browserOnly": false,
+      "tags": [
+        "form",
+        "select"
+      ],
+      "harnessNotes": "Some UAs do not allow a Range to enter <option>. If setStart/setEnd throws, record that as browserOnly skip with the same family id."
+    },
+    {
+      "id": "A31",
+      "family": "A_reject",
+      "title": "HTML text into <svg><text>",
+      "why_breaks": "Foreign content. Range from HTML text into SVG text partially contains <svg> / <text>. jsdom SVG support is incomplete — prefer Chromium.",
+      "html": "<p>see <svg width=\"40\" height=\"20\"><text x=\"0\" y=\"15\">SVG</text></svg> end</p>",
+      "load": "container-innerHTML",
+      "selection": {
+        "api": "range",
+        "pathFrom": "container",
+        "start": {
+          "path": [0, 0],
+          "offset": 1
+        },
+        "end": {
+          "path": [0, 1, 0, 0],
+          "offset": 2
+        },
+        "quote": "ee SV"
+      },
+      "record": null,
+      "ops": [
+        "load",
+        "select",
+        "paint"
+      ],
+      "expect": {
+        "paint": "null",
+        "exceptionName": "InvalidStateError",
+        "markCount": 0,
+        "toolbar": null,
+        "restore": null,
+        "wrongSpan": false,
+        "ghostRecord": false,
+        "notes": "Range.surroundContents throws; paintRange catches and returns null."
+      },
+      "oracle": {
+        "kind": "surroundContents-throws",
+        "via": "paintRange-returns-null",
+        "checks": [
+          {
+            "query": "mark",
+            "count": 0
+          },
+          {
+            "fn": "paintRange",
+            "returns": null
+          }
+        ]
+      },
+      "browserOnly": true,
+      "tags": [
+        "svg",
+        "foreign-content"
+      ],
+      "harnessNotes": "If jsdom cannot place a Range inside SVG text, skip under Chromium only."
+    },
+    {
+      "id": "A32",
+      "family": "A_reject",
+      "title": "HTML text into <math>",
+      "why_breaks": "Same foreign-content reject as A31 for MathML tokens.",
+      "html": "<p>eq <math><mi>x</mi><mo>+</mo><mi>y</mi></math> done</p>",
+      "load": "container-innerHTML",
+      "selection": {
+        "api": "range",
+        "pathFrom": "container",
+        "start": {
+          "path": [0, 0],
+          "offset": 1
+        },
+        "end": {
+          "path": [0, 1, 0, 0],
+          "offset": 1
+        },
+        "quote": "q x"
+      },
+      "record": null,
+      "ops": [
+        "load",
+        "select",
+        "paint"
+      ],
+      "expect": {
+        "paint": "null",
+        "exceptionName": "InvalidStateError",
+        "markCount": 0,
+        "toolbar": null,
+        "restore": null,
+        "wrongSpan": false,
+        "ghostRecord": false,
+        "notes": "Range.surroundContents throws; paintRange catches and returns null."
+      },
+      "oracle": {
+        "kind": "surroundContents-throws",
+        "via": "paintRange-returns-null",
+        "checks": [
+          {
+            "query": "mark",
+            "count": 0
+          },
+          {
+            "fn": "paintRange",
+            "returns": null
+          }
+        ]
+      },
+      "browserOnly": true,
+      "tags": [
+        "math",
+        "foreign-content"
+      ]
+    },
+    {
+      "id": "A33",
+      "family": "A_reject",
+      "title": "Visible paragraphs with <script> between them",
+      "why_breaks": "flattenText skips SCRIPT. A live range from first <p> to second still partially contains each <p> (and fully contains the script element). Paint rejects. Restore of quote 'visibleafter' would be a flatten concatenation false-positive if someone joined without a boundary.",
+      "html": "<p>visible</p><script>var hidden = \"no\";</script><p>after</p>",
+      "load": "container-innerHTML",
+      "selection": {
+        "api": "range",
+        "pathFrom": "container",
+        "start": {
+          "path": [0, 0],
+          "offset": 3
+        },
+        "end": {
+          "path": [2, 0],
+          "offset": 3
+        },
+        "quote": "ibleafter"
+      },
+      "record": null,
+      "ops": [
+        "load",
+        "select",
+        "paint"
+      ],
+      "expect": {
+        "paint": "null",
+        "exceptionName": "InvalidStateError",
+        "markCount": 0,
+        "toolbar": null,
+        "restore": null,
+        "wrongSpan": false,
+        "ghostRecord": false,
+        "notes": "Range.surroundContents throws; paintRange catches and returns null."
+      },
+      "oracle": {
+        "kind": "surroundContents-throws",
+        "via": "paintRange-returns-null",
+        "checks": [
+          {
+            "query": "mark",
+            "count": 0
+          },
+          {
+            "fn": "paintRange",
+            "returns": null
+          }
+        ]
+      },
+      "browserOnly": false,
+      "tags": [
+        "script",
+        "cross-block"
+      ]
+    },
+    {
+      "id": "A34",
+      "family": "A_reject",
+      "title": "Visible paragraphs with <style> between them",
+      "why_breaks": "Same as A33 for STYLE. flattenText already excludes style text; the paint reject is the cross-<p> range.",
+      "html": "<p>before</p><style>.x{color:red}</style><p>after</p>",
+      "load": "container-innerHTML",
+      "selection": {
+        "api": "range",
+        "pathFrom": "container",
+        "start": {
+          "path": [0, 0],
+          "offset": 3
+        },
+        "end": {
+          "path": [2, 0],
+          "offset": 3
+        },
+        "quote": "oreafter"
+      },
+      "record": null,
+      "ops": [
+        "load",
+        "select",
+        "paint"
+      ],
+      "expect": {
+        "paint": "null",
+        "exceptionName": "InvalidStateError",
+        "markCount": 0,
+        "toolbar": null,
+        "restore": null,
+        "wrongSpan": false,
+        "ghostRecord": false,
+        "notes": "Range.surroundContents throws; paintRange catches and returns null."
+      },
+      "oracle": {
+        "kind": "surroundContents-throws",
+        "via": "paintRange-returns-null",
+        "checks": [
+          {
+            "query": "mark",
+            "count": 0
+          },
+          {
+            "fn": "paintRange",
+            "returns": null
+          }
+        ]
+      },
+      "browserOnly": false,
+      "tags": [
+        "style",
+        "cross-block"
+      ]
+    },
+    {
+      "id": "A35",
+      "family": "A_reject",
+      "title": "Range from text before <iframe> to text after",
+      "why_breaks": "Cannot select into the iframe document from the parent. A parent range from the first <p> to the last partially contains both paragraphs and fully contains the iframe. Paint rejects. Interior iframe text is a different document (see load iframe-srcdoc notes).",
+      "html": "<p>out</p><iframe srcdoc=\"<p>in frame</p>\"></iframe><p>tail</p>",
+      "load": "container-innerHTML",
+      "selection": {
+        "api": "range",
+        "pathFrom": "container",
+        "start": {
+          "path": [0, 0],
+          "offset": 1
+        },
+        "end": {
+          "path": [2, 0],
+          "offset": 3
+        },
+        "quote": "uttail"
+      },
+      "record": null,
+      "ops": [
+        "load",
+        "select",
+        "paint"
+      ],
+      "expect": {
+        "paint": "null",
+        "exceptionName": "InvalidStateError",
+        "markCount": 0,
+        "toolbar": null,
+        "restore": null,
+        "wrongSpan": false,
+        "ghostRecord": false,
+        "notes": "Range.surroundContents throws; paintRange catches and returns null."
+      },
+      "oracle": {
+        "kind": "surroundContents-throws",
+        "via": "paintRange-returns-null",
+        "checks": [
+          {
+            "query": "mark",
+            "count": 0
+          },
+          {
+            "fn": "paintRange",
+            "returns": null
+          }
+        ]
+      },
+      "browserOnly": true,
+      "tags": [
+        "iframe",
+        "cross-block"
+      ],
+      "harnessNotes": "A second Chromium-only probe may open the iframe document and try paintRange there; that is out of the parent content-script's document."
+    },
+    {
+      "id": "A36",
+      "family": "A_reject",
+      "title": "contenteditable with inner <em> partial",
+      "why_breaks": "Same surroundContents reject as A01, but the selection is inside contenteditable. Caret/selection APIs differ in Chromium vs jsdom.",
+      "html": "<div contenteditable=\"true\"><p>edit <em>me</em> now</p></div>",
+      "load": "container-innerHTML",
+      "selection": {
+        "api": "range",
+        "pathFrom": "container",
+        "start": {
+          "path": [0, 0],
+          "offset": 2
+        },
+        "end": {
+          "path": [0, 1, 0],
+          "offset": 2
+        },
+        "quote": "it me"
+      },
+      "record": null,
+      "ops": [
+        "load",
+        "select",
+        "paint"
+      ],
+      "expect": {
+        "paint": "null",
+        "exceptionName": "InvalidStateError",
+        "markCount": 0,
+        "toolbar": null,
+        "restore": null,
+        "wrongSpan": false,
+        "ghostRecord": false,
+        "notes": "Range.surroundContents throws; paintRange catches and returns null."
+      },
+      "oracle": {
+        "kind": "surroundContents-throws",
+        "via": "paintRange-returns-null",
+        "checks": [
+          {
+            "query": "mark",
+            "count": 0
+          },
+          {
+            "fn": "paintRange",
+            "returns": null
+          }
+        ]
+      },
+      "browserOnly": true,
+      "tags": [
+        "contenteditable",
+        "cross-inline"
+      ]
+    },
+    {
+      "id": "A37",
+      "family": "A_reject",
+      "title": "ZWJ emoji inside <em>, range crosses into the cluster",
+      "why_breaks": "👨‍👩‍👧‍👦 is multiple UTF-16 units joined by ZWJ. Start in preceding text, end at a mid-cluster offset inside <em>. Partial <em> rejects; a same-node mid-ZWJ split would also produce a broken grapheme if paint ever succeeded.",
+      "html": "<p>family <em>👨‍👩‍👧‍👦</em> photo</p>",
+      "load": "container-innerHTML",
+      "selection": {
+        "api": "range",
+        "pathFrom": "container",
+        "start": {
+          "path": [0, 0],
+          "offset": 4
+        },
+        "end": {
+          "path": [0, 1, 0],
+          "offset": 2
+        },
+        "quote": null
+      },
+      "record": null,
+      "ops": [
+        "load",
+        "select",
+        "paint"
+      ],
+      "expect": {
+        "paint": "null",
+        "exceptionName": "InvalidStateError",
+        "markCount": 0,
+        "toolbar": null,
+        "restore": null,
+        "wrongSpan": false,
+        "ghostRecord": false,
+        "notes": "Range.surroundContents throws; paintRange catches and returns null."
+      },
+      "oracle": {
+        "kind": "surroundContents-throws",
+        "via": "paintRange-returns-null",
+        "checks": [
+          {
+            "query": "mark",
+            "count": 0
+          },
+          {
+            "fn": "paintRange",
+            "returns": null
+          }
+        ]
+      },
+      "browserOnly": false,
+      "tags": [
+        "unicode",
+        "zwj",
+        "cross-inline"
+      ],
+      "quoteNotes": "Do not assert an exact quote string; UAs differ on toString() for ZWJ clusters. Assert the reject, and that no <mark> splits the emoji."
+    },
+    {
+      "id": "A38",
+      "family": "A_reject",
+      "title": "Open shadow root — page document cannot see the range",
+      "why_breaks": "flattenText(document.body) does not descend into shadow roots. document mouseup / getSelection() in the content script's document does not yield a range whose containers live in the shadow tree. paintRange on a page-level range cannot wrap shadow text. Closed shadows are the same plus inaccessible from querySelector.",
+      "html": "<div id=\"host\"></div>",
+      "load": "open-shadow",
+      "selection": {
+        "api": "range",
+        "pathFrom": "shadowRoot",
+        "start": {
+          "path": [0, 0],
+          "offset": 3
+        },
+        "end": {
+          "path": [0, 1, 0],
+          "offset": 3
+        },
+        "quote": "lo wor"
+      },
+      "record": null,
+      "ops": [
+        "load",
+        "select",
+        "paint"
+      ],
+      "expect": {
+        "paint": "null",
+        "exceptionName": null,
+        "markCount": 0,
+        "toolbar": "hidden",
+        "restore": null,
+        "wrongSpan": false,
+        "ghostRecord": false,
+        "notes": "Selection paths are relative to the open shadowRoot, not the host. A page-level paint must not create a mark."
+      },
+      "oracle": {
+        "kind": "shadow-invisible",
+        "checks": [
+          {
+            "flattenRoot": "document.body",
+            "contains": "world",
+            "eq": false
+          },
+          {
+            "fn": "paintRange",
+            "pageDocument": "cannot-target-shadow-range"
+          }
+        ]
+      },
+      "browserOnly": true,
+      "tags": [
+        "shadow",
+        "browserOnly",
+        "cross-inline"
+      ],
+      "shadow": {
+        "mode": "open",
+        "innerHTML": "<p>Hello <em>world</em> today</p>",
+        "closedModeNote": "Repeat with {mode:'closed'} — selection is still not on document, and the tree is hidden from page JS."
+      }
+    },
+    {
+      "id": "B01",
+      "family": "B_live_split",
+      "title": "Stale flatten reused for a second restore",
+      "why_breaks": "paintRange splits text nodes. Reusing one flattenText() snapshot for a later record makes resolveOffset point at a shortened node; Range.setStart/setEnd throws IndexSizeError (caught by the live content script's try/catch per record, but a naive loop does not recompute).",
+      "html": "<p>Alpha beta gamma delta epsilon.</p>",
+      "load": "container-innerHTML",
+      "selection": null,
+      "record": null,
+      "ops": [
+        "load",
+        "flattenOnce",
+        "restore:beta",
+        "restoreStale:epsilon"
+      ],
+      "expect": {
+        "paint": null,
+        "exceptionName": "IndexSizeError",
+        "markCount": 1,
+        "toolbar": null,
+        "restore": "throw-or-null",
+        "wrongSpan": false,
+        "ghostRecord": false,
+        "notes": "First restore paints 'beta'. Second restore of 'epsilon' with the same spans must not succeed."
+      },
+      "oracle": {
+        "kind": "stale-flatten-second-restore",
+        "checks": [
+          {
+            "query": "mark",
+            "count": 1
+          },
+          {
+            "any": [
+              {
+                "fn": "resolveAndPaint",
+                "throws": "IndexSizeError"
+              },
+              {
+                "fn": "resolveAndPaint",
+                "returns": null
+              }
+            ]
+          }
+        ]
+      },
+      "browserOnly": false,
+      "tags": [
+        "stale-flatten",
+        "multi-paint"
+      ],
+      "records": [
+        {
+          "id": "b1",
+          "quote": "beta",
+          "prefix": "Alpha",
+          "suffix": "gamma",
+          "color": "#FFF3B0"
+        },
+        {
+          "id": "b2",
+          "quote": "epsilon",
+          "prefix": "delta",
+          "suffix": "",
+          "color": "#FFF3B0"
+        }
+      ]
+    },
+    {
+      "id": "B02",
+      "family": "B_live_split",
+      "title": "Second live selection overlaps an existing mark",
+      "why_breaks": "After painting 'quick brown', a new range 'brown fox' starts inside the mark and ends after it — A08 on a live DOM.",
+      "html": "<p>The quick brown fox jumps.</p>",
+      "load": "container-innerHTML",
+      "selection": {
+        "api": "range",
+        "pathFrom": "container",
+        "start": {
+          "path": [0, 0],
+          "offset": 10
+        },
+        "end": {
+          "path": [0, 0],
+          "offset": 19
+        },
+        "quote": "brown fox"
+      },
+      "record": {
+        "id": "b-overlap",
+        "quote": "quick brown",
+        "prefix": "The",
+        "suffix": "fox",
+        "color": "#FFF3B0"
+      },
+      "ops": [
+        "load",
+        "restore",
+        "select-overlap",
+        "paint"
+      ],
+      "expect": {
+        "paint": "null",
+        "exceptionName": "InvalidStateError",
+        "markCount": 1,
+        "toolbar": null,
+        "restore": null,
+        "wrongSpan": false,
+        "ghostRecord": false,
+        "notes": "First paint of 'quick brown' succeeds (single text node). Second paint overlaps."
+      },
+      "oracle": {
+        "kind": "overlap-second-paint",
+        "checks": [
+          {
+            "query": "mark",
+            "count": 1
+          },
+          {
+            "fn": "paintRange",
+            "returns": null
+          }
+        ]
+      },
+      "browserOnly": false,
+      "tags": [
+        "overlap",
+        "existing-mark",
+        "live-split"
+      ],
+      "overlapSelectionAfterFirstPaint": {
+        "notes": "Re-resolve after first paint: start inside mark text 'quick brown' at offset 6 ('brown'), end in the following text node through 'fox'.",
+        "quote": "brown fox"
+      }
+    },
+    {
+      "id": "B03",
+      "family": "B_live_split",
+      "title": "Adjacent second highlight with stale offsets",
+      "why_breaks": "Paint 'two' (single node, succeeds). A stale snapshot still thinks 'three' lives at the original offsets on the original node, which is now split.",
+      "html": "<p>one two three four</p>",
+      "load": "container-innerHTML",
+      "selection": null,
+      "record": null,
+      "ops": [
+        "load",
+        "flattenOnce",
+        "restore:two",
+        "restoreStale:three"
+      ],
+      "expect": {
+        "paint": null,
+        "exceptionName": "IndexSizeError",
+        "markCount": 1,
+        "toolbar": null,
+        "restore": "throw-or-null",
+        "wrongSpan": false,
+        "ghostRecord": false,
+        "notes": ""
+      },
+      "oracle": {
+        "kind": "stale-flatten-adjacent",
+        "checks": [
+          {
+            "query": "mark",
+            "count": 1
+          }
+        ]
+      },
+      "browserOnly": false,
+      "tags": [
+        "stale-flatten",
+        "adjacent"
+      ],
+      "records": [
+        {
+          "id": "b3a",
+          "quote": "two",
+          "prefix": "one",
+          "suffix": "three",
+          "color": "#FFF3B0"
+        },
+        {
+          "id": "b3b",
+          "quote": "three",
+          "prefix": "two",
+          "suffix": "four",
+          "color": "#FFF3B0"
+        }
+      ]
+    },
+    {
+      "id": "B04",
+      "family": "B_live_split",
+      "title": "innerHTML roundtrip then restore with numeric offsets",
+      "why_breaks": "After paint, serializing container.innerHTML and reloading creates new text nodes. Storing {path,offset} from before the roundtrip points at the wrong node or offset. The product stores quote/prefix/suffix, not offsets — this fixture locks the offset-roundtrip hazard for any harness that caches paths.",
+      "html": "<p>The unique phrase here.</p>",
+      "load": "container-innerHTML",
+      "selection": {
+        "api": "range",
+        "pathFrom": "container",
+        "start": {
+          "path": [0, 0],
+          "offset": 4
+        },
+        "end": {
+          "path": [0, 0],
+          "offset": 17
+        },
+        "quote": "unique phrase"
+      },
+      "record": {
+        "id": "b4",
+        "quote": "unique phrase",
+        "prefix": "The",
+        "suffix": "here",
+        "color": "#FFF3B0"
+      },
+      "ops": [
+        "load",
+        "select",
+        "paint",
+        "innerHTML-roundtrip",
+        "apply-stale-selection"
+      ],
+      "expect": {
+        "paint": null,
+        "exceptionName": null,
+        "markCount": 0,
+        "toolbar": null,
+        "restore": "null-or-wrong-span",
+        "wrongSpan": false,
+        "ghostRecord": false,
+        "notes": "After innerHTML roundtrip, pre-roundtrip path [0,0] offset 4 may now land inside the mark or a split sibling."
+      },
+      "oracle": {
+        "kind": "stale-path-after-innerhtml",
+        "checks": [
+          {
+            "fn": "setStart",
+            "throwsOrMisaligned": true
+          }
+        ]
+      },
+      "browserOnly": false,
+      "tags": [
+        "roundtrip",
+        "stale-path"
+      ]
+    },
+    {
+      "id": "B05",
+      "family": "B_live_split",
+      "title": "Restore the same record twice",
+      "why_breaks": "Second resolveAndPaint finds the same quote (flatten text is unchanged) and tries to surroundContents a range that now sits inside or across the first <mark>. Either nested marks or null.",
+      "html": "<p>The unique phrase here.</p>",
+      "load": "container-innerHTML",
+      "selection": null,
+      "record": {
+        "id": "b5",
+        "quote": "unique phrase",
+        "prefix": "The",
+        "suffix": "here",
+        "color": "#FFF3B0"
+      },
+      "ops": [
+        "load",
+        "restore",
+        "restore-again"
+      ],
+      "expect": {
+        "paint": null,
+        "exceptionName": null,
+        "markCount": null,
+        "toolbar": null,
+        "restore": "nested-or-null",
+        "wrongSpan": false,
+        "ghostRecord": false,
+        "notes": "Idempotent restore is not implemented; double restore is a break."
+      },
+      "oracle": {
+        "kind": "double-restore",
+        "checks": [
+          {
+            "any": [
+              {
+                "query": "mark mark",
+                "minCount": 1
+              },
+              {
+                "fn": "resolveAndPaint",
+                "returns": null
+              }
+            ]
+          }
+        ]
+      },
+      "browserOnly": false,
+      "tags": [
+        "roundtrip",
+        "duplicate-restore"
+      ]
+    },
+    {
+      "id": "B06",
+      "family": "B_live_split",
+      "title": "Three records, one flatten snapshot",
+      "why_breaks": "Generalizes B01. After the first paint, spans[0].node.data is shorter than spans[0] recorded length; later setStart uses an out-of-range offset.",
+      "html": "<p>Alpha beta gamma delta epsilon zeta.</p>",
+      "load": "container-innerHTML",
+      "selection": null,
+      "record": null,
+      "ops": [
+        "load",
+        "flattenOnce",
+        "restoreAllStale"
+      ],
+      "expect": {
+        "paint": null,
+        "exceptionName": "IndexSizeError",
+        "markCount": 1,
+        "toolbar": null,
+        "restore": "throw-or-null",
+        "wrongSpan": false,
+        "ghostRecord": false,
+        "notes": ""
+      },
+      "oracle": {
+        "kind": "stale-flatten-triple",
+        "checks": [
+          {
+            "query": "mark",
+            "count": 1
+          }
+        ]
+      },
+      "browserOnly": false,
+      "tags": [
+        "stale-flatten",
+        "multi-paint"
+      ],
+      "records": [
+        {
+          "id": "b6a",
+          "quote": "beta",
+          "prefix": "Alpha",
+          "suffix": "gamma",
+          "color": "#FFF3B0"
+        },
+        {
+          "id": "b6b",
+          "quote": "delta",
+          "prefix": "gamma",
+          "suffix": "epsilon",
+          "color": "#FFF3B0"
+        },
+        {
+          "id": "b6c",
+          "quote": "zeta",
+          "prefix": "epsilon",
+          "suffix": "",
+          "color": "#FFF3B0"
+        }
+      ]
+    },
+    {
+      "id": "B07",
+      "family": "B_live_split",
+      "title": "Duplicate quote — prefix/suffix drifted, fallback paints the first hit",
+      "why_breaks": "Two 'foo' tokens. After the first is marked, a second record with a stale/wrong prefix falls back to text.indexOf('foo') and re-hits the first occurrence (now inside a mark) or the same offsets.",
+      "html": "<p>foo bar foo bar</p>",
+      "load": "container-innerHTML",
+      "selection": null,
+      "record": null,
+      "ops": [
+        "load",
+        "restore:first-foo",
+        "restore:second-foo-with-bad-prefix"
+      ],
+      "expect": {
+        "paint": null,
+        "exceptionName": null,
+        "markCount": null,
+        "toolbar": null,
+        "restore": "wrong-span",
+        "wrongSpan": true,
+        "ghostRecord": false,
+        "notes": "indexOf(quote) is first-match. The second 'foo' is the intended target."
+      },
+      "oracle": {
+        "kind": "wrong-span-first-indexOf",
+        "checks": [
+          {
+            "intendedQuoteOccurrence": 1,
+            "paintedOccurrence": 0
+          }
+        ]
+      },
+      "browserOnly": false,
+      "tags": [
+        "overlap",
+        "indexOf",
+        "duplicate-quote"
+      ],
+      "records": [
+        {
+          "id": "b7a",
+          "quote": "foo",
+          "prefix": "",
+          "suffix": "bar foo",
+          "color": "#FFF3B0"
+        },
+        {
+          "id": "b7b",
+          "quote": "foo",
+          "prefix": "WRONG",
+          "suffix": "MISSING",
+          "color": "#FFF3B0"
+        }
+      ]
+    },
+    {
+      "id": "B08",
+      "family": "B_live_split",
+      "title": "normalize() after paint invalidates stale spans",
+      "why_breaks": "container.normalize() merges adjacent text nodes that are not separated by elements. After a mark, the unmarked siblings may merge with other unmarked nodes if the harness inserted extras; stale Text references can be detached.",
+      "html": "<p>one two three</p>",
+      "load": "container-innerHTML",
+      "selection": null,
+      "record": {
+        "id": "b8",
+        "quote": "two",
+        "prefix": "one",
+        "suffix": "three",
+        "color": "#FFF3B0"
+      },
+      "ops": [
+        "load",
+        "flattenOnce",
+        "restore",
+        "normalize",
+        "restoreStale-second"
+      ],
+      "expect": {
+        "paint": null,
+        "exceptionName": null,
+        "markCount": 0,
+        "toolbar": null,
+        "restore": "throw-or-null",
+        "wrongSpan": false,
+        "ghostRecord": false,
+        "notes": "After paint('two') + normalize(), a stale span pointing at the original single text node is detached."
+      },
+      "oracle": {
+        "kind": "detached-node-after-normalize",
+        "checks": [
+          {
+            "staleSpan": "detached"
+          }
+        ]
+      },
+      "browserOnly": false,
+      "tags": [
+        "normalize",
+        "stale-flatten"
+      ],
+      "records": [
+        {
+          "id": "b8a",
+          "quote": "two",
+          "prefix": "one",
+          "suffix": "three",
+          "color": "#FFF3B0"
+        },
+        {
+          "id": "b8b",
+          "quote": "three",
+          "prefix": "two",
+          "suffix": "",
+          "color": "#FFF3B0"
+        }
+      ]
+    },
+    {
+      "id": "B09",
+      "family": "B_live_split",
+      "title": "Insert text before a painted mark, then stale restore",
+      "why_breaks": "Live DOM grows a new text node (or lengthens the first). Cached offsets no longer address the intended quote.",
+      "html": "<p>head tail word</p>",
+      "load": "container-innerHTML",
+      "selection": null,
+      "record": null,
+      "ops": [
+        "load",
+        "flattenOnce",
+        "restore:tail",
+        "insertPrefix",
+        "restoreStale:word"
+      ],
+      "expect": {
+        "paint": null,
+        "exceptionName": null,
+        "markCount": 0,
+        "toolbar": null,
+        "restore": "wrong-span-or-null",
+        "wrongSpan": true,
+        "ghostRecord": false,
+        "notes": ""
+      },
+      "oracle": {
+        "kind": "insert-before-stale",
+        "checks": [
+          {
+            "fn": "resolveAndPaint",
+            "stale": true
+          }
+        ]
+      },
+      "browserOnly": false,
+      "tags": [
+        "mutation",
+        "stale-flatten"
+      ],
+      "records": [
+        {
+          "id": "b9a",
+          "quote": "tail",
+          "prefix": "head",
+          "suffix": "word",
+          "color": "#FFF3B0"
+        },
+        {
+          "id": "b9b",
+          "quote": "word",
+          "prefix": "tail",
+          "suffix": "",
+          "color": "#FFF3B0"
+        }
+      ],
+      "mutation": {
+        "op": "insertText",
+        "path": [0, 0],
+        "offset": 0,
+        "text": "PREFIX "
+      }
+    },
+    {
+      "id": "B10",
+      "family": "B_live_split",
+      "title": "Detach the text node a stale span still holds",
+      "why_breaks": "Replace the paragraph after flatten. spans[i].node is detached; setStart throws or no-ops depending on UA.",
+      "html": "<p>keep this quote safe</p>",
+      "load": "container-innerHTML",
+      "selection": null,
+      "record": {
+        "id": "b10",
+        "quote": "quote",
+        "prefix": "this",
+        "suffix": "safe",
+        "color": "#FFF3B0"
+      },
+      "ops": [
+        "load",
+        "flattenOnce",
+        "replaceInnerHTML",
+        "restoreStale"
+      ],
+      "expect": {
+        "paint": null,
+        "exceptionName": null,
+        "markCount": 0,
+        "toolbar": null,
+        "restore": "throw-or-null",
+        "wrongSpan": false,
+        "ghostRecord": false,
+        "notes": ""
+      },
+      "oracle": {
+        "kind": "detached-span-node",
+        "checks": [
+          {
+            "staleSpan": "detached"
+          }
+        ]
+      },
+      "browserOnly": false,
+      "tags": [
+        "mutation",
+        "detached"
+      ],
+      "mutation": {
+        "op": "container.innerHTML",
+        "html": "<p>keep this quote safe</p>"
+      }
+    },
+    {
+      "id": "B11",
+      "family": "B_live_split",
+      "title": "After first paint, select across the new mark boundary",
+      "why_breaks": "DOM becomes The <mark>quick</mark> brown fox jumps. Selecting 'ck bro' partially contains the mark.",
+      "html": "<p>The quick brown fox jumps.</p>",
+      "load": "container-innerHTML",
+      "selection": null,
+      "record": {
+        "id": "b11",
+        "quote": "quick",
+        "prefix": "The",
+        "suffix": "brown",
+        "color": "#FFF3B0"
+      },
+      "ops": [
+        "load",
+        "restore",
+        "select-across-mark",
+        "paint"
+      ],
+      "expect": {
+        "paint": "null",
+        "exceptionName": "InvalidStateError",
+        "markCount": 1,
+        "toolbar": null,
+        "restore": null,
+        "wrongSpan": false,
+        "ghostRecord": false,
+        "notes": ""
+      },
+      "oracle": {
+        "kind": "post-split-partial-mark",
+        "checks": [
+          {
+            "query": "mark",
+            "count": 1
+          }
+        ]
+      },
+      "browserOnly": false,
+      "tags": [
+        "live-split",
+        "existing-mark"
+      ],
+      "overlapSelectionAfterFirstPaint": {
+        "quote": "ck bro",
+        "notes": "start: mark's text offset 3; end: following text offset 4."
+      }
+    },
+    {
+      "id": "B12",
+      "family": "B_live_split",
+      "title": "Paint then unwrap the mark, restore with stale spans into a merged node",
+      "why_breaks": "Harness paints, then replaces <mark> with its child text and normalize(). Stale spans point at the mark's former text node (possibly detached) or old lengths.",
+      "html": "<p>Alpha beta gamma</p>",
+      "load": "container-innerHTML",
+      "selection": null,
+      "record": {
+        "id": "b12",
+        "quote": "beta",
+        "prefix": "Alpha",
+        "suffix": "gamma",
+        "color": "#FFF3B0"
+      },
+      "ops": [
+        "load",
+        "flattenOnce",
+        "restore",
+        "unwrapMark",
+        "normalize",
+        "restoreStale-same"
+      ],
+      "expect": {
+        "paint": null,
+        "exceptionName": null,
+        "markCount": 0,
+        "toolbar": null,
+        "restore": "throw-or-null",
+        "wrongSpan": false,
+        "ghostRecord": false,
+        "notes": ""
+      },
+      "oracle": {
+        "kind": "unwrap-then-stale",
+        "checks": [
+          {
+            "staleSpan": "detached-or-wrong-offset"
+          }
+        ]
+      },
+      "browserOnly": false,
+      "tags": [
+        "unwrap",
+        "stale-flatten"
+      ]
+    },
+    {
+      "id": "B13",
+      "family": "B_live_split",
+      "title": "extractContext indexOf hits the first of two identical quotes in one <p>",
+      "why_breaks": "mouseup uses extractContext(blockEl, quote) which is text.indexOf(quote). Two identical phrases: prefix/suffix are recorded against the first hit even if the user selected the second. Restore then paints the wrong span.",
+      "html": "<p>red fox jumps and red fox sleeps</p>",
+      "load": "container-innerHTML",
+      "selection": {
+        "api": "range",
+        "pathFrom": "container",
+        "start": {
+          "path": [0, 0],
+          "offset": 18
+        },
+        "end": {
+          "path": [0, 0],
+          "offset": 25
+        },
+        "quote": "red fox"
+      },
+      "record": {
+        "id": "b13",
+        "quote": "red fox",
+        "prefix": "and",
+        "suffix": "sleeps",
+        "color": "#FFF3B0"
+      },
+      "ops": [
+        "load",
+        "select-second-quote",
+        "extractContext",
+        "restore-from-extracted"
+      ],
+      "expect": {
+        "paint": null,
+        "exceptionName": null,
+        "markCount": 0,
+        "toolbar": null,
+        "restore": "wrong-span",
+        "wrongSpan": true,
+        "ghostRecord": false,
+        "notes": "Selected occurrence 1; extractContext / resolveAndPaint bind occurrence 0."
+      },
+      "oracle": {
+        "kind": "extractContext-first-indexOf",
+        "checks": [
+          {
+            "selectedOccurrence": 1,
+            "recordedAgainst": 0
+          }
+        ]
+      },
+      "browserOnly": false,
+      "tags": [
+        "indexOf",
+        "duplicate-quote",
+        "extractContext"
+      ]
+    },
+    {
+      "id": "B14",
+      "family": "B_live_split",
+      "title": "Whitespace drift after paint + serialize",
+      "why_breaks": "Record stores 'hello world'. After a CMS-like innerHTML rewrite the DOM has two spaces or a newline. indexOf misses; restore returns null (orphan record).",
+      "html": "<p>hello world again</p>",
+      "load": "container-innerHTML",
+      "selection": null,
+      "record": {
+        "id": "b14",
+        "quote": "hello world",
+        "prefix": "",
+        "suffix": "again",
+        "color": "#FFF3B0"
+      },
+      "ops": [
+        "load",
+        "rewriteWhitespace",
+        "restore"
+      ],
+      "expect": {
+        "paint": null,
+        "exceptionName": null,
+        "markCount": 0,
+        "toolbar": null,
+        "restore": "null",
+        "wrongSpan": false,
+        "ghostRecord": false,
+        "notes": "quote no longer a substring after whitespace rewrite."
+      },
+      "oracle": {
+        "kind": "whitespace-drift",
+        "checks": [
+          {
+            "fn": "resolveAndPaint",
+            "returns": null
+          }
+        ]
+      },
+      "browserOnly": false,
+      "tags": [
+        "roundtrip",
+        "whitespace"
+      ],
+      "mutation": {
+        "op": "container.innerHTML",
+        "html": "<p>hello  world again</p>"
+      }
+    },
+    {
+      "id": "C01",
+      "family": "C_parser_x",
+      "title": "Crossed <b>/<i> — adoption agency",
+      "why_breaks": "Authored <b>foo<i>bar</b>baz</i> is recovered to <b>foo<i>bar</i></b><i>baz</i>. Authored paths do not exist. A range that follows the author's crossing still partially contains formatting nodes.",
+      "html": "<p><b>foo<i>bar</b>baz</i></p>",
+      "load": "container-innerHTML",
+      "selection": {
+        "api": "range",
+        "pathFrom": "container",
+        "start": {
+          "path": [0, 0, 0],
+          "offset": 1
+        },
+        "end": {
+          "path": [0, 1, 0],
+          "offset": 2
+        },
+        "quote": "oobarba"
+      },
+      "record": null,
+      "ops": [
+        "load",
+        "select",
+        "paint"
+      ],
+      "expect": {
+        "paint": "null",
+        "exceptionName": "InvalidStateError",
+        "markCount": 0,
+        "toolbar": null,
+        "restore": null,
+        "wrongSpan": false,
+        "ghostRecord": false,
+        "notes": "Range.surroundContents throws; paintRange catches and returns null."
+      },
+      "oracle": {
+        "kind": "surroundContents-throws",
+        "via": "paintRange-returns-null",
+        "checks": [
+          {
+            "query": "mark",
+            "count": 0
+          },
+          {
+            "fn": "paintRange",
+            "returns": null
+          }
+        ]
+      },
+      "browserOnly": false,
+      "tags": [
+        "dirty-html",
+        "adoption-agency",
+        "crossed-tags"
+      ],
+      "parserRecovery": {
+        "typical": "<p><b>foo<i>bar</i></b><i>baz</i></p>",
+        "afterParseSelection": {
+          "start": {
+            "path": [0, 0, 0],
+            "offset": 1
+          },
+          "end": {
+            "path": [0, 1, 0],
+            "offset": 2
+          },
+          "quote": "oobarba"
+        }
+      }
+    },
+    {
+      "id": "C02",
+      "family": "C_parser_x",
+      "title": "Crossed <mark>/<em>",
+      "why_breaks": "Same adoption-agency split as C01 but the outer formatter is an existing highlight tag.",
+      "html": "<p><mark>aa<em>bb</mark>cc</em></p>",
+      "load": "container-innerHTML",
+      "selection": {
+        "api": "range",
+        "pathFrom": "container",
+        "start": {
+          "path": [0, 0, 0],
+          "offset": 1
+        },
+        "end": {
+          "path": [0, 1, 0],
+          "offset": 1
+        },
+        "quote": "abbc"
+      },
+      "record": null,
+      "ops": [
+        "load",
+        "select",
+        "paint"
+      ],
+      "expect": {
+        "paint": "null",
+        "exceptionName": "InvalidStateError",
+        "markCount": 0,
+        "toolbar": null,
+        "restore": null,
+        "wrongSpan": false,
+        "ghostRecord": false,
+        "notes": "Range.surroundContents throws; paintRange catches and returns null."
+      },
+      "oracle": {
+        "kind": "surroundContents-throws",
+        "via": "paintRange-returns-null",
+        "checks": [
+          {
+            "query": "mark",
+            "count": 0
+          },
+          {
+            "fn": "paintRange",
+            "returns": null
+          }
+        ]
+      },
+      "browserOnly": false,
+      "tags": [
+        "dirty-html",
+        "existing-mark",
+        "crossed-tags"
+      ],
+      "parserRecovery": {
+        "typical": "<p><mark>aa<em>bb</em></mark><em>cc</em></p>",
+        "afterParseSelection": {
+          "start": {
+            "path": [0, 0, 0],
+            "offset": 1
+          },
+          "end": {
+            "path": [0, 1, 0],
+            "offset": 1
+          },
+          "quote": "abbc"
+        }
+      }
+    },
+    {
+      "id": "C03",
+      "family": "C_parser_x",
+      "title": "Adoption agency: <b><p>hello</b>world</p>",
+      "why_breaks": "The </b> closes/reopens across the <p>. Typical recovery: empty <b> before <p>, plus <b>hello</b>world inside the paragraph. Authored 'hello world' as one bold run is gone; a range across the recovered <b> rejects.",
+      "html": "<b><p>hello</b>world</p>",
+      "load": "container-innerHTML",
+      "selection": {
+        "api": "range",
+        "pathFrom": "container",
+        "start": {
+          "path": [1, 0, 0],
+          "offset": 2
+        },
+        "end": {
+          "path": [1, 1],
+          "offset": 3
+        },
+        "quote": "llowor"
+      },
+      "record": null,
+      "ops": [
+        "load",
+        "select",
+        "paint"
+      ],
+      "expect": {
+        "paint": "null",
+        "exceptionName": "InvalidStateError",
+        "markCount": 0,
+        "toolbar": null,
+        "restore": null,
+        "wrongSpan": false,
+        "ghostRecord": false,
+        "notes": "Range.surroundContents throws; paintRange catches and returns null."
+      },
+      "oracle": {
+        "kind": "surroundContents-throws",
+        "via": "paintRange-returns-null",
+        "checks": [
+          {
+            "query": "mark",
+            "count": 0
+          },
+          {
+            "fn": "paintRange",
+            "returns": null
+          }
+        ]
+      },
+      "browserOnly": false,
+      "tags": [
+        "dirty-html",
+        "adoption-agency"
+      ],
+      "parserRecovery": {
+        "typical": "<b></b><p><b>hello</b>world</p>",
+        "notes": "Confirm with container.innerHTML after load; adjust paths if the UA differs."
+      }
+    },
+    {
+      "id": "C04",
+      "family": "C_parser_x",
+      "title": "Nested <p> is illegal — parser closes the first",
+      "why_breaks": "Authored one element; after parse there are two (or more) paragraphs. A 'single block' selection now crosses <p> boundaries and rejects. extractContext's closest('p') is only one of them.",
+      "html": "<p>outer<p>inner</p>tail</p>",
+      "load": "container-innerHTML",
+      "selection": {
+        "api": "range",
+        "pathFrom": "container",
+        "start": {
+          "path": [0, 0],
+          "offset": 2
+        },
+        "end": {
+          "path": [1, 0],
+          "offset": 3
+        },
+        "quote": "terinn"
+      },
+      "record": null,
+      "ops": [
+        "load",
+        "select",
+        "paint"
+      ],
+      "expect": {
+        "paint": "null",
+        "exceptionName": "InvalidStateError",
+        "markCount": 0,
+        "toolbar": null,
+        "restore": null,
+        "wrongSpan": false,
+        "ghostRecord": false,
+        "notes": "Range.surroundContents throws; paintRange catches and returns null."
+      },
+      "oracle": {
+        "kind": "surroundContents-throws",
+        "via": "paintRange-returns-null",
+        "checks": [
+          {
+            "query": "mark",
+            "count": 0
+          },
+          {
+            "fn": "paintRange",
+            "returns": null
+          }
+        ]
+      },
+      "browserOnly": false,
+      "tags": [
+        "dirty-html",
+        "nested-p",
+        "cross-block"
+      ],
+      "parserRecovery": {
+        "typical": "<p>outer</p><p>inner</p><p>tail</p>",
+        "notes": "Trailing 'tail' may become a third <p> or a sibling text depending on the UA."
+      }
+    },
+    {
+      "id": "C05",
+      "family": "C_parser_x",
+      "title": "Table foster parenting — text before <td>",
+      "why_breaks": "Text 'fostered' is moved out of the table (typically before it). flattenText becomes 'fosteredcell' (plus implicit tbody). A record that thought the quote lived inside the row now points at a node outside the table. Selecting across foster text into the cell is a cross-boundary reject.",
+      "html": "<table><tr>fostered<td>cell</td></tr></table>",
+      "load": "container-innerHTML",
+      "selection": {
+        "api": "range",
+        "pathFrom": "container",
+        "start": {
+          "path": [0],
+          "offset": 0
+        },
+        "end": {
+          "path": [1, 0, 0, 0, 0],
+          "offset": 2
+        },
+        "quote": "fosteredce"
+      },
+      "record": null,
+      "ops": [
+        "load",
+        "select",
+        "paint"
+      ],
+      "expect": {
+        "paint": "null",
+        "exceptionName": "InvalidStateError",
+        "markCount": 0,
+        "toolbar": null,
+        "restore": null,
+        "wrongSpan": false,
+        "ghostRecord": false,
+        "notes": "Range.surroundContents throws; paintRange catches and returns null."
+      },
+      "oracle": {
+        "kind": "surroundContents-throws",
+        "via": "paintRange-returns-null",
+        "checks": [
+          {
+            "query": "mark",
+            "count": 0
+          },
+          {
+            "fn": "paintRange",
+            "returns": null
+          }
+        ]
+      },
+      "browserOnly": false,
+      "tags": [
+        "dirty-html",
+        "foster",
+        "table"
+      ],
+      "parserRecovery": {
+        "typical": "fostered<table><tbody><tr><td>cell</td></tr></tbody></table>",
+        "afterParseSelection": {
+          "start": {
+            "path": [0],
+            "offset": 0,
+            "nodeType": "#text"
+          },
+          "end": {
+            "path": [1, 0, 0, 0, 0],
+            "offset": 2
+          },
+          "quote": "fosteredce"
+        }
+      }
+    },
+    {
+      "id": "C06",
+      "family": "C_parser_x",
+      "title": "Table foster parenting — <div> inside <table>",
+      "why_breaks": "The <div> is fostered out. Paths that assumed table > div are wrong. Range from fostered div text into a cell rejects.",
+      "html": "<table><div>x</div><tr><td>y</td></tr></table>",
+      "load": "container-innerHTML",
+      "selection": {
+        "api": "range",
+        "pathFrom": "container",
+        "start": {
+          "path": [0, 0],
+          "offset": 0
+        },
+        "end": {
+          "path": [1, 0, 0, 0, 0],
+          "offset": 1
+        },
+        "quote": "xy"
+      },
+      "record": null,
+      "ops": [
+        "load",
+        "select",
+        "paint"
+      ],
+      "expect": {
+        "paint": "null",
+        "exceptionName": "InvalidStateError",
+        "markCount": 0,
+        "toolbar": null,
+        "restore": null,
+        "wrongSpan": false,
+        "ghostRecord": false,
+        "notes": "Range.surroundContents throws; paintRange catches and returns null."
+      },
+      "oracle": {
+        "kind": "surroundContents-throws",
+        "via": "paintRange-returns-null",
+        "checks": [
+          {
+            "query": "mark",
+            "count": 0
+          },
+          {
+            "fn": "paintRange",
+            "returns": null
+          }
+        ]
+      },
+      "browserOnly": false,
+      "tags": [
+        "dirty-html",
+        "foster",
+        "table"
+      ],
+      "parserRecovery": {
+        "typical": "<div>x</div><table><tbody><tr><td>y</td></tr></tbody></table>"
+      }
+    },
+    {
+      "id": "C07",
+      "family": "C_parser_x",
+      "title": "Fostered text + intended cell quote concatenation",
+      "why_breaks": "flattenText is 'fosteredcell' or 'x y' without an author boundary. resolveAndPaint('steredce') can build a cross-node range and paintRange returns null — orphan restore.",
+      "html": "<table><tr>fostered<td>cell</td></tr></table>",
+      "load": "container-innerHTML",
+      "selection": null,
+      "record": {
+        "id": "c07",
+        "quote": "steredce",
+        "prefix": "fo",
+        "suffix": "ll",
+        "color": "#FFF3B0"
+      },
+      "ops": [
+        "load",
+        "flatten",
+        "restore"
+      ],
+      "expect": {
+        "paint": null,
+        "exceptionName": "InvalidStateError",
+        "markCount": 0,
+        "toolbar": null,
+        "restore": "null",
+        "wrongSpan": false,
+        "ghostRecord": false,
+        "notes": ""
+      },
+      "oracle": {
+        "kind": "foster-concat-restore",
+        "checks": [
+          {
+            "fn": "resolveAndPaint",
+            "returns": null
+          }
+        ]
+      },
+      "browserOnly": false,
+      "tags": [
+        "foster",
+        "table",
+        "restore"
+      ]
+    },
+    {
+      "id": "C08",
+      "family": "C_parser_x",
+      "title": "Nested <a> — parser closes the first link",
+      "why_breaks": "Inner <a> closes the outer. A selection the author thought was inside one link now crosses two <a> elements.",
+      "html": "<p><a href=\"/a\">one <a href=\"/b\">two</a> three</a></p>",
+      "load": "container-innerHTML",
+      "selection": {
+        "api": "range",
+        "pathFrom": "container",
+        "start": {
+          "path": [0, 0, 0],
+          "offset": 2
+        },
+        "end": {
+          "path": [0, 1, 0],
+          "offset": 2
+        },
+        "quote": "e tw"
+      },
+      "record": null,
+      "ops": [
+        "load",
+        "select",
+        "paint"
+      ],
+      "expect": {
+        "paint": "null",
+        "exceptionName": "InvalidStateError",
+        "markCount": 0,
+        "toolbar": null,
+        "restore": null,
+        "wrongSpan": false,
+        "ghostRecord": false,
+        "notes": "Range.surroundContents throws; paintRange catches and returns null."
+      },
+      "oracle": {
+        "kind": "surroundContents-throws",
+        "via": "paintRange-returns-null",
+        "checks": [
+          {
+            "query": "mark",
+            "count": 0
+          },
+          {
+            "fn": "paintRange",
+            "returns": null
+          }
+        ]
+      },
+      "browserOnly": false,
+      "tags": [
+        "dirty-html",
+        "nested-a",
+        "anchor"
+      ],
+      "parserRecovery": {
+        "typical": "<p><a href=\"/a\">one </a><a href=\"/b\">two</a> three</p>",
+        "notes": "Trailing ' three' may stay outside both links."
+      }
+    },
+    {
+      "id": "C09",
+      "family": "C_parser_x",
+      "title": "Nested <button>",
+      "why_breaks": "HTML forbids nested buttons; the parser closes the first. Crossing the recovered boundary rejects.",
+      "html": "<p><button>a<button>b</button>c</button></p>",
+      "load": "container-innerHTML",
+      "selection": {
+        "api": "range",
+        "pathFrom": "container",
+        "start": {
+          "path": [0, 0, 0],
+          "offset": 0
+        },
+        "end": {
+          "path": [0, 1, 0],
+          "offset": 1
+        },
+        "quote": "ab"
+      },
+      "record": null,
+      "ops": [
+        "load",
+        "select",
+        "paint"
+      ],
+      "expect": {
+        "paint": "null",
+        "exceptionName": "InvalidStateError",
+        "markCount": 0,
+        "toolbar": null,
+        "restore": null,
+        "wrongSpan": false,
+        "ghostRecord": false,
+        "notes": "Range.surroundContents throws; paintRange catches and returns null."
+      },
+      "oracle": {
+        "kind": "surroundContents-throws",
+        "via": "paintRange-returns-null",
+        "checks": [
+          {
+            "query": "mark",
+            "count": 0
+          },
+          {
+            "fn": "paintRange",
+            "returns": null
+          }
+        ]
+      },
+      "browserOnly": false,
+      "tags": [
+        "dirty-html",
+        "nested-button",
+        "form"
+      ],
+      "parserRecovery": {
+        "typical": "<p><button>a</button><button>b</button>c</p>"
+      }
+    },
+    {
+      "id": "C10",
+      "family": "C_parser_x",
+      "title": "Nested <form>",
+      "why_breaks": "Inner form is ignored or closed. A range the author placed 'inside the inner form' may now cross the outer form's sibling paragraph and a discarded form element.",
+      "html": "<form action='/outer'><form action='/inner'><p>inner text</p></form><p>outer tail</p></form>",
+      "load": "container-innerHTML",
+      "selection": {
+        "api": "range",
+        "pathFrom": "container",
+        "start": {
+          "path": [0, 0],
+          "offset": 2
+        },
+        "end": {
+          "path": [1, 0],
+          "offset": 5
+        },
+        "quote": "ner textouter"
+      },
+      "record": null,
+      "ops": [
+        "load",
+        "select",
+        "paint"
+      ],
+      "expect": {
+        "paint": "null",
+        "exceptionName": "InvalidStateError",
+        "markCount": 0,
+        "toolbar": null,
+        "restore": null,
+        "wrongSpan": false,
+        "ghostRecord": false,
+        "notes": "Range.surroundContents throws; paintRange catches and returns null."
+      },
+      "oracle": {
+        "kind": "surroundContents-throws",
+        "via": "paintRange-returns-null",
+        "checks": [
+          {
+            "query": "mark",
+            "count": 0
+          },
+          {
+            "fn": "paintRange",
+            "returns": null
+          }
+        ]
+      },
+      "browserOnly": false,
+      "tags": [
+        "dirty-html",
+        "nested-form",
+        "form"
+      ],
+      "parserRecovery": {
+        "notes": "HTML parser typically ignores the inner <form> start tag. Confirm innerHTML. If both <p>s stay inside one form, use a partial <p> cross via a nested inline instead — still a parser-intersection fixture because the inner form vanished."
+      }
+    },
+    {
+      "id": "C11",
+      "family": "C_parser_x",
+      "title": "<p> closed by a <div>",
+      "why_breaks": "Block <div> ends the paragraph. Authored as one <p>; after parse the selection crosses a <p>/<div> boundary.",
+      "html": "<p>lead <div>block</div> after</p>",
+      "load": "container-innerHTML",
+      "selection": {
+        "api": "range",
+        "pathFrom": "container",
+        "start": {
+          "path": [0, 0],
+          "offset": 2
+        },
+        "end": {
+          "path": [1, 0],
+          "offset": 3
+        },
+        "quote": "ad blo"
+      },
+      "record": null,
+      "ops": [
+        "load",
+        "select",
+        "paint"
+      ],
+      "expect": {
+        "paint": "null",
+        "exceptionName": "InvalidStateError",
+        "markCount": 0,
+        "toolbar": null,
+        "restore": null,
+        "wrongSpan": false,
+        "ghostRecord": false,
+        "notes": "Range.surroundContents throws; paintRange catches and returns null."
+      },
+      "oracle": {
+        "kind": "surroundContents-throws",
+        "via": "paintRange-returns-null",
+        "checks": [
+          {
+            "query": "mark",
+            "count": 0
+          },
+          {
+            "fn": "paintRange",
+            "returns": null
+          }
+        ]
+      },
+      "browserOnly": false,
+      "tags": [
+        "dirty-html",
+        "p-div",
+        "cross-block"
+      ],
+      "parserRecovery": {
+        "typical": "<p>lead </p><div>block</div><p> after</p>"
+      }
+    },
+    {
+      "id": "C12",
+      "family": "C_parser_x",
+      "title": "<p> closed by a <ul>",
+      "why_breaks": "List closes the paragraph. Crossing into the <li> rejects; mouseup closest() may be the li even though the user started in the p.",
+      "html": "<p>lead <ul><li>item</li></ul> tail</p>",
+      "load": "container-innerHTML",
+      "selection": {
+        "api": "range",
+        "pathFrom": "container",
+        "start": {
+          "path": [0, 0],
+          "offset": 2
+        },
+        "end": {
+          "path": [1, 0, 0],
+          "offset": 3
+        },
+        "quote": "ad ite"
+      },
+      "record": null,
+      "ops": [
+        "load",
+        "select",
+        "paint"
+      ],
+      "expect": {
+        "paint": "null",
+        "exceptionName": "InvalidStateError",
+        "markCount": 0,
+        "toolbar": null,
+        "restore": null,
+        "wrongSpan": false,
+        "ghostRecord": false,
+        "notes": "Range.surroundContents throws; paintRange catches and returns null."
+      },
+      "oracle": {
+        "kind": "surroundContents-throws",
+        "via": "paintRange-returns-null",
+        "checks": [
+          {
+            "query": "mark",
+            "count": 0
+          },
+          {
+            "fn": "paintRange",
+            "returns": null
+          }
+        ]
+      },
+      "browserOnly": false,
+      "tags": [
+        "dirty-html",
+        "p-ul",
+        "list"
+      ],
+      "parserRecovery": {
+        "typical": "<p>lead </p><ul><li>item</li></ul><p> tail</p>"
+      }
+    },
+    {
+      "id": "C13",
+      "family": "C_parser_x",
+      "title": "<div> inside <select> is thrown out",
+      "why_breaks": "Selects only allow option/optgroup/script. The <div> is not a valid child; recovery drops or fosters it. Paths and flatten change; a range into the leftover option still crosses a form control.",
+      "html": "<p>pick <select><div>nope</div><option>yes</option></select> ok</p>",
+      "load": "container-innerHTML",
+      "selection": {
+        "api": "range",
+        "pathFrom": "container",
+        "start": {
+          "path": [0, 0],
+          "offset": 2
+        },
+        "end": {
+          "path": [0, 1, 0, 0],
+          "offset": 2
+        },
+        "quote": "ck ye"
+      },
+      "record": null,
+      "ops": [
+        "load",
+        "select",
+        "paint"
+      ],
+      "expect": {
+        "paint": "null",
+        "exceptionName": "InvalidStateError",
+        "markCount": 0,
+        "toolbar": null,
+        "restore": null,
+        "wrongSpan": false,
+        "ghostRecord": false,
+        "notes": "Range.surroundContents throws; paintRange catches and returns null."
+      },
+      "oracle": {
+        "kind": "surroundContents-throws",
+        "via": "paintRange-returns-null",
+        "checks": [
+          {
+            "query": "mark",
+            "count": 0
+          },
+          {
+            "fn": "paintRange",
+            "returns": null
+          }
+        ]
+      },
+      "browserOnly": false,
+      "tags": [
+        "dirty-html",
+        "select",
+        "form"
+      ],
+      "parserRecovery": {
+        "notes": "div may disappear or appear as a sibling. Re-read innerHTML before applying paths."
+      }
+    },
+    {
+      "id": "C14",
+      "family": "C_parser_x",
+      "title": "HTML <div> inside <svg> — foreign content breakout",
+      "why_breaks": "In SVG, a <div> (HTML namespace) may break out of the svg element. Paths that assumed svg > div are wrong; a range from HTML into leftover SVG text is foreign-content reject.",
+      "html": "<p>a<svg width=\"10\" height=\"10\"><div>html in svg</div><text x=\"0\" y=\"8\">S</text></svg>z</p>",
+      "load": "container-innerHTML",
+      "selection": {
+        "api": "range",
+        "pathFrom": "container",
+        "start": {
+          "path": [0, 0],
+          "offset": 0
+        },
+        "end": {
+          "path": [0, 1, 0, 0],
+          "offset": 1
+        },
+        "quote": "aS"
+      },
+      "record": null,
+      "ops": [
+        "load",
+        "select",
+        "paint"
+      ],
+      "expect": {
+        "paint": "null",
+        "exceptionName": "InvalidStateError",
+        "markCount": 0,
+        "toolbar": null,
+        "restore": null,
+        "wrongSpan": false,
+        "ghostRecord": false,
+        "notes": "Range.surroundContents throws; paintRange catches and returns null."
+      },
+      "oracle": {
+        "kind": "surroundContents-throws",
+        "via": "paintRange-returns-null",
+        "checks": [
+          {
+            "query": "mark",
+            "count": 0
+          },
+          {
+            "fn": "paintRange",
+            "returns": null
+          }
+        ]
+      },
+      "browserOnly": true,
+      "tags": [
+        "dirty-html",
+        "svg",
+        "foreign-content"
+      ],
+      "parserRecovery": {
+        "notes": "Chromium typically breaks the <div> out of <svg>. Confirm DOM before selecting."
+      }
+    },
+    {
+      "id": "C15",
+      "family": "C_parser_x",
+      "title": "HTML <div> inside <math>",
+      "why_breaks": "MathML foreign-content rules differ from SVG. The <div> may break out; selection from paragraph text into <mi> rejects.",
+      "html": "<p>a<math><div>html in math</div><mi>x</mi></math>z</p>",
+      "load": "container-innerHTML",
+      "selection": {
+        "api": "range",
+        "pathFrom": "container",
+        "start": {
+          "path": [0, 0],
+          "offset": 0
+        },
+        "end": {
+          "path": [0, 1, 0, 0],
+          "offset": 1
+        },
+        "quote": "ax"
+      },
+      "record": null,
+      "ops": [
+        "load",
+        "select",
+        "paint"
+      ],
+      "expect": {
+        "paint": "null",
+        "exceptionName": "InvalidStateError",
+        "markCount": 0,
+        "toolbar": null,
+        "restore": null,
+        "wrongSpan": false,
+        "ghostRecord": false,
+        "notes": "Range.surroundContents throws; paintRange catches and returns null."
+      },
+      "oracle": {
+        "kind": "surroundContents-throws",
+        "via": "paintRange-returns-null",
+        "checks": [
+          {
+            "query": "mark",
+            "count": 0
+          },
+          {
+            "fn": "paintRange",
+            "returns": null
+          }
+        ]
+      },
+      "browserOnly": true,
+      "tags": [
+        "dirty-html",
+        "math",
+        "foreign-content"
+      ]
+    },
+    {
+      "id": "C16",
+      "family": "C_parser_x",
+      "title": "Unclosed formatting across two <p>s",
+      "why_breaks": "</p> does not close <b>/<i>. Formatting is reconstructed on the next paragraph. A user range from mid-first-p to mid-second-p is a cross-block reject; flatten looks like one bold run.",
+      "html": "<p><b>bold <i>both</p><p>next</b> still?</p>",
+      "load": "container-innerHTML",
+      "selection": {
+        "api": "range",
+        "pathFrom": "container",
+        "start": {
+          "path": [0, 0, 0],
+          "offset": 2
+        },
+        "end": {
+          "path": [1, 0, 0],
+          "offset": 3
+        },
+        "quote": "ld bothnext"
+      },
+      "record": null,
+      "ops": [
+        "load",
+        "select",
+        "paint"
+      ],
+      "expect": {
+        "paint": "null",
+        "exceptionName": "InvalidStateError",
+        "markCount": 0,
+        "toolbar": null,
+        "restore": null,
+        "wrongSpan": false,
+        "ghostRecord": false,
+        "notes": "Range.surroundContents throws; paintRange catches and returns null."
+      },
+      "oracle": {
+        "kind": "surroundContents-throws",
+        "via": "paintRange-returns-null",
+        "checks": [
+          {
+            "query": "mark",
+            "count": 0
+          },
+          {
+            "fn": "paintRange",
+            "returns": null
+          }
+        ]
+      },
+      "browserOnly": false,
+      "tags": [
+        "dirty-html",
+        "unclosed-formatting",
+        "cross-block"
+      ],
+      "parserRecovery": {
+        "notes": "Expect reconstructed <b><i> on the second <p>. Paths are after parse."
+      }
+    },
+    {
+      "id": "C17",
+      "family": "C_parser_x",
+      "title": "<a> wrapping a <table> with an inner <a>",
+      "why_breaks": "Interactive + table recovery. Inner link closes/reopens the outer. Selection from caption-less first text into an inner cell link crosses recovered <a> and table boundaries.",
+      "html": "<a href=\"/o\"><table><tbody><tr><td><a href=\"/i\">in</a></td></tr></tbody></table></a>",
+      "load": "container-innerHTML",
+      "selection": {
+        "api": "range",
+        "pathFrom": "container",
+        "start": {
+          "path": [0, 0, 0, 0, 0, 0],
+          "offset": 0
+        },
+        "end": {
+          "path": [0, 0, 0, 0, 0, 0],
+          "offset": 2
+        },
+        "quote": "in"
+      },
+      "record": null,
+      "ops": [
+        "load",
+        "select",
+        "paint"
+      ],
+      "expect": {
+        "paint": "null-or-wrong-structure",
+        "exceptionName": null,
+        "markCount": 0,
+        "toolbar": null,
+        "restore": null,
+        "wrongSpan": false,
+        "ghostRecord": false,
+        "notes": "If the outer <a> was closed before the table, 'in' may paint but the stored quote has no stable closest(p|li|h*). If both links remain ancestors, surroundContents may still throw."
+      },
+      "oracle": {
+        "kind": "nested-a-table",
+        "checks": [
+          {
+            "any": [
+              {
+                "fn": "paintRange",
+                "returns": null
+              },
+              {
+                "toolbar": "hidden"
+              }
+            ]
+          }
+        ]
+      },
+      "browserOnly": false,
+      "tags": [
+        "dirty-html",
+        "nested-a",
+        "table"
+      ],
+      "parserRecovery": {
+        "notes": "Read innerHTML. A common recovery closes the outer <a> before <table> and reopens after."
+      }
+    },
+    {
+      "id": "C18",
+      "family": "C_parser_x",
+      "title": "Misnested lists — implied </li>",
+      "why_breaks": "A second <li> without closing the inner <ul>'s parent item. After parse, crossing from the inner item to the sibling item rejects.",
+      "html": "<ul><li>a<ul><li>b</li></ul><li>c</li></ul>",
+      "load": "container-innerHTML",
+      "selection": {
+        "api": "range",
+        "pathFrom": "container",
+        "start": {
+          "path": [0, 0, 1, 0, 0],
+          "offset": 0
+        },
+        "end": {
+          "path": [0, 1, 0],
+          "offset": 1
+        },
+        "quote": "bc"
+      },
+      "record": null,
+      "ops": [
+        "load",
+        "select",
+        "paint"
+      ],
+      "expect": {
+        "paint": "null",
+        "exceptionName": "InvalidStateError",
+        "markCount": 0,
+        "toolbar": null,
+        "restore": null,
+        "wrongSpan": false,
+        "ghostRecord": false,
+        "notes": "Range.surroundContents throws; paintRange catches and returns null."
+      },
+      "oracle": {
+        "kind": "surroundContents-throws",
+        "via": "paintRange-returns-null",
+        "checks": [
+          {
+            "query": "mark",
+            "count": 0
+          },
+          {
+            "fn": "paintRange",
+            "returns": null
+          }
+        ]
+      },
+      "browserOnly": false,
+      "tags": [
+        "dirty-html",
+        "list",
+        "implied-li"
+      ],
+      "parserRecovery": {
+        "typical": "<ul><li>a<ul><li>b</li></ul></li><li>c</li></ul>"
+      }
+    },
+    {
+      "id": "C19",
+      "family": "C_parser_x",
+      "title": "<title> in body",
+      "why_breaks": "<title> in body is often moved to <head> or left as an element whose text is not 'visible' consistently. flattenText on the container may drop it; a range that included 'y' disappears.",
+      "html": "<p>x<title>y</title>z</p>",
+      "load": "container-innerHTML",
+      "selection": {
+        "api": "range",
+        "pathFrom": "container",
+        "start": {
+          "path": [0, 0],
+          "offset": 0
+        },
+        "end": {
+          "path": [0, 2],
+          "offset": 1
+        },
+        "quote": "xyz"
+      },
+      "record": null,
+      "ops": [
+        "load",
+        "select",
+        "paint"
+      ],
+      "expect": {
+        "paint": "null-or-missing-y",
+        "exceptionName": null,
+        "markCount": 0,
+        "toolbar": null,
+        "restore": null,
+        "wrongSpan": false,
+        "ghostRecord": false,
+        "notes": "If <title> is relocated, quote 'xyz' is not in the container flatten. If it stays, crossing <title> is a partial-element reject."
+      },
+      "oracle": {
+        "kind": "title-relocated-or-reject",
+        "checks": [
+          {
+            "any": [
+              {
+                "flattenContains": "y",
+                "eq": false
+              },
+              {
+                "fn": "paintRange",
+                "returns": null
+              }
+            ]
+          }
+        ]
+      },
+      "browserOnly": false,
+      "tags": [
+        "dirty-html",
+        "title"
+      ]
+    },
+    {
+      "id": "C20",
+      "family": "C_parser_x",
+      "title": "Rawtext <textarea> swallows a fake </b>",
+      "why_breaks": "Inside textarea, '</b>' is text, not a closer. flattenText does not include textarea.value. A record quote 'a</b>b' will not match visible DOM text 'xz'.",
+      "html": "<p>x<textarea>a</b>b</textarea>z</p>",
+      "load": "container-innerHTML",
+      "selection": null,
+      "record": {
+        "id": "c20",
+        "quote": "a</b>b",
+        "prefix": "x",
+        "suffix": "z",
+        "color": "#FFF3B0"
+      },
+      "ops": [
+        "load",
+        "flatten",
+        "restore"
+      ],
+      "expect": {
+        "paint": null,
+        "exceptionName": null,
+        "markCount": 0,
+        "toolbar": null,
+        "restore": "null",
+        "wrongSpan": false,
+        "ghostRecord": false,
+        "notes": ""
+      },
+      "oracle": {
+        "kind": "rawtext-not-in-flatten",
+        "checks": [
+          {
+            "fn": "resolveAndPaint",
+            "returns": null
+          }
+        ]
+      },
+      "browserOnly": false,
+      "tags": [
+        "dirty-html",
+        "textarea",
+        "rawtext"
+      ]
+    },
+    {
+      "id": "C21",
+      "family": "C_parser_x",
+      "title": "<noscript> in jsdom vs Chromium",
+      "why_breaks": "With scripting on, Chromium treats <noscript> as inert rawtext; jsdom's parse5 may still expose inner <b> as elements. flattenText / paths diverge across harnesses.",
+      "html": "<p>x<noscript><b>y</b></noscript>z</p>",
+      "load": "container-innerHTML",
+      "selection": {
+        "api": "range",
+        "pathFrom": "container",
+        "start": {
+          "path": [0, 0],
+          "offset": 0
+        },
+        "end": {
+          "path": [0, 2],
+          "offset": 1
+        },
+        "quote": "xz"
+      },
+      "record": null,
+      "ops": [
+        "load",
+        "select",
+        "paint"
+      ],
+      "expect": {
+        "paint": "harness-split",
+        "exceptionName": null,
+        "markCount": 0,
+        "toolbar": null,
+        "restore": null,
+        "wrongSpan": false,
+        "ghostRecord": false,
+        "notes": "Do not expect one DOM. Oracle is: jsdom and Chromium disagree on whether 'y' is a text node in flattenText, so a shared path selection is not portable."
+      },
+      "oracle": {
+        "kind": "noscript-harness-divergence",
+        "checks": [
+          {
+            "jsdomFlattenIncludesY": "maybe",
+            "chromiumFlattenIncludesY": false
+          }
+        ]
+      },
+      "browserOnly": true,
+      "tags": [
+        "dirty-html",
+        "noscript",
+        "harness-split"
+      ],
+      "harnessNotes": "Run the same html under jsdom and Playwright and record both flattens. Phase 1 counts the disagreement as a break for any path-based harness."
+    },
+    {
+      "id": "C22",
+      "family": "C_parser_x",
+      "title": "Comment that looks like a tag, plus a real <em>",
+      "why_breaks": "<!-- <em> --> does not open an element. A path that counted the comment as an element child is off by one. Start in 'aa', end inside the real <em> — once paths are correct this is a normal A_reject; the parser trap is using authored child indices that included the comment as an element.",
+      "html": "<p>aa<!-- <em> -->bb<em>cc</em></p>",
+      "load": "container-innerHTML",
+      "selection": {
+        "api": "range",
+        "pathFrom": "container",
+        "start": {
+          "path": [0, 0],
+          "offset": 1
+        },
+        "end": {
+          "path": [0, 3, 0],
+          "offset": 1
+        },
+        "quote": "abbc"
+      },
+      "record": null,
+      "ops": [
+        "load",
+        "select",
+        "paint"
+      ],
+      "expect": {
+        "paint": "null",
+        "exceptionName": "InvalidStateError",
+        "markCount": 0,
+        "toolbar": null,
+        "restore": null,
+        "wrongSpan": false,
+        "ghostRecord": false,
+        "notes": "Range.surroundContents throws; paintRange catches and returns null."
+      },
+      "oracle": {
+        "kind": "surroundContents-throws",
+        "via": "paintRange-returns-null",
+        "checks": [
+          {
+            "query": "mark",
+            "count": 0
+          },
+          {
+            "fn": "paintRange",
+            "returns": null
+          }
+        ]
+      },
+      "browserOnly": false,
+      "tags": [
+        "dirty-html",
+        "comment",
+        "off-by-one-path"
+      ],
+      "parserRecovery": {
+        "childNodes": [
+          "#text aa",
+          "#comment",
+          "#text bb",
+          "em#cc"
+        ],
+        "wrongAuthoredEndPath": [0, 1, 0],
+        "afterParseEndPath": [0, 3, 0]
+      }
+    },
+    {
+      "id": "D01",
+      "family": "D_restore_orphan",
+      "title": "Quote not present at all",
+      "why_breaks": "resolveAndPaint indexOf misses; returns null. The stored record is an orphan.",
+      "html": "<p>Nothing matches here.</p>",
+      "load": "container-innerHTML",
+      "selection": null,
+      "record": {
+        "id": "d01",
+        "quote": "brown fox",
+        "prefix": "quick",
+        "suffix": "jumps",
+        "color": "#FFF3B0"
+      },
+      "ops": [
+        "load",
+        "flatten",
+        "restore"
+      ],
+      "expect": {
+        "paint": null,
+        "exceptionName": null,
+        "markCount": 0,
+        "toolbar": null,
+        "restore": "null",
+        "wrongSpan": false,
+        "ghostRecord": false,
+        "notes": ""
+      },
+      "oracle": {
+        "kind": "resolve-null",
+        "checks": [
+          {
+            "fn": "resolveAndPaint",
+            "returns": null
+          }
+        ]
+      },
+      "browserOnly": false,
+      "tags": [
+        "restore",
+        "missing-quote"
+      ]
+    },
+    {
+      "id": "D02",
+      "family": "D_restore_orphan",
+      "title": "Duplicate quote, drifted prefix — wrong span",
+      "why_breaks": "prefix+quote+suffix miss; fallback indexOf(quote) paints the first 'shift', not the second.",
+      "html": "<p>shift left then shift right</p>",
+      "load": "container-innerHTML",
+      "selection": null,
+      "record": {
+        "id": "d02",
+        "quote": "shift",
+        "prefix": "GONE",
+        "suffix": "AWAY",
+        "color": "#FFF3B0"
+      },
+      "ops": [
+        "load",
+        "flatten",
+        "restore"
+      ],
+      "expect": {
+        "paint": null,
+        "exceptionName": null,
+        "markCount": 1,
+        "toolbar": null,
+        "restore": "wrong-span",
+        "wrongSpan": true,
+        "ghostRecord": false,
+        "notes": ""
+      },
+      "oracle": {
+        "kind": "wrong-span-first-indexOf",
+        "checks": [
+          {
+            "intendedOccurrence": 1,
+            "paintedOccurrence": 0,
+            "paintedText": "shift"
+          }
+        ]
+      },
+      "browserOnly": false,
+      "tags": [
+        "restore",
+        "duplicate-quote",
+        "indexOf"
+      ]
+    },
+    {
+      "id": "D03",
+      "family": "D_restore_orphan",
+      "title": "Flatten concatenation invents a quote across <p>s",
+      "why_breaks": "flattenText is 'union' from <p>un</p><p>ion</p>. indexOf('union') succeeds; setStart/setEnd span two blocks; paintRange returns null.",
+      "html": "<p>un</p><p>ion</p>",
+      "load": "container-innerHTML",
+      "selection": null,
+      "record": {
+        "id": "d03",
+        "quote": "union",
+        "prefix": "",
+        "suffix": "",
+        "color": "#FFF3B0"
+      },
+      "ops": [
+        "load",
+        "flatten",
+        "restore"
+      ],
+      "expect": {
+        "paint": null,
+        "exceptionName": "InvalidStateError",
+        "markCount": 0,
+        "toolbar": null,
+        "restore": "null",
+        "wrongSpan": false,
+        "ghostRecord": false,
+        "notes": ""
+      },
+      "oracle": {
+        "kind": "concat-false-positive",
+        "checks": [
+          {
+            "fn": "resolveAndPaint",
+            "returns": null
+          }
+        ]
+      },
+      "browserOnly": false,
+      "tags": [
+        "restore",
+        "cross-block",
+        "flatten-concat"
+      ]
+    },
+    {
+      "id": "D04",
+      "family": "D_restore_orphan",
+      "title": "Record has a single space; DOM has two",
+      "why_breaks": "quote 'hello world' is not a substring of 'hello  world'. Restore null.",
+      "html": "<p>hello  world again</p>",
+      "load": "container-innerHTML",
+      "selection": null,
+      "record": {
+        "id": "d04",
+        "quote": "hello world",
+        "prefix": "",
+        "suffix": "again",
+        "color": "#FFF3B0"
+      },
+      "ops": [
+        "load",
+        "flatten",
+        "restore"
+      ],
+      "expect": {
+        "paint": null,
+        "exceptionName": null,
+        "markCount": 0,
+        "toolbar": null,
+        "restore": "null",
+        "wrongSpan": false,
+        "ghostRecord": false,
+        "notes": ""
+      },
+      "oracle": {
+        "kind": "whitespace-mismatch",
+        "checks": [
+          {
+            "fn": "resolveAndPaint",
+            "returns": null
+          }
+        ]
+      },
+      "browserOnly": false,
+      "tags": [
+        "restore",
+        "whitespace"
+      ]
+    },
+    {
+      "id": "D05",
+      "family": "D_restore_orphan",
+      "title": "NBSP in the DOM, regular space in the record",
+      "why_breaks": "textNode.data contains \\u00a0; record.quote uses U+0020. indexOf fails.",
+      "html": "<p>hello&nbsp;world again</p>",
+      "load": "container-innerHTML",
+      "selection": null,
+      "record": {
+        "id": "d05",
+        "quote": "hello world",
+        "prefix": "",
+        "suffix": "again",
+        "color": "#FFF3B0"
+      },
+      "ops": [
+        "load",
+        "flatten",
+        "restore"
+      ],
+      "expect": {
+        "paint": null,
+        "exceptionName": null,
+        "markCount": 0,
+        "toolbar": null,
+        "restore": "null",
+        "wrongSpan": false,
+        "ghostRecord": false,
+        "notes": ""
+      },
+      "oracle": {
+        "kind": "nbsp-mismatch",
+        "checks": [
+          {
+            "fn": "resolveAndPaint",
+            "returns": null
+          }
+        ]
+      },
+      "browserOnly": false,
+      "tags": [
+        "restore",
+        "nbsp",
+        "unicode"
+      ]
+    },
+    {
+      "id": "D06",
+      "family": "D_restore_orphan",
+      "title": "Quote is a prefix of an earlier word",
+      "why_breaks": "indexOf('cat') hits 'caterpillar', not the later standalone 'cat'.",
+      "html": "<p>caterpillar and a cat sat</p>",
+      "load": "container-innerHTML",
+      "selection": null,
+      "record": {
+        "id": "d06",
+        "quote": "cat",
+        "prefix": "GONE",
+        "suffix": "GONE",
+        "color": "#FFF3B0"
+      },
+      "ops": [
+        "load",
+        "flatten",
+        "restore"
+      ],
+      "expect": {
+        "paint": null,
+        "exceptionName": null,
+        "markCount": 1,
+        "toolbar": null,
+        "restore": "wrong-span",
+        "wrongSpan": true,
+        "ghostRecord": false,
+        "notes": ""
+      },
+      "oracle": {
+        "kind": "wrong-span-substring",
+        "checks": [
+          {
+            "paintedText": "cat",
+            "paintedParentWord": "caterpillar"
+          }
+        ]
+      },
+      "browserOnly": false,
+      "tags": [
+        "restore",
+        "substring",
+        "indexOf"
+      ]
+    },
+    {
+      "id": "D07",
+      "family": "D_restore_orphan",
+      "title": "Quote lives only inside <script>",
+      "why_breaks": "flattenText rejects SCRIPT parents, so the only copy of the quote is invisible. Restore null.",
+      "html": "<p>visible</p><script>const quote = \"secret phrase\";</script>",
+      "load": "container-innerHTML",
+      "selection": null,
+      "record": {
+        "id": "d07",
+        "quote": "secret phrase",
+        "prefix": "",
+        "suffix": "",
+        "color": "#FFF3B0"
+      },
+      "ops": [
+        "load",
+        "flatten",
+        "restore"
+      ],
+      "expect": {
+        "paint": null,
+        "exceptionName": null,
+        "markCount": 0,
+        "toolbar": null,
+        "restore": "null",
+        "wrongSpan": false,
+        "ghostRecord": false,
+        "notes": ""
+      },
+      "oracle": {
+        "kind": "script-excluded",
+        "checks": [
+          {
+            "flatten": "visible",
+            "fn": "resolveAndPaint",
+            "returns": null
+          }
+        ]
+      },
+      "browserOnly": false,
+      "tags": [
+        "restore",
+        "script"
+      ]
+    },
+    {
+      "id": "D08",
+      "family": "D_restore_orphan",
+      "title": "Second record's quote is a substring of an already restored quote",
+      "why_breaks": "After painting 'noteworthy', fallback indexOf('note') hits the text inside the first mark (or the same node). Wrong span / nested attempt.",
+      "html": "<p>The noteworthy note.</p>",
+      "load": "container-innerHTML",
+      "selection": null,
+      "record": null,
+      "ops": [
+        "load",
+        "restore:noteworthy",
+        "restore:note"
+      ],
+      "expect": {
+        "paint": null,
+        "exceptionName": null,
+        "markCount": 0,
+        "toolbar": null,
+        "restore": "wrong-span-or-null",
+        "wrongSpan": true,
+        "ghostRecord": false,
+        "notes": ""
+      },
+      "oracle": {
+        "kind": "substring-of-existing-mark",
+        "checks": [
+          {
+            "firstMark": "noteworthy",
+            "second": "null-or-nested-or-inside-first"
+          }
+        ]
+      },
+      "browserOnly": false,
+      "tags": [
+        "restore",
+        "substring",
+        "existing-mark"
+      ],
+      "records": [
+        {
+          "id": "d08a",
+          "quote": "noteworthy",
+          "prefix": "The",
+          "suffix": "note",
+          "color": "#FFF3B0"
+        },
+        {
+          "id": "d08b",
+          "quote": "note",
+          "prefix": "GONE",
+          "suffix": "GONE",
+          "color": "#FFF3B0"
+        }
+      ]
+    },
+    {
+      "id": "D09",
+      "family": "D_restore_orphan",
+      "title": "Empty / whitespace-only quote",
+      "why_breaks": "Product mouseup trims and hides the toolbar, but a stored record can still have quote ''. indexOf('') is 0; resolveAndPaint would try to paint a zero-length or entire-prefix range and then fail or mark the wrong place.",
+      "html": "<p>Some visible text.</p>",
+      "load": "container-innerHTML",
+      "selection": null,
+      "record": {
+        "id": "d09",
+        "quote": "",
+        "prefix": "Some",
+        "suffix": "text",
+        "color": "#FFF3B0"
+      },
+      "ops": [
+        "load",
+        "flatten",
+        "restore"
+      ],
+      "expect": {
+        "paint": null,
+        "exceptionName": null,
+        "markCount": 0,
+        "toolbar": null,
+        "restore": "null-or-wrong-span",
+        "wrongSpan": false,
+        "ghostRecord": false,
+        "notes": "indexOf('') === 0. Harness must treat empty quote as orphan, not as a paint at offset 0."
+      },
+      "oracle": {
+        "kind": "empty-quote",
+        "checks": [
+          {
+            "record.quote": "",
+            "fn": "resolveAndPaint",
+            "mustNotPaintArbitrary": true
+          }
+        ]
+      },
+      "browserOnly": false,
+      "tags": [
+        "restore",
+        "empty-quote"
+      ]
+    },
+    {
+      "id": "D10",
+      "family": "D_restore_orphan",
+      "title": "Soft hyphen in the DOM, absent from the record",
+      "why_breaks": "af&shy;ter flattens to 'af\\u00adter' (or is stripped by some UAs). Record quote 'after' misses.",
+      "html": "<p>look af&shy;ter that</p>",
+      "load": "container-innerHTML",
+      "selection": null,
+      "record": {
+        "id": "d10",
+        "quote": "after",
+        "prefix": "look",
+        "suffix": "that",
+        "color": "#FFF3B0"
+      },
+      "ops": [
+        "load",
+        "flatten",
+        "restore"
+      ],
+      "expect": {
+        "paint": null,
+        "exceptionName": null,
+        "markCount": 0,
+        "toolbar": null,
+        "restore": "null-or-wrong-span",
+        "wrongSpan": false,
+        "ghostRecord": false,
+        "notes": "If the UA preserves U+00AD, indexOf('after') fails. If it strips shy, this particular restore might succeed — then the break is a mid-word mark that the user never selected as 'after'."
+      },
+      "oracle": {
+        "kind": "soft-hyphen",
+        "checks": [
+          {
+            "flattenMayContain": "­",
+            "quote": "after"
+          }
+        ]
+      },
+      "browserOnly": false,
+      "tags": [
+        "restore",
+        "soft-hyphen",
+        "unicode"
+      ]
+    },
+    {
+      "id": "E01",
+      "family": "E_sequence",
+      "title": "mouseup in a bare <div> — no p|li|h*",
+      "why_breaks": "content.ts closest('p, li, h1, h2, h3, h4, h5, h6') is null, so the toolbar is hidden even though the range is a single text node that paintRange could wrap.",
+      "html": "<div>Bare division text</div>",
+      "load": "container-innerHTML",
+      "selection": {
+        "api": "range",
+        "pathFrom": "container",
+        "start": {
+          "path": [0, 0],
+          "offset": 5
+        },
+        "end": {
+          "path": [0, 0],
+          "offset": 14
+        },
+        "quote": "division"
+      },
+      "record": {
+        "id": "e01",
+        "quote": "division",
+        "prefix": "Bare",
+        "suffix": "text",
+        "color": "#FFF3B0"
+      },
+      "ops": [
+        "load",
+        "select",
+        "mouseup"
+      ],
+      "expect": {
+        "paint": "not-attempted",
+        "exceptionName": null,
+        "markCount": 0,
+        "toolbar": "hidden",
+        "restore": null,
+        "wrongSpan": false,
+        "ghostRecord": false,
+        "notes": ""
+      },
+      "oracle": {
+        "kind": "toolbar-hidden",
+        "checks": [
+          {
+            "closest": null,
+            "toolbar": "hidden"
+          }
+        ]
+      },
+      "browserOnly": false,
+      "tags": [
+        "sequence",
+        "mouseup",
+        "no-block",
+        "div"
+      ]
+    },
+    {
+      "id": "E02",
+      "family": "E_sequence",
+      "title": "mouseup in a <td> — table text never reaches the toolbar",
+      "why_breaks": "closest(p|li|h*) from a table cell is null. Single-cell text would otherwise be a happy paint.",
+      "html": "<table><tbody><tr><td>left cell text</td></tr></tbody></table>",
+      "load": "container-innerHTML",
+      "selection": {
+        "api": "range",
+        "pathFrom": "container",
+        "start": {
+          "path": [0, 0, 0, 0, 0],
+          "offset": 5
+        },
+        "end": {
+          "path": [0, 0, 0, 0, 0],
+          "offset": 9
+        },
+        "quote": "cell"
+      },
+      "record": {
+        "id": "e02",
+        "quote": "cell",
+        "prefix": "left",
+        "suffix": "text",
+        "color": "#FFF3B0"
+      },
+      "ops": [
+        "load",
+        "select",
+        "mouseup"
+      ],
+      "expect": {
+        "paint": "not-attempted",
+        "exceptionName": null,
+        "markCount": 0,
+        "toolbar": "hidden",
+        "restore": null,
+        "wrongSpan": false,
+        "ghostRecord": false,
+        "notes": ""
+      },
+      "oracle": {
+        "kind": "toolbar-hidden",
+        "checks": [
+          {
+            "closest": null,
+            "toolbar": "hidden"
+          }
+        ]
+      },
+      "browserOnly": false,
+      "tags": [
+        "sequence",
+        "mouseup",
+        "no-block",
+        "table",
+        "td"
+      ]
+    },
+    {
+      "id": "E03",
+      "family": "E_sequence",
+      "title": "mouseup in a <blockquote> with no inner <p>",
+      "why_breaks": "Quoted text is a direct child of blockquote. Product refuses; paintRange would accept the single text node.",
+      "html": "<blockquote>Quoted line only</blockquote>",
+      "load": "container-innerHTML",
+      "selection": {
+        "api": "range",
+        "pathFrom": "container",
+        "start": {
+          "path": [0, 0],
+          "offset": 0
+        },
+        "end": {
+          "path": [0, 0],
+          "offset": 6
+        },
+        "quote": "Quoted"
+      },
+      "record": {
+        "id": "e03",
+        "quote": "Quoted",
+        "prefix": "",
+        "suffix": "line",
+        "color": "#FFF3B0"
+      },
+      "ops": [
+        "load",
+        "select",
+        "mouseup"
+      ],
+      "expect": {
+        "paint": "not-attempted",
+        "exceptionName": null,
+        "markCount": 0,
+        "toolbar": "hidden",
+        "restore": null,
+        "wrongSpan": false,
+        "ghostRecord": false,
+        "notes": ""
+      },
+      "oracle": {
+        "kind": "toolbar-hidden",
+        "checks": [
+          {
+            "closest": null,
+            "toolbar": "hidden"
+          }
+        ]
+      },
+      "browserOnly": false,
+      "tags": [
+        "sequence",
+        "mouseup",
+        "no-block",
+        "blockquote"
+      ]
+    },
+    {
+      "id": "E04",
+      "family": "E_sequence",
+      "title": "mouseup in <figcaption> / figure chrome",
+      "why_breaks": "Caption text is not p|li|h*. Same product-path refuse as E01–E03.",
+      "html": "<figure><img alt='x' src='about:blank'><figcaption>Caption text here</figcaption></figure>",
+      "load": "container-innerHTML",
+      "selection": {
+        "api": "range",
+        "pathFrom": "container",
+        "start": {
+          "path": [0, 1, 0],
+          "offset": 0
+        },
+        "end": {
+          "path": [0, 1, 0],
+          "offset": 7
+        },
+        "quote": "Caption"
+      },
+      "record": {
+        "id": "e04",
+        "quote": "Caption",
+        "prefix": "",
+        "suffix": "text",
+        "color": "#FFF3B0"
+      },
+      "ops": [
+        "load",
+        "select",
+        "mouseup"
+      ],
+      "expect": {
+        "paint": "not-attempted",
+        "exceptionName": null,
+        "markCount": 0,
+        "toolbar": "hidden",
+        "restore": null,
+        "wrongSpan": false,
+        "ghostRecord": false,
+        "notes": ""
+      },
+      "oracle": {
+        "kind": "toolbar-hidden",
+        "checks": [
+          {
+            "closest": null,
+            "toolbar": "hidden"
+          }
+        ]
+      },
+      "browserOnly": false,
+      "tags": [
+        "sequence",
+        "mouseup",
+        "no-block",
+        "figcaption"
+      ],
+      "alsoAppliesTo": [
+        "dt",
+        "dd",
+        "th",
+        "pre",
+        "article>text",
+        "section>text"
+      ]
+    },
+    {
+      "id": "E05",
+      "family": "E_sequence",
+      "title": "Toolbar shown, paint returns null, SAVE still fires",
+      "why_breaks": "Selection is inside a <p> so closest() succeeds and the toolbar appears. The range crosses <em>, so paintRange returns null. savePendingHighlight still sends SAVE_HIGHLIGHT, then bails when attaching the handler. Ghost record: persist without a mark. Later GET_HIGHLIGHTS restore hits the same surroundContents failure.",
+      "html": "<p>Hello <em>world</em> today</p>",
+      "load": "container-innerHTML",
+      "selection": {
+        "api": "range",
+        "pathFrom": "container",
+        "start": {
+          "path": [0, 0],
+          "offset": 3
+        },
+        "end": {
+          "path": [0, 1, 0],
+          "offset": 3
+        },
+        "quote": "lo wor"
+      },
+      "record": {
+        "id": "e05",
+        "quote": "lo wor",
+        "prefix": "Hel",
+        "suffix": "ld",
+        "color": "#FFF3B0"
+      },
+      "ops": [
+        "load",
+        "select",
+        "mouseup",
+        "color-pick",
+        "paint",
+        "save"
+      ],
+      "expect": {
+        "paint": "null",
+        "exceptionName": "InvalidStateError",
+        "markCount": 0,
+        "toolbar": "shown",
+        "restore": null,
+        "wrongSpan": false,
+        "ghostRecord": true,
+        "notes": "Product-path divergence: UI offers a color, IndexedDB/API may store the quote, the page never shows a mark."
+      },
+      "oracle": {
+        "kind": "ghost-record",
+        "checks": [
+          {
+            "toolbar": "shown"
+          },
+          {
+            "fn": "paintRange",
+            "returns": null
+          },
+          {
+            "message": "SAVE_HIGHLIGHT",
+            "stillSent": true
+          }
+        ]
+      },
+      "browserOnly": false,
+      "tags": [
+        "sequence",
+        "mouseup",
+        "ghost-record",
+        "cross-inline"
+      ]
+    }
+  ]
+}
