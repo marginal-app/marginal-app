@@ -4,6 +4,7 @@ import {
   getCatalog,
   getHighlights,
   saveHighlight,
+  setBookmarked,
   updateComment,
 } from '@/entrypoints/background';
 
@@ -158,6 +159,24 @@ describe('saveHighlight / getHighlights', () => {
     expect(row?.title).toBe('The item');
     expect(row?.description).toBe('Kept.');
     expect(row?.updatedAt).toBe(first?.updatedAt);
+  });
+
+  it('toggles bookmark without dropping catalog title', async () => {
+    await saveHighlight({
+      pageKey: 'https://example.com/item?id=321',
+      quote: 'q',
+      prefix: '',
+      suffix: '',
+      color: '#fff',
+      catalog: { title: 'The item', description: 'Kept.' },
+    });
+
+    const row = await setBookmarked('https://example.com/item?id=321', true);
+    expect(row.bookmarked).toBe(true);
+    expect(row.title).toBe('The item');
+
+    const fetched = await getCatalog('https://example.com/item?id=321');
+    expect(fetched?.bookmarked).toBe(true);
   });
 });
 

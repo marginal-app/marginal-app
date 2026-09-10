@@ -56,6 +56,21 @@ describe('ColorToolbar', () => {
     expect(picked).toBe(HIGHLIGHT_COLORS[2]);
   });
 
+  it('renders a comment shortcut after the swatches', () => {
+    const toolbar = mountToolbar();
+    const comment = toolbar.host.shadowRoot!.querySelector<HTMLButtonElement>(
+      '.comment',
+    );
+    expect(comment).not.toBeNull();
+
+    let shortcut = false;
+    toolbar.host.addEventListener('comment-shortcut', () => {
+      shortcut = true;
+    });
+    comment?.click();
+    expect(shortcut).toBe(true);
+  });
+
   it('opens above a rect and hides again', () => {
     const toolbar = mountToolbar();
 

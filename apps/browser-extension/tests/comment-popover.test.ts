@@ -52,16 +52,26 @@ describe('CommentPopover', () => {
     expect(saved).toBe('note');
   });
 
-  it('emits goto-panel', () => {
+  it('renders the quote and emits goto-source', () => {
     const popover = mountPopover();
+    popover.quote = 'Server-rendered HTML is a complete first paint.';
+    popover.accentColor = '#FFF3B0';
+
+    expect(popover.host.shadowRoot!.querySelector('.quote')?.textContent).toBe(
+      'Server-rendered HTML is a complete first paint.',
+    );
 
     let jumped = false;
-    popover.host.addEventListener('goto-panel', () => {
+    popover.host.addEventListener('goto-source', () => {
       jumped = true;
     });
     popover.host.shadowRoot!.querySelector<HTMLButtonElement>('.goto')?.click();
 
     expect(jumped).toBe(true);
+    expect(
+      popover.host.shadowRoot!.querySelector<HTMLButtonElement>('.goto')
+        ?.textContent,
+    ).toBe('원문으로');
   });
 
   it('opens below a rect, clamped to the viewport, and hides again', () => {

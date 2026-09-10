@@ -1,15 +1,18 @@
 import type { HighlightMessage } from '@/utils/highlight-messages';
 import {
+  getCatalog,
   getHighlights,
   saveHighlight,
+  setBookmarked,
   updateComment,
 } from '@/utils/highlight-store';
-import { runSync, scheduleSync } from '@/utils/sync';
+import { getSyncUiState, runSync, scheduleSync } from '@/utils/sync';
 
 export {
   getCatalog,
   getHighlights,
   saveHighlight,
+  setBookmarked,
   updateComment,
 } from '@/utils/highlight-store';
 
@@ -96,6 +99,32 @@ export default defineBackground(() => {
       const id = pendingFocusHighlightId;
       pendingFocusHighlightId = null;
       return Promise.resolve(id);
+    }
+
+    if (message.type === 'GET_CATALOG') {
+      return getCatalog(message.payload.pageKey);
+    }
+
+    if (message.type === 'SET_BOOKMARK') {
+      return setBookmarked(
+        message.payload.pageKey,
+        message.payload.bookmarked,
+      ).then((row) => {
+        scheduleSync();
+        return row;
+      });
+    }
+
+    if (message.type === 'GET_SYNC_STATUS') {
+      return getSyncUiState();
+    }
+
+    if (message.type === 'RUN_SYNC') {
+      return runSync()
+        .catch((error: unknown) => {
+          console.error(error);
+        })
+        .then(() => getSyncUiState());
     }
 
     return undefined;

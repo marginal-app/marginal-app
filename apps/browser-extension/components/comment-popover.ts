@@ -14,54 +14,84 @@ ${OVERLAY_HOST_STYLES}
 .box {
   display: flex;
   flex-direction: column;
-  gap: 6px;
-  width: 220px;
-  padding: 10px;
+  gap: 10px;
+  width: 300px;
+  padding: 12px 12px 10px;
   background: var(--bg);
   border: 1px solid var(--border);
   border-radius: var(--radius);
-  box-shadow: 0 10px 30px rgba(20, 20, 30, 0.08);
+  box-shadow:
+    0 1px 1px rgba(20, 20, 30, 0.04),
+    0 8px 12px rgba(20, 20, 30, 0.06);
+}
+
+.quote-row {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+}
+
+.quote-bar {
+  width: 3px;
+  align-self: stretch;
+  border-radius: 1.5px;
+  background: var(--highlight-yellow, #fff3b0);
+  flex-shrink: 0;
+}
+
+.quote {
+  margin: 0;
+  flex: 1;
+  min-width: 0;
+  font-size: 13px;
+  line-height: 19px;
+  color: var(--text-secondary);
 }
 
 textarea {
   width: 100%;
-  min-height: 60px;
-  resize: vertical;
-  padding: 6px;
+  height: 72px;
+  resize: none;
+  padding: 8px 10px;
   font: inherit;
   font-size: 13px;
+  line-height: 19px;
   color: var(--text);
-  background: var(--bg-elevated);
-  border: 1px solid var(--border);
+  background: var(--bg);
+  border: 1px solid var(--accent);
   border-radius: var(--radius);
+}
+
+textarea::placeholder {
+  color: var(--text-secondary);
 }
 
 .actions {
   display: flex;
+  align-items: center;
   justify-content: space-between;
-  gap: 6px;
-}
-
-button {
-  font: inherit;
-  cursor: pointer;
 }
 
 .goto {
   border: none;
-  border-radius: var(--radius);
-  padding: 4px 8px;
-  font-size: 12px;
+  padding: 0;
+  font-family: ui-monospace, 'SF Mono', Menlo, Consolas, monospace;
+  font-size: 10px;
+  font-weight: 500;
+  letter-spacing: 0.8px;
+  line-height: 14px;
   color: var(--text-secondary);
   background: transparent;
 }
 
 .save {
   border: none;
-  border-radius: var(--radius);
-  padding: 0.3rem 0.6rem;
-  font-size: 0.78rem;
-  font-weight: 600;
+  border-radius: 6px;
+  padding: 6px 12px;
+  font: inherit;
+  font-size: 13px;
+  font-weight: 500;
+  letter-spacing: -0.14px;
   background: var(--accent);
   color: var(--accent-text);
 }
@@ -71,6 +101,8 @@ export class CommentPopover {
   static readonly tag = 'marginal-comment-popover';
 
   readonly host: HTMLElement;
+  #quote: HTMLParagraphElement;
+  #bar: HTMLDivElement;
   #textarea: HTMLTextAreaElement;
 
   constructor() {
@@ -79,8 +111,20 @@ export class CommentPopover {
     const box = document.createElement('div');
     box.className = 'box';
 
+    const quoteRow = document.createElement('div');
+    quoteRow.className = 'quote-row';
+
+    this.#bar = document.createElement('div');
+    this.#bar.className = 'quote-bar';
+
+    this.#quote = document.createElement('p');
+    this.#quote.className = 'quote';
+
+    quoteRow.append(this.#bar, this.#quote);
+
     this.#textarea = document.createElement('textarea');
-    this.#textarea.setAttribute('aria-label', 'Comment');
+    this.#textarea.setAttribute('aria-label', '코멘트');
+    this.#textarea.placeholder = '코멘트를 남기세요…';
 
     const actions = document.createElement('div');
     actions.className = 'actions';
@@ -88,10 +132,10 @@ export class CommentPopover {
     const gotoButton = document.createElement('button');
     gotoButton.type = 'button';
     gotoButton.className = 'goto';
-    gotoButton.textContent = '패널에서 보기';
+    gotoButton.textContent = '원문으로';
     gotoButton.addEventListener('click', () => {
       this.host.dispatchEvent(
-        new Event('goto-panel', { bubbles: true, composed: true }),
+        new Event('goto-source', { bubbles: true, composed: true }),
       );
     });
 
@@ -110,7 +154,7 @@ export class CommentPopover {
     });
 
     actions.append(gotoButton, saveButton);
-    box.append(this.#textarea, actions);
+    box.append(quoteRow, this.#textarea, actions);
     this.host.shadowRoot!.append(box);
 
     this.host.addEventListener('keydown', (event: KeyboardEvent) => {
@@ -129,12 +173,20 @@ export class CommentPopover {
     this.#textarea.value = value;
   }
 
+  set quote(value: string) {
+    this.#quote.textContent = value;
+  }
+
+  set accentColor(value: string) {
+    this.#bar.style.backgroundColor = value || 'var(--highlight-yellow, #fff3b0)';
+  }
+
   get open(): boolean {
     return isPopoverOpen(this.host);
   }
 
   showBelow(rect: DOMRectReadOnly, viewportWidth = window.innerWidth) {
-    const estimatedWidth = this.host.offsetWidth || 220;
+    const estimatedWidth = this.host.offsetWidth || 300;
     this.host.style.top = `${rect.bottom + 8}px`;
     this.host.style.left = `${Math.max(Math.min(rect.left, viewportWidth - estimatedWidth - 16), 8)}px`;
     openPopover(this.host);
