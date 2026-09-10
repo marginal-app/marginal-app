@@ -39,6 +39,7 @@ def _token_kwargs(
         "username": request.user.get_username(),
         "hint": hint,
         "issued_token": issued_token,
+        "server_url": f"{request.scheme}://{request.get_host()}",
     }
 
 

@@ -20,6 +20,7 @@ class Button(Component):
         size: str = ""
         disabled: bool = False
         focused: bool = False
+        html_type: str = "button"
 
     class PreviewVariant(Kwargs):
         group: ClassVar[str] = "Primitives"
@@ -67,8 +68,10 @@ class Button(Component):
             classes.append("small")
         if kwargs.focused:
             classes.append("is-focused")
+        html_type = kwargs.html_type if kwargs.html_type in {"button", "submit"} else "button"
         return {
             "label": kwargs.label,
             "disabled": kwargs.disabled,
+            "html_type": html_type,
             "class_name": " ".join(classes),
         }

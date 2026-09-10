@@ -22,12 +22,13 @@ class Tray(Component):
         staged: bool = False
         dismiss_url: str = ""
         dismiss_attrs: dict[str, str] | None = None
+        kicker: str = "페이지 · 밑줄 2"
 
     class Slots:
         default: SlotInput | None = None
 
     class PreviewVariant(Kwargs):
-        group: ClassVar[str] = "Primitives"
+        group: ClassVar[str] = "Desk"
 
         @classmethod
         def variants(variant: type[Self]):
@@ -42,7 +43,7 @@ class Tray(Component):
                     variant(open=True, staged=True, body=TRAY_BODY),
                     slug="tray-open",
                     title="Tray / open",
-                    description="Slid in from the right. translateX(0).",
+                    description="400px page tray — kicker, close, and the slot.",
                 ),
             ]
 
@@ -61,4 +62,5 @@ class Tray(Component):
             "show_dismiss": kwargs.open and bool(kwargs.dismiss_url),
             "dismiss_url": kwargs.dismiss_url,
             "dismiss_attrs": kwargs.dismiss_attrs or {},
+            "kicker": kwargs.kicker,
         }

@@ -1,0 +1,7 @@
+<article class="ds-marginalia">
+  <span class="ds-marginalia__rule" c-style="rule_style" aria-hidden="true"></span>
+  <div class="ds-marginalia__body">
+    <p class="ds-marginalia__quote">{{ quote }}</p>
+    <p c-class="note_class">{{ note }}</p>
+  </div>
+</article>

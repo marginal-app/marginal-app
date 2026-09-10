@@ -1,69 +1,186 @@
-.identity-desk {
-  min-height: 28rem;
+.identity-settings {
   display: flex;
-  align-items: center;
-  justify-content: center;
-  padding: 2rem;
+  align-items: stretch;
+  box-sizing: border-box;
+  min-height: 640px;
   background: var(--bg);
 }
 
-.identity-desk-panel {
-  width: 22rem;
-}
-
-.identity-desk-header {
+.identity-settings__body {
   display: flex;
-  justify-content: space-between;
-  align-items: baseline;
-  gap: 1rem;
-  margin-bottom: 1rem;
+  flex: 1 1 auto;
+  flex-direction: column;
+  gap: 28px;
+  min-width: 0;
+  padding: 28px 40px 40px;
 }
 
-.identity-desk-title {
+.identity-settings__title {
   margin: 0;
-  font-size: 1.1rem;
+  color: var(--text);
+  font-size: 24px;
   font-weight: 600;
+  letter-spacing: -0.4px;
+  line-height: 30px;
 }
 
-.identity-desk-user {
-  margin: 0;
-  font-size: 0.8rem;
-  color: var(--text-secondary);
-}
-
-.identity-desk-form {
+.identity-settings__stack {
   display: flex;
   flex-direction: column;
-  align-items: stretch;
-  gap: 0.875rem;
-  margin-top: 1rem;
+  gap: 24px;
+  width: 560px;
+}
+
+.identity-section {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  width: 100%;
+  padding-top: 16px;
+  border-top: 1px solid var(--border);
+}
+
+.identity-section__head {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  width: 100%;
+}
+
+.identity-section__title {
+  margin: 0;
+  color: var(--text);
+  font-size: 13px;
+  font-weight: 500;
+  letter-spacing: -0.1px;
+  line-height: 18px;
+}
+
+.identity-section__kicker {
+  margin: 0;
+  color: var(--text-secondary);
+  font-family: var(--font-stamp);
+  font-size: 10px;
+  font-weight: 500;
+  letter-spacing: 0.8px;
+  line-height: 14px;
+}
+
+.identity-account {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  width: 100%;
+}
+
+.identity-account__who {
+  display: flex;
+  flex: 1 1 auto;
+  flex-direction: column;
+  gap: 1px;
+  min-width: 0;
+}
+
+.identity-account__name {
+  margin: 0;
+  color: var(--text);
+  font-size: 13px;
+  font-weight: 500;
+  letter-spacing: -0.1px;
+  line-height: 18px;
+}
+
+.identity-account__meta {
+  margin: 0;
+  color: var(--text-secondary);
+  font-family: var(--font-stamp);
+  font-size: 10px;
+  font-weight: 500;
+  letter-spacing: 0.8px;
+  line-height: 14px;
+}
+
+.identity-note {
+  margin: 0;
+  color: var(--text-secondary);
+  font-size: 13px;
+  font-weight: 400;
+  line-height: 19px;
+}
+
+.identity-empty {
+  margin: 0;
+  color: var(--text);
+  font-size: 13px;
+  font-weight: 400;
+  line-height: 19px;
 }
 
 .identity-token-once,
-.identity-token-hint,
-.identity-token-empty {
-  margin: 0;
-  font-size: 0.85rem;
-  color: var(--text-secondary);
-}
-
-.identity-token-plain {
-  display: block;
-  margin-top: 0.5rem;
-  padding: 0.5rem 0.75rem;
-  font-size: 0.8rem;
-  word-break: break-all;
-  color: var(--text);
+.identity-token-has,
+.identity-server {
+  display: flex;
+  align-items: center;
+  box-sizing: border-box;
+  width: 100%;
+  padding: 10px 14px;
   background: var(--bg-elevated);
   border: 1px solid var(--border);
   border-radius: var(--radius);
 }
 
-.identity-logout {
-  margin-top: 0.75rem;
-  padding: 0;
-  border: none;
-  background: none;
-  font-size: 0.8rem;
+.identity-token-once {
+  gap: 12px;
+}
+
+.identity-token-once__value,
+.identity-token-has__value,
+.identity-server__url {
+  min-width: 0;
+  color: var(--text);
+  font-family: var(--font-mono);
+  font-size: 11px;
+  font-weight: 400;
+  line-height: 16px;
+}
+
+.identity-token-once__value {
+  flex: 1 1 auto;
+}
+
+.identity-token-has {
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.identity-token-has__stamp {
+  flex-shrink: 0;
   color: var(--text-secondary);
+  font-family: var(--font-stamp);
+  font-size: 10px;
+  font-weight: 500;
+  letter-spacing: 0.8px;
+  line-height: 14px;
+}
+
+.identity-server {
+  gap: 12px;
+}
+
+.identity-server__label {
+  flex-shrink: 0;
+  color: var(--text-secondary);
+  font-family: var(--font-stamp);
+  font-size: 10px;
+  font-weight: 500;
+  letter-spacing: 0.8px;
+  line-height: 14px;
+}
+
+.identity-server__url {
+  flex: 1 1 auto;
+}
+
+.identity-issue {
+  margin: 0;
 }
