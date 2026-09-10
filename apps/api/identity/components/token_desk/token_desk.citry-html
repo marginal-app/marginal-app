@@ -1,32 +1,68 @@
-<div class="identity-desk">
-  <c-card>
-    <div class="identity-desk-panel">
-      <header class="identity-desk-header">
-        <h1 class="identity-desk-title">API 토큰</h1>
-        <c-if cond="username">
-          <p class="identity-desk-user">{{ username }}</p>
+<div class="identity-settings">
+  <c-sidebar c-state="'expanded'" c-active="'settings'" />
+  <div class="identity-settings__body">
+    <h1 class="identity-settings__title">설정</h1>
+    <div class="identity-settings__stack">
+      <section class="identity-section">
+        <div class="identity-section__head">
+          <h2 class="identity-section__title">계정</h2>
+        </div>
+        <div class="identity-account">
+          <c-avatar c-initials="initials" />
+          <div class="identity-account__who">
+            <p class="identity-account__name">{{ username }}</p>
+            <p class="identity-account__meta">{{ account_meta }}</p>
+          </div>
+          <c-if cond="show_logout_form">
+            <form method="post" c-action="logout_url">
+              <input type="hidden" name="csrfmiddlewaretoken" c-value="csrf_token">
+              <c-button c-label="'로그아웃'" c-kind="'quiet'" c-html_type="'submit'" />
+            </form>
+          </c-if>
+          <c-else>
+            <c-button c-label="'로그아웃'" c-kind="'quiet'" />
+          </c-else>
+        </div>
+      </section>
+
+      <section class="identity-section">
+        <div class="identity-section__head">
+          <h2 class="identity-section__title">API 토큰</h2>
+          <p class="identity-section__kicker">{{ token_kicker }}</p>
+        </div>
+        <p class="identity-note">{{ token_blurb }}</p>
+        <c-if cond="has_issued">
+          <div class="identity-token-once">
+            <code class="identity-token-once__value">{{ issued_token }}</code>
+            <c-pill_button c-label="'복사'" c-icon="'copy'" />
+          </div>
+          <p class="identity-note">{{ issued_warning }}</p>
         </c-if>
-      </header>
-      <c-if cond="has_issued">
-        <p class="identity-token-once">이 토큰은 지금만 보입니다.</p>
-        <code class="identity-token-plain">{{ issued_token }}</code>
-      </c-if>
-      <c-elif cond="has_hint_only">
-        <p class="identity-token-hint">끝자리 {{ hint }}</p>
-      </c-elif>
-      <c-else>
-        <p class="identity-token-empty">확장과 연결할 토큰이 없습니다.</p>
-      </c-else>
-      <form class="identity-desk-form" method="post" c-action="action_url">
-        <input type="hidden" name="csrfmiddlewaretoken" c-value="csrf_token">
-        <button type="submit" class="primary-button">{{ submit_label }}</button>
-      </form>
-      <c-if cond="logout_url">
-        <form method="post" c-action="logout_url">
+        <c-elif cond="has_hint_only">
+          <div class="identity-token-has">
+            <code class="identity-token-has__value">{{ masked_token }}</code>
+            <span class="identity-token-has__stamp">발급됨</span>
+          </div>
+        </c-elif>
+        <c-else>
+          <p class="identity-empty">{{ empty_copy }}</p>
+        </c-else>
+        <form class="identity-issue" method="post" c-action="action_url">
           <input type="hidden" name="csrfmiddlewaretoken" c-value="csrf_token">
-          <button type="submit" class="identity-logout">로그아웃</button>
+          <c-button c-label="submit_label" c-html_type="'submit'" />
         </form>
-      </c-if>
+      </section>
+
+      <section class="identity-section">
+        <div class="identity-section__head">
+          <h2 class="identity-section__title">확장 연결</h2>
+        </div>
+        <div class="identity-server">
+          <span class="identity-server__label">SERVER URL</span>
+          <span class="identity-server__url">{{ server_url }}</span>
+        </div>
+        <p class="identity-note">{{ connect_hint }}</p>
+      </section>
     </div>
-  </c-card>
+  </div>
 </div>
