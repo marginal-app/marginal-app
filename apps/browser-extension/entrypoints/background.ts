@@ -4,6 +4,7 @@ import {
   getHighlights,
   saveHighlight,
   setBookmarked,
+  updateCatalogNote,
   updateComment,
 } from '@/utils/highlight-store';
 import { getSyncUiState, runSync, scheduleSync } from '@/utils/sync';
@@ -13,6 +14,7 @@ export {
   getHighlights,
   saveHighlight,
   setBookmarked,
+  updateCatalogNote,
   updateComment,
 } from '@/utils/highlight-store';
 
@@ -113,6 +115,15 @@ export default defineBackground(() => {
         scheduleSync();
         return row;
       });
+    }
+
+    if (message.type === 'UPDATE_CATALOG_NOTE') {
+      return updateCatalogNote(message.payload.pageKey, message.payload.note).then(
+        (row) => {
+          scheduleSync();
+          return row;
+        },
+      );
     }
 
     if (message.type === 'GET_SYNC_STATUS') {

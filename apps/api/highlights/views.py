@@ -103,6 +103,22 @@ def bookmarks_view(request: AuthenticatedRequest) -> JsonResponse:
     return JsonResponse(membership.to_dict(), status=201 if created else 200)
 
 
+@csrf_exempt
+@require_api_token
+@require_http_methods(["PATCH"])
+def catalogs_view(request: AuthenticatedRequest) -> JsonResponse:
+    data = json.loads(request.body)
+    page_key = canonicalize_page_key(data["pageKey"])
+    raw_note = data.get("note", "")
+    catalog = Catalog.get_or_create_from_page_key(page_key)
+    membership, created = CatalogMembership.upsert(
+        request.bearer_user,
+        catalog,
+        note="" if raw_note is None else str(raw_note),
+    )
+    return JsonResponse(membership.to_dict(), status=201 if created else 200)
+
+
 def _max_cursor_ms(rows: list, fallback: int) -> int:
     if not rows:
         return fallback
@@ -171,12 +187,14 @@ def sync_push_view(request: AuthenticatedRequest) -> JsonResponse:
                 page_key = canonicalize_page_key(str(raw["pageKey"]))
                 catalog = Catalog.get_or_create_from_page_key(page_key)
                 bookmarked = raw.get("bookmarked")
+                raw_note = raw.get("note")
                 membership, _created = CatalogMembership.upsert(
                     user,
                     catalog,
                     title=str(raw.get("title") or ""),
                     description=str(raw.get("description") or ""),
                     bookmarked=bookmarked if isinstance(bookmarked, bool) else None,
+                    note=raw_note if isinstance(raw_note, str) else None,
                 )
                 membership.save(update_fields=["updated_at"])
                 memberships.append(membership)
