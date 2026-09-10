@@ -6,6 +6,7 @@ from django.urls import reverse
 from django.views.decorators.http import require_http_methods
 
 from citry_preview.rendering import render_component
+from highlights.components.catalog_note.catalog_note import PAGE_NOTE
 from highlights.components.catalog_row.catalog_row import display_host
 from highlights.library_views import _highlight_kwargs, _is_htmx, _seed_demo_highlights
 from highlights.models import Catalog, CatalogMembership, Highlight
@@ -19,7 +20,7 @@ def _seed_catalog_desk(user: User) -> None:
     CatalogMembership.objects.get_or_create(
         user=user,
         catalog=hypothesis,
-        defaults={"title": "Hypothesis"},
+        defaults={"title": "Hypothesis", "note": PAGE_NOTE},
     )
     item = Catalog.get_or_create_from_page_key("https://example.com/item?id=321")
     CatalogMembership.objects.get_or_create(
@@ -69,11 +70,13 @@ def _desk_kwargs(request: AuthenticatedRequest, catalog: Catalog | None) -> dict
     pane_host = ""
     pane_highlight_count = 0
     pane_bookmarked = False
+    note = ""
     if catalog:
         membership = CatalogMembership.objects.filter(user=request.user, catalog=catalog).first()
         pane_title = membership.title if membership and membership.title else catalog.page_key
         pane_host = display_host(catalog.origin, "", "")
         pane_bookmarked = bool(membership and membership.bookmarked)
+        note = membership.note if membership else ""
         highlights = [
             _highlight_kwargs(highlight)
             for highlight in Highlight.objects.filter(user=request.user, catalog=catalog).order_by(
@@ -94,6 +97,7 @@ def _desk_kwargs(request: AuthenticatedRequest, catalog: Catalog | None) -> dict
         "pane_host": pane_host,
         "pane_highlight_count": pane_highlight_count,
         "pane_bookmarked": pane_bookmarked,
+        "note": note,
         "highlights": highlights,
         "csrf_token": get_token(request),
         "dismiss_url": reverse("catalog_desk"),

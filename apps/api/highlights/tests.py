@@ -109,6 +109,12 @@ class CatalogDeskHtmxTests(TestCase):
         self.assertContains(response, 'id="catalog-desk"')
         self.assertContains(response, "ds-tray is-open")
         self.assertContains(response, "HTMX returns the same HighlightCard")
+        self.assertContains(response, "페이지 노트")
+        self.assertContains(response, 'name="note"')
+        self.assertContains(
+            response,
+            "SSR 실루엣은 이 페이지 노트에서 리뷰한다",
+        )
         self.assertContains(response, "is-selected")
         self.assertContains(response, 'class="ds-tray-dismiss"')
         self.assertContains(response, 'hx-get="/catalog/"')

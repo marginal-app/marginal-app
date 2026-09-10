@@ -1,0 +1,14 @@
+<section class="catalog-note">
+  <c-label
+    c-kicker="'페이지'"
+    c-text="label"
+    c-hint="hint"
+  />
+  <c-textarea
+    c-name="'note'"
+    c-value="note"
+    c-placeholder="placeholder"
+    c-focused="focused"
+    c-rows="rows"
+  />
+</section>

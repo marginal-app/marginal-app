@@ -5,6 +5,7 @@ from citry import Component
 
 from citry_preview.variants import meta
 from config.citry_app import app
+from highlights.components.catalog_note.catalog_note import PAGE_NOTE
 from highlights.components.catalog_row.catalog_row import display_host
 from highlights.components.highlight_card.highlight_card import QUOTE_ONLY, WITH_COMMENT
 
@@ -148,6 +149,7 @@ class CatalogDesk(Component):
         pane_host: str = ""
         pane_highlight_count: int = 0
         pane_bookmarked: bool = False
+        note: str = ""
         kicker: str = ""
 
     class PreviewVariant(Kwargs):
@@ -169,6 +171,7 @@ class CatalogDesk(Component):
                 "pane_highlight_count": 5,
                 "kicker": "페이지 · 밑줄 5",
                 "highlights": TRAY_HIGHLIGHTS,
+                "note": PAGE_NOTE,
                 "dismiss_url": "/catalog/",
             }
             return [
@@ -287,6 +290,7 @@ class CatalogDesk(Component):
             "pane_host": pane_host,
             "pane_highlight_count": kwargs.pane_highlight_count,
             "pane_bookmarked": kwargs.pane_bookmarked,
+            "note": kwargs.note,
             "tray_highlights": tray_highlights,
             "csrf_token": kwargs.csrf_token,
             "dismiss_url": dismiss_url,

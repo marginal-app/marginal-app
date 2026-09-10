@@ -89,6 +89,8 @@ class PreviewCatalogTests(SimpleTestCase):
                 "catalog-desk-selected",
                 "catalog-desk-highlights",
                 "catalog-desk-comments",
+                "catalog-note-empty",
+                "catalog-note-filled",
                 "desk-home-populated",
                 "identity-login-idle",
                 "identity-login-error",
