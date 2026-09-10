@@ -1,0 +1,32 @@
+.ds-wordmark {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 10px;
+  margin: 0;
+  color: var(--text);
+  font-family: var(--font-wordmark);
+  font-size: 26px;
+  font-weight: 400;
+  line-height: 30px;
+  letter-spacing: -0.3px;
+}
+
+.ds-wordmark__rule {
+  display: block;
+  width: 48px;
+  height: 3px;
+  background: var(--accent);
+}
+
+.ds-wordmark--sm {
+  gap: 6px;
+  font-size: 20px;
+  line-height: 24px;
+  letter-spacing: 0;
+}
+
+.ds-wordmark--sm .ds-wordmark__rule {
+  width: 28px;
+  height: 2px;
+}

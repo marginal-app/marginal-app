@@ -10,6 +10,7 @@
   --danger: #c23b3b;
   --success: #237a45;
   --radius: 8px;
+  --font-wordmark: "Instrument Serif", "Iowan Old Style", Palatino, serif;
 }
 
 * {
