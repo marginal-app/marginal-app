@@ -1,0 +1,36 @@
+.ds-view-tab {
+  display: inline-flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 8px;
+}
+
+.ds-view-tab__row {
+  display: flex;
+  align-items: baseline;
+  gap: 6px;
+}
+
+.ds-view-tab__label {
+  color: var(--text);
+  font-size: 13px;
+  font-weight: 500;
+  letter-spacing: -0.1px;
+  line-height: 18px;
+}
+
+.ds-view-tab__count {
+  color: var(--text-secondary);
+  font-family: var(--font-stamp);
+  font-size: 10px;
+  font-weight: 500;
+  letter-spacing: 0.8px;
+  line-height: 14px;
+}
+
+.ds-view-tab__rule {
+  display: block;
+  width: 100%;
+  height: 2px;
+  background: var(--accent);
+}
