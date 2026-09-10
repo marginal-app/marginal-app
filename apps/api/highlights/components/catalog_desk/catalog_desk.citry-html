@@ -1,51 +1,106 @@
-<div id="catalog-desk" class="catalog-desk">
-  <div class="catalog-desk-list">
-    <c-if cond="is_empty">
-      <c-empty_state
-        c-message="'표시를 남긴 페이지가 없습니다.'"
-        c-hint="'본문을 밑줄 치거나 북마크하세요.'"
-      />
-    </c-if>
-    <c-else>
-      <ul class="catalog-row-list">
-        <c-for each="row in rows">
-          <c-catalog_row
-            c-catalog_id="row['catalog_id']"
-            c-title="row['title']"
-            c-origin="row['origin']"
-            c-path="row['path']"
-            c-query="row['query']"
-            c-highlight_count="row['highlight_count']"
-            c-bookmarked="row['bookmarked']"
-            c-selected="row['selected']"
-            c-select_url="row['select_url']"
-            c-source_href="row['source_href']"
+<div id="catalog-desk" c-class="desk_class">
+  <c-sidebar c-state="'collapsed'" c-active="'library'" />
+  <div class="catalog-desk__body">
+    <div class="catalog-desk__contents">
+      <h1 class="catalog-desk__title">라이브러리</h1>
+      <div class="catalog-tabs" role="tablist">
+        <c-for each="tab in tabs">
+          <c-view_tab
+            c-label="tab['label']"
+            c-count="tab['count']"
+            c-active="tab['active']"
           />
         </c-for>
-      </ul>
-    </c-else>
+      </div>
+      <c-if cond="is_empty">
+        <c-empty_state
+          c-message="'표시를 남긴 페이지가 없습니다.'"
+          c-hint="'본문을 밑줄 치거나 북마크하세요.'"
+        />
+      </c-if>
+      <c-elif cond="show_highlights">
+        <div class="catalog-desk__rows">
+          <c-for each="row in highlight_rows">
+            <c-highlight_row
+              c-quote="row['quote']"
+              c-title="row['title']"
+              c-host="row['host']"
+              c-when="row['when']"
+              c-selected="row['selected']"
+              c-color="row['color']"
+            />
+          </c-for>
+        </div>
+      </c-elif>
+      <c-elif cond="show_comments">
+        <div class="catalog-desk__rows">
+          <c-for each="row in comment_rows">
+            <c-comment_row
+              c-note="row['note']"
+              c-quote="row['quote']"
+              c-title="row['title']"
+              c-host="row['host']"
+              c-when="row['when']"
+              c-selected="row['selected']"
+              c-color="row['color']"
+            />
+          </c-for>
+        </div>
+      </c-elif>
+      <c-else>
+        <ul class="catalog-row-list">
+          <c-for each="row in rows">
+            <c-catalog_row
+              c-catalog_id="row['catalog_id']"
+              c-folio="row['folio']"
+              c-title="row['title']"
+              c-origin="row['origin']"
+              c-path="row['path']"
+              c-query="row['query']"
+              c-highlight_count="row['highlight_count']"
+              c-bookmarked="row['bookmarked']"
+              c-selected="row['selected']"
+              c-select_url="row['select_url']"
+              c-source_href="row['source_href']"
+            />
+          </c-for>
+        </ul>
+      </c-else>
+    </div>
   </div>
   <c-tray
     c-open="selected"
     c-dismiss_url="dismiss_url"
     c-dismiss_attrs="dismiss_attrs"
+    c-kicker="kicker"
   >
     <c-if cond="selected">
-      <header class="catalog-pane-header">
-        <p class="catalog-pane-title">{{ pane_title }}</p>
-        <c-if cond="source_href">
-          <a class="catalog-pane-source" c-href="source_href" target="_blank" rel="noreferrer">원문</a>
-        </c-if>
-      </header>
-      <c-if cond="show_highlights">
-        <c-highlight_list c-highlights="highlights" c-csrf_token="csrf_token" />
-      </c-if>
-      <c-if cond="show_bookmark_empty">
-        <c-empty_state
-          c-message="'이 페이지에 밑줄이 없습니다.'"
-          c-hint="'북마크만 있습니다.'"
-        />
-      </c-if>
+      <c-document_card
+        c-title="pane_title"
+        c-host="pane_host"
+        c-highlight_count="pane_highlight_count"
+        c-bookmarked="pane_bookmarked"
+        c-layout="'row'"
+      />
+      <c-for each="row in tray_highlights">
+        <article class="catalog-tray-row">
+          <span class="catalog-tray-row__chip" c-style="row['chip_style']" aria-hidden="true"></span>
+          <div class="catalog-tray-row__body">
+            <p class="catalog-tray-row__quote">{{ row['quote'] }}</p>
+            <div class="catalog-tray-row__meta">
+              <c-if cond="row['has_comment']">
+                <p class="catalog-tray-row__note">{{ row['comment'] }}</p>
+              </c-if>
+              <c-else>
+                <p class="catalog-tray-row__add">코멘트 추가</p>
+              </c-else>
+              <c-if cond="row['when']">
+                <span class="catalog-tray-row__when">{{ row['when'] }}</span>
+              </c-if>
+            </div>
+          </div>
+        </article>
+      </c-for>
     </c-if>
   </c-tray>
 </div>

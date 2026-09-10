@@ -42,9 +42,17 @@ class TrayConstructionTests(SimpleTestCase):
         self.assertIn("ds-tray is-open", html)
         self.assertNotIn("ds-tray-body", html)
 
-    def test_named_states_are_primitives(self):
+    def test_open_has_kicker_and_close(self):
+        example = preview_by_slug(Tray, "tray-open")
+        html = render_component(example.component, example.kwargs)
+        self.assertIn("ds-tray-kicker", html)
+        self.assertIn("페이지 · 밑줄 2", html)
+        self.assertIn("ds-tray-close", html)
+        self.assertIn("ds-icon--close", html)
+
+    def test_named_states_are_desk(self):
         for slug in ("tray-closed", "tray-open"):
-            self.assertEqual(preview_by_slug(Tray, slug).group, "Primitives")
+            self.assertEqual(preview_by_slug(Tray, slug).group, "Desk")
 
     def test_dismiss_is_absent_until_open_with_a_url(self):
         closed = render_component("tray", {"dismiss_url": "/catalog/"})

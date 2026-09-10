@@ -1,0 +1,43 @@
+.ds-marginalia {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  width: 320px;
+}
+
+.ds-marginalia__rule {
+  flex-shrink: 0;
+  width: 3px;
+  align-self: stretch;
+  border-radius: 1.5px;
+  background: var(--highlight-yellow);
+}
+
+.ds-marginalia__body {
+  display: flex;
+  flex: 1 1 auto;
+  flex-direction: column;
+  gap: 6px;
+  min-width: 0;
+}
+
+.ds-marginalia__quote {
+  margin: 0;
+  color: var(--text);
+  font-family: var(--font-entry);
+  font-size: 15px;
+  font-weight: 400;
+  line-height: 24px;
+}
+
+.ds-marginalia__note {
+  margin: 0;
+  color: var(--text-secondary);
+  font-size: 13px;
+  font-weight: 400;
+  line-height: 19px;
+}
+
+.ds-marginalia__note.is-placeholder {
+  opacity: 0.6;
+}
