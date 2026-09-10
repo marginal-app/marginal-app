@@ -1,0 +1,12 @@
+<article c-class="class_name">
+  <span class="ds-comment-row__chip" c-style="chip_style" aria-hidden="true"></span>
+  <div class="ds-comment-row__body">
+    <p class="ds-comment-row__note">{{ note }}</p>
+    <p class="ds-comment-row__quote">{{ quote }}</p>
+    <div class="ds-comment-row__meta">
+      <span class="ds-comment-row__kicker">{{ title }}</span>
+      <span class="ds-comment-row__host">{{ host }}</span>
+      <span class="ds-comment-row__when">{{ when }}</span>
+    </div>
+  </div>
+</article>

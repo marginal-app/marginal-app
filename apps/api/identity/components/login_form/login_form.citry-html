@@ -1,28 +1,33 @@
-<div class="identity-desk">
-  <c-card>
-    <div class="identity-desk-panel">
-      <h1 class="identity-desk-title">로그인</h1>
-      <form class="identity-desk-form" method="post" c-action="action_url">
-        <input type="hidden" name="csrfmiddlewaretoken" c-value="csrf_token">
-        <c-field
-          c-label="'사용자 이름'"
-          c-name="'username'"
-          c-value="username"
-          c-input_type="'text'"
-        />
+<div class="identity-login">
+  <div c-class="sheet_class">
+    <c-wordmark c-size="'sm'" />
+    <div class="identity-login__lede">
+      <h1 class="identity-login__title">로그인</h1>
+      <p class="identity-login__hint">이 서버에 저장된 밑줄과 목차를 봅니다.</p>
+    </div>
+    <form class="identity-login__form" method="post" c-action="action_url">
+      <input type="hidden" name="csrfmiddlewaretoken" c-value="csrf_token">
+      <c-field
+        c-label="'사용자 이름'"
+        c-name="'username'"
+        c-value="username"
+        c-input_type="'text'"
+      />
+      <div c-class="password_field_class">
         <c-field
           c-label="'비밀번호'"
           c-name="'password'"
+          c-value="password"
           c-input_type="'password'"
         />
-        <button type="submit" class="primary-button">로그인</button>
-        <c-if cond="has_error">
-          <c-status
-            c-tone="'error'"
-            c-message="'사용자 이름 또는 비밀번호가 올바르지 않습니다'"
-          />
-        </c-if>
-      </form>
-    </div>
-  </c-card>
+      </div>
+      <c-if cond="has_error">
+        <c-sync_stamp c-tone="'error'" c-label="error_message" />
+      </c-if>
+      <c-button c-label="'로그인'" c-html_type="'submit'" />
+    </form>
+    <p class="identity-login__footnote">
+      계정은 서버 관리자가 만듭니다 · 회원가입은 아직 없습니다
+    </p>
+  </div>
 </div>
