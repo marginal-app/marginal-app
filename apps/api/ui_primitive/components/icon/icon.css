@@ -1,0 +1,67 @@
+.ds-icon {
+  display: inline-block;
+  flex-shrink: 0;
+  width: 16px;
+  height: 16px;
+  overflow: hidden;
+  color: var(--text-secondary);
+  background-color: currentColor;
+  -webkit-mask: var(--ds-icon) center / contain no-repeat;
+  mask: var(--ds-icon) center / contain no-repeat;
+}
+
+.ds-icon--home {
+  --ds-icon: url("/static/ui/icons/home.svg");
+}
+
+.ds-icon--list {
+  --ds-icon: url("/static/ui/icons/list.svg");
+}
+
+.ds-icon--highlighter {
+  --ds-icon: url("/static/ui/icons/highlighter.svg");
+}
+
+.ds-icon--bookmark {
+  --ds-icon: url("/static/ui/icons/bookmark.svg");
+}
+
+.ds-icon--comment {
+  --ds-icon: url("/static/ui/icons/comment.svg");
+}
+
+.ds-icon--settings {
+  --ds-icon: url("/static/ui/icons/settings.svg");
+}
+
+.ds-icon--search {
+  --ds-icon: url("/static/ui/icons/search.svg");
+}
+
+.ds-icon--collapse {
+  --ds-icon: url("/static/ui/icons/collapse.svg");
+}
+
+.ds-icon--expand {
+  --ds-icon: url("/static/ui/icons/expand.svg");
+}
+
+.ds-icon--star {
+  --ds-icon: url("/static/ui/icons/star.svg");
+}
+
+.ds-icon--star-filled {
+  --ds-icon: url("/static/ui/icons/star-filled.svg");
+}
+
+.ds-icon--external {
+  --ds-icon: url("/static/ui/icons/external.svg");
+}
+
+.ds-icon--close {
+  --ds-icon: url("/static/ui/icons/close.svg");
+}
+
+.ds-icon--copy {
+  --ds-icon: url("/static/ui/icons/copy.svg");
+}

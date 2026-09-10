@@ -38,6 +38,20 @@ class ButtonConstructionTests(SimpleTestCase):
         self.assertIn("Save &amp; Test Connection", html)
         self.assertNotIn("disabled", html)
 
+    def test_quiet_is_a_hairline_not_the_accent_fill(self):
+        example = preview_by_slug(Button, "button-quiet")
+        html = render_component("button", example.kwargs)
+        self.assertIn('class="button quiet"', html)
+        self.assertIn("모두 보기", html)
+        self.assertNotIn("small", html)
+        self.assertNotIn("disabled", html)
+
     def test_named_states_are_primitives(self):
-        for slug in ("button-default", "button-small", "button-disabled", "button-focus"):
+        for slug in (
+            "button-default",
+            "button-small",
+            "button-disabled",
+            "button-focus",
+            "button-quiet",
+        ):
             self.assertEqual(preview_by_slug(Button, slug).group, "Primitives")
