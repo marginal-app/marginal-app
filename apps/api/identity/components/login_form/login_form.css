@@ -1,25 +1,100 @@
-.identity-desk {
-  min-height: 28rem;
+.identity-login {
   display: flex;
   align-items: center;
   justify-content: center;
-  padding: 2rem;
+  box-sizing: border-box;
+  min-height: 640px;
+  background: var(--bg-elevated);
+}
+
+.identity-login__sheet {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+  box-sizing: border-box;
+  width: 400px;
+  padding: 32px 32px 28px;
   background: var(--bg);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  box-shadow:
+    0 1px 2px rgba(20, 20, 30, 0.04),
+    0 8px 24px rgba(20, 20, 30, 0.06);
 }
 
-.identity-desk-panel {
-  width: 22rem;
+.identity-login__lede {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
 }
 
-.identity-desk-title {
-  margin: 0 0 1rem;
-  font-size: 1.1rem;
+.identity-login__title {
+  margin: 0;
+  color: var(--text);
+  font-size: 24px;
   font-weight: 600;
+  letter-spacing: -0.4px;
+  line-height: 30px;
 }
 
-.identity-desk-form {
+.identity-login__hint {
+  margin: 0;
+  color: var(--text-secondary);
+  font-size: 13px;
+  font-weight: 400;
+  line-height: 19px;
+}
+
+.identity-login__form {
   display: flex;
   flex-direction: column;
   align-items: stretch;
-  gap: 0.875rem;
+  gap: 20px;
+}
+
+.identity-login .ds-field {
+  gap: 6px;
+}
+
+.identity-login .ds-field-label {
+  font-family: var(--font-stamp);
+  font-size: 10px;
+  font-weight: 500;
+  letter-spacing: 0.8px;
+  line-height: 14px;
+}
+
+.identity-login .ds-field-input {
+  min-height: 34px;
+  padding: 9px 12px;
+}
+
+.identity-login .ds-field-input[type="text"] {
+  font-family: var(--font-mono);
+  font-size: 11px;
+  line-height: 16px;
+}
+
+.identity-login .ds-field-input[type="password"] {
+  font-size: 14px;
+  line-height: 17px;
+}
+
+.identity-login__field.is-invalid .ds-field-input {
+  border-color: var(--danger);
+}
+
+.identity-login__form .button {
+  width: 100%;
+}
+
+.identity-login__footnote {
+  margin: 0;
+  color: var(--text-secondary);
+  font-family: var(--font-stamp);
+  font-size: 10px;
+  font-weight: 500;
+  letter-spacing: 0.8px;
+  line-height: 14px;
+  opacity: 0.8;
 }

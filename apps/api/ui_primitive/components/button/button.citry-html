@@ -1,1 +1,1 @@
-<button type="button" c-class="class_name" c-disabled="disabled">{{ label }}</button>
+<button c-type="html_type" c-class="class_name" c-disabled="disabled">{{ label }}</button>
