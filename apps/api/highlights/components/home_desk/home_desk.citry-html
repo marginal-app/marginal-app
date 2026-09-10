@@ -1,0 +1,86 @@
+<div class="home-desk">
+  <c-sidebar c-state="'expanded'" c-active="'home'" />
+  <div class="home-desk__body">
+    <header class="home-desk__mast">
+      <div class="home-desk__lede">
+        <p class="home-desk__kicker">{{ kicker }}</p>
+        <h1 class="home-desk__headline">{{ headline }}</h1>
+      </div>
+      <p class="home-desk__edit">{{ edit_label }}</p>
+    </header>
+    <div class="home-desk__widgets">
+      <div class="home-desk__col">
+        <c-widget c-title="'이번 주'" c-meta="week_delta">
+          <div class="home-week">
+            <div class="home-week__stats">
+              <c-for each="stat in stats">
+                <div class="home-week__stat">
+                  <p class="home-week__value">{{ stat['value'] }}</p>
+                  <p class="home-week__label">{{ stat['label'] }}</p>
+                </div>
+              </c-for>
+            </div>
+            <div class="home-week__bars">
+              <c-for each="bar in bars">
+                <div c-class="bar['col_class']">
+                  <span class="home-week__bar" c-style="bar['bar_style']" aria-hidden="true"></span>
+                  <span class="home-week__day">{{ bar['label'] }}</span>
+                </div>
+              </c-for>
+            </div>
+          </div>
+        </c-widget>
+        <c-widget c-title="'최근 밑줄'" c-meta="'모두 보기'">
+          <div class="home-desk__stack">
+            <c-for each="row in recent">
+              <c-marginalia
+                c-quote="row['quote']"
+                c-comment="row['comment']"
+                c-color="row['color']"
+              />
+            </c-for>
+          </div>
+        </c-widget>
+      </div>
+      <div class="home-desk__col">
+        <c-widget c-title="'자주 돌아간 페이지'" c-meta="'목차'">
+          <ul class="home-desk__rows">
+            <c-for each="row in frequent">
+              <c-catalog_row
+                c-catalog_id="row['catalog_id']"
+                c-folio="row['folio']"
+                c-title="row['title']"
+                c-origin="row['origin']"
+                c-path="row['path']"
+                c-query="row['query']"
+                c-highlight_count="row['highlight_count']"
+                c-bookmarked="row['bookmarked']"
+                c-select_url="row['select_url']"
+                c-source_href="row['source_href']"
+              />
+            </c-for>
+          </ul>
+        </c-widget>
+        <c-widget c-title="'북마크'" c-meta="'모두 보기'">
+          <ul class="home-desk__rows">
+            <c-for each="row in bookmarks">
+              <c-catalog_row
+                c-catalog_id="row['catalog_id']"
+                c-folio="row['folio']"
+                c-title="row['title']"
+                c-origin="row['origin']"
+                c-path="row['path']"
+                c-query="row['query']"
+                c-highlight_count="row['highlight_count']"
+                c-bookmarked="row['bookmarked']"
+                c-select_url="row['select_url']"
+                c-source_href="row['source_href']"
+              />
+            </c-for>
+          </ul>
+        </c-widget>
+        <p class="home-desk__add">{{ add_label }}</p>
+      </div>
+    </div>
+  </div>
+</div>

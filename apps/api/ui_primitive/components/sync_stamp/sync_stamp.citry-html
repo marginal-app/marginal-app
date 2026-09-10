@@ -1,0 +1,4 @@
+<p c-class="class_name">
+  <span class="ds-sync-stamp__dot" aria-hidden="true"></span>
+  {{ label }}
+</p>
