@@ -1,0 +1,13 @@
+<c-if cond="labelled">
+  <span
+    c-class="class_name"
+    role="img"
+    c-aria-label="label"
+  ></span>
+</c-if>
+<c-else>
+  <span
+    c-class="class_name"
+    aria-hidden="true"
+  ></span>
+</c-else>
