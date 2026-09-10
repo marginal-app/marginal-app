@@ -1,0 +1,13 @@
+<section class="ds-widget">
+  <header class="ds-widget__head">
+    <p class="ds-widget__title">{{ title }}</p>
+    <c-if cond="show_meta">
+      <p class="ds-widget__meta">{{ meta }}</p>
+    </c-if>
+  </header>
+  <div class="ds-widget__slot">
+    <c-slot>
+      <p class="ds-widget__placeholder">{{ placeholder }}</p>
+    </c-slot>
+  </div>
+</section>
