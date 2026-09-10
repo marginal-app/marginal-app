@@ -24,6 +24,7 @@ export type ApiMembership = {
   bookmarked: boolean;
   title: string;
   description: string;
+  note?: string;
   createdAt: number;
   updatedAt: number;
 };
@@ -50,6 +51,7 @@ export type PushBody = {
     bookmarked: boolean;
     title: string;
     description: string;
+    note: string;
   }>;
 };
 
@@ -110,6 +112,7 @@ export function membershipFromApi(row: ApiMembership): CatalogRecord {
     title: row.title,
     description: row.description,
     bookmarked: row.bookmarked,
+    note: row.note ?? '',
     updatedAt: row.updatedAt,
   };
 }
@@ -133,5 +136,6 @@ export function membershipToApi(row: CatalogRecord): PushBody['memberships'][num
     bookmarked: row.bookmarked,
     title: row.title,
     description: row.description,
+    note: row.note ?? '',
   };
 }

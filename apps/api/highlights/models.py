@@ -53,6 +53,7 @@ class CatalogMembership(models.Model):
     bookmarked = models.BooleanField(default=False)
     title = models.TextField(blank=True, default="")
     description = models.TextField(blank=True, default="")
+    note = models.TextField(blank=True, default="")
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
 
@@ -73,10 +74,13 @@ class CatalogMembership(models.Model):
         title: str = "",
         description: str = "",
         bookmarked: bool | None = None,
+        note: str | None = None,
     ) -> tuple["CatalogMembership", bool]:
         defaults: dict[str, object] = {"title": title, "description": description}
         if bookmarked is not None:
             defaults["bookmarked"] = bookmarked
+        if note is not None:
+            defaults["note"] = note
         row, created = cls.objects.get_or_create(
             user=user,
             catalog=catalog,
@@ -94,6 +98,9 @@ class CatalogMembership(models.Model):
         if bookmarked is not None and row.bookmarked != bookmarked:
             row.bookmarked = bookmarked
             fields.append("bookmarked")
+        if note is not None and row.note != note:
+            row.note = note
+            fields.append("note")
         if fields:
             row.save(update_fields=[*fields, "updated_at"])
         return row, False
@@ -105,6 +112,7 @@ class CatalogMembership(models.Model):
             "bookmarked": self.bookmarked,
             "title": self.title,
             "description": self.description,
+            "note": self.note or "",
             "createdAt": epoch_ms(self.created_at),
             "updatedAt": epoch_ms(self.updated_at),
         }

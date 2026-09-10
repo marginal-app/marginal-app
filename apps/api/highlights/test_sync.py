@@ -147,6 +147,8 @@ def test_push_keeps_client_highlight_id_and_stamps_server_time(client, auth_head
     membership = CatalogMembership.objects.get()
     assert membership.title == "The item"
     assert membership.bookmarked is False
+    assert membership.note == ""
+    assert body["memberships"][0]["note"] == ""
 
 
 @pytest.mark.django_db
@@ -183,6 +185,43 @@ def test_push_empty_title_does_not_wipe_membership_meta(client, auth_headers) ->
     row = CatalogMembership.objects.get()
     assert row.title == "Kept"
     assert row.description == "Also kept"
+    assert row.note == ""
+
+
+@pytest.mark.django_db
+def test_push_note_is_additive_and_omission_does_not_wipe(client, auth_headers) -> None:
+    page_key = "https://example.com/item?id=321"
+    client.post(
+        "/api/sync/push",
+        data=json.dumps(
+            {
+                "memberships": [
+                    {
+                        "pageKey": page_key,
+                        "title": "Kept",
+                        "description": "Also kept",
+                        "note": "page note",
+                    }
+                ],
+                "highlights": [],
+            }
+        ),
+        content_type="application/json",
+        headers=auth_headers,
+    )
+    client.post(
+        "/api/sync/push",
+        data=json.dumps(
+            {
+                "memberships": [{"pageKey": page_key, "title": "", "description": ""}],
+                "highlights": [],
+            }
+        ),
+        content_type="application/json",
+        headers=auth_headers,
+    )
+    row = CatalogMembership.objects.get()
+    assert row.note == "page note"
 
 
 @pytest.mark.django_db

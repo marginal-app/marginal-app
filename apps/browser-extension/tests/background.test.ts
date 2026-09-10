@@ -5,6 +5,7 @@ import {
   getHighlights,
   saveHighlight,
   setBookmarked,
+  updateCatalogNote,
   updateComment,
 } from '@/entrypoints/background';
 
@@ -174,9 +175,79 @@ describe('saveHighlight / getHighlights', () => {
     const row = await setBookmarked('https://example.com/item?id=321', true);
     expect(row.bookmarked).toBe(true);
     expect(row.title).toBe('The item');
+    expect(row.note).toBe('');
 
     const fetched = await getCatalog('https://example.com/item?id=321');
     expect(fetched?.bookmarked).toBe(true);
+    expect(fetched?.note).toBe('');
+  });
+
+  it('migrates catalogs that have no note to an empty string', async () => {
+    await new Promise<void>((resolve, reject) => {
+      const request = indexedDB.open('marginal-highlights', 4);
+      request.onupgradeneeded = () => {
+        const db = request.result;
+        db.createObjectStore('highlights', { keyPath: 'id' });
+        db.createObjectStore('catalogs', { keyPath: 'pageKey' });
+      };
+      request.onsuccess = () => {
+        const db = request.result;
+        const tx = db.transaction('catalogs', 'readwrite');
+        tx.objectStore('catalogs').add({
+          pageKey: 'https://example.com/item?id=321',
+          origin: 'https://example.com',
+          path: '/item',
+          query: '?id=321',
+          title: 'The item',
+          description: 'Kept.',
+          bookmarked: false,
+          updatedAt: 10,
+        });
+        tx.oncomplete = () => {
+          db.close();
+          resolve();
+        };
+        tx.onerror = () => reject(tx.error);
+      };
+      request.onerror = () => reject(request.error);
+    });
+
+    const row = await getCatalog('https://example.com/item?id=321');
+    expect(row?.title).toBe('The item');
+    expect(row?.note).toBe('');
+  });
+});
+
+describe('updateCatalogNote', () => {
+  it('writes a page note without touching highlight comment', async () => {
+    const highlight = await saveHighlight({
+      pageKey: 'https://example.com/item?id=321',
+      quote: 'q',
+      prefix: '',
+      suffix: '',
+      color: '#fff',
+      catalog: { title: 'The item', description: 'Kept.' },
+    });
+
+    const row = await updateCatalogNote(
+      'https://example.com/item?id=321',
+      'page-level note',
+    );
+    expect(row.note).toBe('page-level note');
+    expect(row.title).toBe('The item');
+    expect(row.updatedAt).toBeGreaterThan(0);
+
+    const fetched = await getCatalog('https://example.com/item?id=321');
+    expect(fetched?.note).toBe('page-level note');
+    expect(fetched?.title).toBe('The item');
+
+    const bookmarked = await setBookmarked('https://example.com/item?id=321', true);
+    expect(bookmarked.note).toBe('page-level note');
+    expect(bookmarked.bookmarked).toBe(true);
+
+    const [stored] = await getHighlights('https://example.com/item?id=321');
+    expect(stored?.id).toBe(highlight.id);
+    expect(stored?.comment).toBeUndefined();
   });
 });
 

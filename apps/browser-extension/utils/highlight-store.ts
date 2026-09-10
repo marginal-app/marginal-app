@@ -6,7 +6,7 @@ import { pageIdentityFromPageKey, type PageIdentity } from '@/utils/page-key';
 const DB_NAME = 'marginal-highlights';
 const STORE_NAME = 'highlights';
 const CATALOG_STORE = 'catalogs';
-const DB_VERSION = 4;
+const DB_VERSION = 5;
 
 const UUID_RE =
   /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
@@ -15,6 +15,7 @@ export type CatalogRecord = PageIdentity & {
   title: string;
   description: string;
   bookmarked: boolean;
+  note: string;
   updatedAt: number;
 };
 
@@ -58,12 +59,17 @@ function migrateHighlightV4(value: HighlightRecord): HighlightRecord {
   };
 }
 
+function catalogNote(value: { note?: string } | undefined): string {
+  return value?.note ?? '';
+}
+
 function migrateCatalogV4(value: StoredCatalog, identity: PageIdentity): CatalogRecord {
   return {
     ...identity,
     title: value.title ?? '',
     description: value.description ?? '',
     bookmarked: value.bookmarked ?? false,
+    note: catalogNote(value),
     updatedAt: value.updatedAt ?? Date.now(),
   };
 }
@@ -133,6 +139,17 @@ export function openDb(): Promise<IDBDatabase> {
           };
         }
       }
+      if (oldVersion < 5 && tx && db.objectStoreNames.contains(CATALOG_STORE)) {
+        const catalogStore = tx.objectStore(CATALOG_STORE);
+        const catalogCursor = catalogStore.openCursor();
+        catalogCursor.onsuccess = () => {
+          const cursor = catalogCursor.result;
+          if (!cursor) return;
+          const current = cursor.value as StoredCatalog;
+          cursor.update({ ...current, note: catalogNote(current) });
+          cursor.continue();
+        };
+      }
     };
     request.onsuccess = () => resolve(request.result);
     request.onerror = () => reject(request.error);
@@ -151,6 +168,7 @@ function putCatalog(
     const title = catalog?.title.trim() || current?.title || '';
     const description = catalog?.description.trim() || current?.description || '';
     const bookmarked = current?.bookmarked ?? false;
+    const note = catalogNote(current);
     const created = current == null;
     const metaChanged =
       title !== (current?.title ?? '') ||
@@ -160,6 +178,7 @@ function putCatalog(
       title,
       description,
       bookmarked,
+      note,
       updatedAt:
         created || metaChanged
           ? bumpUpdatedAt(current?.updatedAt ?? 0)
@@ -198,7 +217,10 @@ export async function getCatalog(pageKey: string): Promise<CatalogRecord | undef
   return new Promise((resolve, reject) => {
     const tx = db.transaction(CATALOG_STORE, 'readonly');
     const request = tx.objectStore(CATALOG_STORE).get(pageKey);
-    request.onsuccess = () => resolve(request.result as CatalogRecord | undefined);
+    request.onsuccess = () => {
+      const row = request.result as CatalogRecord | undefined;
+      resolve(row == null ? undefined : { ...row, note: catalogNote(row) });
+    };
     request.onerror = () => reject(request.error);
   });
 }
@@ -228,7 +250,13 @@ export async function getAllCatalogs(): Promise<CatalogRecord[]> {
   return new Promise((resolve, reject) => {
     const tx = db.transaction(CATALOG_STORE, 'readonly');
     const request = tx.objectStore(CATALOG_STORE).getAll();
-    request.onsuccess = () => resolve(request.result as CatalogRecord[]);
+    request.onsuccess = () =>
+      resolve(
+        (request.result as CatalogRecord[]).map((row) => ({
+          ...row,
+          note: catalogNote(row),
+        })),
+      );
     request.onerror = () => reject(request.error);
   });
 }
@@ -264,6 +292,25 @@ export async function setBookmarked(
     title: current?.title ?? '',
     description: current?.description ?? '',
     bookmarked,
+    note: catalogNote(current),
+    updatedAt: bumpUpdatedAt(current?.updatedAt ?? 0),
+  };
+  await putCatalogRecord(row);
+  return row;
+}
+
+export async function updateCatalogNote(
+  pageKey: string,
+  note: string,
+): Promise<CatalogRecord> {
+  const current = await getCatalog(pageKey);
+  const identity = pageIdentityFromPageKey(pageKey);
+  const row: CatalogRecord = {
+    ...identity,
+    title: current?.title ?? '',
+    description: current?.description ?? '',
+    bookmarked: current?.bookmarked ?? false,
+    note,
     updatedAt: bumpUpdatedAt(current?.updatedAt ?? 0),
   };
   await putCatalogRecord(row);

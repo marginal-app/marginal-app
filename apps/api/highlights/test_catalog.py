@@ -129,6 +129,34 @@ def test_later_highlight_refreshes_membership_meta_when_sent(client, auth_header
 
 
 @pytest.mark.django_db
+def test_catalog_patch_writes_note(client, auth_headers) -> None:
+    _post_highlight(client, "https://example.com/item?id=321", auth_headers=auth_headers)
+    response = client.patch(
+        "/api/catalogs",
+        data=json.dumps({"pageKey": "https://example.com/item?id=321", "note": "page note"}),
+        content_type="application/json",
+        headers=auth_headers,
+    )
+    assert response.status_code == 200
+    body = response.json()
+    assert body["note"] == "page note"
+    assert body["pageKey"] == "https://example.com/item?id=321"
+    row = CatalogMembership.objects.get()
+    assert row.note == "page note"
+    assert row.title == ""
+
+
+@pytest.mark.django_db
+def test_missing_membership_note_reads_as_empty(client, auth_headers) -> None:
+    _post_highlight(client, "https://example.com/item?id=321", auth_headers=auth_headers)
+    row = CatalogMembership.objects.get()
+    assert row.note == ""
+    pulled = client.get("/api/sync/pull", headers=auth_headers)
+    assert pulled.status_code == 200
+    assert pulled.json()["memberships"][0]["note"] == ""
+
+
+@pytest.mark.django_db
 def test_highlight_post_requires_client_id(client, auth_headers) -> None:
     response = client.post(
         "/api/highlights",

@@ -66,6 +66,11 @@ export type SetBookmarkMessage = {
   payload: { pageKey: string; bookmarked: boolean };
 };
 
+export type UpdateCatalogNoteMessage = {
+  type: 'UPDATE_CATALOG_NOTE';
+  payload: { pageKey: string; note: string };
+};
+
 export type GetSyncStatusMessage = {
   type: 'GET_SYNC_STATUS';
 };
@@ -82,5 +87,6 @@ export type HighlightMessage =
   | GetFocusHighlightMessage
   | GetCatalogMessage
   | SetBookmarkMessage
+  | UpdateCatalogNoteMessage
   | GetSyncStatusMessage
   | RunSyncMessage;
