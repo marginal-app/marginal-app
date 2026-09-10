@@ -1,11 +1,10 @@
-import { ColorToolbar, HIGHLIGHT_COLORS } from '@/components/color-toolbar';
+import { ColorToolbar, DEFAULT_HIGHLIGHT_COLOR, HIGHLIGHT_COLORS } from '@/components/color-toolbar';
 import { CommentPopover } from '@/components/comment-popover';
 import { eventPathContains } from '@/components/popover';
 import type {
   CommentUpdatedMessage,
   GetHighlightsMessage,
   HighlightRecord,
-  OpenSidePanelMessage,
   SaveHighlightMessage,
   UpdateCommentMessage,
 } from '@/utils/highlight-messages';
@@ -157,8 +156,41 @@ export default defineContentScript({
       activeHighlightId = highlightId;
       activeMark = mark;
       commentBox.comment = mark.dataset.comment ?? '';
+      commentBox.quote = mark.textContent?.trim() ?? '';
+      commentBox.accentColor = mark.style.backgroundColor;
       commentBox.showBelow(mark.getBoundingClientRect());
       commentBox.focusInput();
+    }
+
+    function savePendingHighlight(color: string, openComment: boolean) {
+      if (!pending) return;
+      const { range, quote, prefix, suffix } = pending;
+      const mark = paintRange(range, color);
+
+      const message: SaveHighlightMessage = {
+        type: 'SAVE_HIGHLIGHT',
+        payload: {
+          pageKey,
+          quote,
+          prefix,
+          suffix,
+          color,
+          catalog: pageCatalogFromDocument(document),
+        },
+      };
+      browser.runtime
+        .sendMessage(message)
+        .then((record: HighlightRecord) => {
+          if (!mark) return;
+          attachCommentHandler(mark, record.id, '');
+          if (openComment) openCommentBox(mark, record.id);
+        })
+        .catch((error) => {
+          console.error('하이라이트 저장 실패', error);
+        });
+
+      hideToolbar();
+      window.getSelection()?.removeAllRanges();
     }
 
     function attachCommentHandler(
@@ -176,34 +208,11 @@ export default defineContentScript({
 
     toolbar.host.addEventListener('color-pick', (event) => {
       if (!(event instanceof CustomEvent)) return;
-      if (!pending) return;
-      const color = event.detail.color as string;
-      const { range, quote, prefix, suffix } = pending;
+      savePendingHighlight(event.detail.color as string, false);
+    });
 
-      const mark = paintRange(range, color);
-
-      const message: SaveHighlightMessage = {
-        type: 'SAVE_HIGHLIGHT',
-        payload: {
-          pageKey,
-          quote,
-          prefix,
-          suffix,
-          color,
-          catalog: pageCatalogFromDocument(document),
-        },
-      };
-      browser.runtime
-        .sendMessage(message)
-        .then((record: HighlightRecord) => {
-          if (mark) attachCommentHandler(mark, record.id, '');
-        })
-        .catch((error) => {
-          console.error('하이라이트 저장 실패', error);
-        });
-
-      hideToolbar();
-      window.getSelection()?.removeAllRanges();
+    toolbar.host.addEventListener('comment-shortcut', () => {
+      savePendingHighlight(DEFAULT_HIGHLIGHT_COLOR, true);
     });
 
     toolbar.host.addEventListener('dismiss', () => {
@@ -227,15 +236,8 @@ export default defineContentScript({
       hideCommentBox();
     });
 
-    commentBox.host.addEventListener('goto-panel', () => {
-      if (!activeHighlightId) return;
-      const message: OpenSidePanelMessage = {
-        type: 'OPEN_SIDE_PANEL',
-        payload: { highlightId: activeHighlightId },
-      };
-      browser.runtime.sendMessage(message).catch((error) => {
-        console.error('side panel 열기 실패', error);
-      });
+    commentBox.host.addEventListener('goto-source', () => {
+      activeMark?.scrollIntoView({ behavior: 'smooth', block: 'center' });
     });
 
     commentBox.host.addEventListener('dismiss', () => {

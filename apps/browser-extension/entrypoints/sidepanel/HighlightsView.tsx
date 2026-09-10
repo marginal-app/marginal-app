@@ -1,51 +1,113 @@
 import { useEffect, useRef, useState } from 'react';
 import type {
   CommentUpdatedMessage,
+  GetCatalogMessage,
   GetHighlightsMessage,
+  GetSyncStatusMessage,
   HighlightAddedMessage,
   HighlightRecord,
+  RunSyncMessage,
+  SetBookmarkMessage,
   UpdateCommentMessage,
 } from '@/utils/highlight-messages';
+import type { CatalogRecord } from '@/utils/highlight-store';
+import type { SyncUiState } from '@/utils/sync';
 import { pageKeyFromHref } from '@/utils/page-key';
+import { BookmarkIcon, CommentIcon, OpenWebIcon } from './icons';
 
 function getPageKey(url: string | undefined): string | null {
   if (!url) return null;
   return pageKeyFromHref(url);
 }
 
+function hostFromPageKey(pageKey: string | null): string {
+  if (!pageKey) return '';
+  try {
+    return new URL(pageKey).hostname;
+  } catch {
+    return pageKey;
+  }
+}
+
+function letterFromTitle(title: string, host: string): string {
+  const source = title.trim() || host.trim();
+  return (source[0] ?? 'M').toUpperCase();
+}
+
+function formatStamp(createdAt: number, now = Date.now()): string {
+  const diff = now - createdAt;
+  if (diff < 60_000) return '방금';
+  if (diff < 86_400_000) return '오늘';
+  if (diff < 2 * 86_400_000) return '어제';
+  return new Date(createdAt).toLocaleDateString('ko-KR', {
+    month: 'short',
+    day: 'numeric',
+  });
+}
+
 function HighlightsView() {
   const [pageKey, setPageKey] = useState<string | null>(null);
+  const [pageUrl, setPageUrl] = useState<string | null>(null);
+  const [tabTitle, setTabTitle] = useState('');
   const [highlights, setHighlights] = useState<HighlightRecord[]>([]);
-  const [editingId, setEditingId] = useState<string | null>(null);
+  const [catalog, setCatalog] = useState<CatalogRecord | undefined>();
+  const [sync, setSync] = useState<SyncUiState>({
+    mode: 'local-only',
+    pending: 0,
+    pendingIds: [],
+  });
+  const [focusedId, setFocusedId] = useState<string | null>(null);
   const [draft, setDraft] = useState('');
+  const composerRef = useRef<HTMLInputElement>(null);
   const hasCheckedFocusRef = useRef(false);
 
-  useEffect(() => {
-    async function loadForActiveTab() {
-      const [tab] = await browser.tabs.query({
-        active: true,
-        currentWindow: true,
-      });
-      const key = getPageKey(tab?.url);
-      setPageKey(key);
+  async function refreshSync() {
+    const message: GetSyncStatusMessage = { type: 'GET_SYNC_STATUS' };
+    const next = (await browser.runtime.sendMessage(message)) as
+      | SyncUiState
+      | undefined;
+    if (next) setSync(next);
+  }
 
-      if (!key) {
-        setHighlights([]);
-        return;
-      }
+  async function loadForActiveTab() {
+    const [tab] = await browser.tabs.query({
+      active: true,
+      currentWindow: true,
+    });
+    const key = getPageKey(tab?.url);
+    setPageKey(key);
+    setPageUrl(tab?.url ?? null);
+    setTabTitle(tab?.title ?? '');
 
-      const message: GetHighlightsMessage = {
-        type: 'GET_HIGHLIGHTS',
-        payload: { pageKey: key },
-      };
-      const records = (await browser.runtime.sendMessage(message)) as
-        | HighlightRecord[]
-        | undefined;
-      setHighlights(records ?? []);
+    if (!key) {
+      setHighlights([]);
+      setCatalog(undefined);
+      return;
     }
 
-    loadForActiveTab();
+    const highlightsMessage: GetHighlightsMessage = {
+      type: 'GET_HIGHLIGHTS',
+      payload: { pageKey: key },
+    };
+    const catalogMessage: GetCatalogMessage = {
+      type: 'GET_CATALOG',
+      payload: { pageKey: key },
+    };
+    const [records, row] = await Promise.all([
+      browser.runtime.sendMessage(highlightsMessage) as Promise<
+        HighlightRecord[] | undefined
+      >,
+      browser.runtime.sendMessage(catalogMessage) as Promise<
+        CatalogRecord | undefined
+      >,
+    ]);
+    setHighlights(records ?? []);
+    setCatalog(row);
+    await refreshSync();
+  }
 
+  useEffect(() => {
+    loadForActiveTab();
     browser.tabs.onActivated.addListener(loadForActiveTab);
     browser.tabs.onUpdated.addListener(loadForActiveTab);
     return () => {
@@ -61,6 +123,7 @@ function HighlightsView() {
       if (message.type === 'HIGHLIGHT_ADDED') {
         if (message.payload.pageKey !== pageKey) return;
         setHighlights((prev) => [...prev, message.payload]);
+        void refreshSync();
       }
       if (message.type === 'COMMENT_UPDATED') {
         if (message.payload.pageKey !== pageKey) return;
@@ -86,6 +149,9 @@ function HighlightsView() {
       .sendMessage({ type: 'GET_AND_CLEAR_FOCUS_HIGHLIGHT' })
       .then((id: string | null) => {
         if (!id) return;
+        setFocusedId(id);
+        const match = highlights.find((highlight) => highlight.id === id);
+        if (match) setDraft(match.comment ?? '');
         requestAnimationFrame(() => {
           document
             .getElementById(`highlight-${id}`)
@@ -94,76 +160,210 @@ function HighlightsView() {
       });
   }, [highlights]);
 
-  function startEditing(highlight: HighlightRecord) {
-    setEditingId(highlight.id);
+  const title = catalog?.title || tabTitle || hostFromPageKey(pageKey);
+  const host = hostFromPageKey(pageKey);
+  const localOnly = sync.mode === 'local-only';
+  const pending = new Set(sync.pendingIds);
+  const isEmpty = highlights.length === 0;
+  const focused = highlights.find((highlight) => highlight.id === focusedId);
+
+  function focusHighlight(highlight: HighlightRecord) {
+    setFocusedId(highlight.id);
     setDraft(highlight.comment ?? '');
+    composerRef.current?.focus();
   }
 
-  function saveComment(id: string) {
+  function saveComment() {
+    const target =
+      focused ??
+      [...highlights].sort((a, b) => b.createdAt - a.createdAt)[0];
+    if (!target) return;
     const message: UpdateCommentMessage = {
       type: 'UPDATE_COMMENT',
-      payload: { id, comment: draft },
+      payload: { id: target.id, comment: draft },
     };
     browser.runtime.sendMessage(message).catch((error) => {
       console.error('코멘트 저장 실패', error);
     });
-    setEditingId(null);
   }
 
-  if (highlights.length === 0) {
-    return (
-      <div className="empty-state">
-        <span className="empty-icon" aria-hidden="true">
-          ✎
-        </span>
-        <p>이 페이지에 저장된 하이라이트가 없습니다.</p>
-        <p className="empty-hint">본문을 드래그해서 하이라이트를 만들어보세요.</p>
-      </div>
-    );
+  async function toggleBookmark() {
+    if (!pageKey) return;
+    const next = !catalog?.bookmarked;
+    const message: SetBookmarkMessage = {
+      type: 'SET_BOOKMARK',
+      payload: { pageKey, bookmarked: next },
+    };
+    const row = (await browser.runtime.sendMessage(message)) as CatalogRecord;
+    setCatalog(row);
+    await refreshSync();
   }
+
+  function openPage() {
+    if (!pageUrl) return;
+    browser.tabs.create({ url: pageUrl }).catch((error) => {
+      console.error('페이지 열기 실패', error);
+    });
+  }
+
+  async function openLibrary() {
+    const result = await browser.storage.local.get('settings');
+    const settings = result.settings as { serverUrl?: string } | undefined;
+    const serverUrl = settings?.serverUrl?.replace(/\/$/, '');
+    if (!serverUrl) return;
+    browser.tabs.create({ url: `${serverUrl}/library/` }).catch((error) => {
+      console.error('라이브러리 열기 실패', error);
+    });
+  }
+
+  async function runSyncNow() {
+    const message: RunSyncMessage = { type: 'RUN_SYNC' };
+    const next = (await browser.runtime.sendMessage(message)) as
+      | SyncUiState
+      | undefined;
+    if (next) setSync(next);
+  }
+
+  const syncLabel =
+    sync.mode === 'syncing'
+      ? `동기화 중 · 대기 ${sync.pending}`
+      : sync.mode === 'error'
+        ? `서버 오류${sync.pending ? ` · 대기 ${sync.pending}` : ''}`
+        : '동기화됨 · 방금';
+  const syncAction =
+    sync.mode === 'syncing'
+      ? '지금 동기화'
+      : sync.mode === 'error'
+        ? '재시도'
+        : '';
 
   return (
-    <ul className="highlight-list">
-      {highlights.map((highlight) => (
-        <li
-          key={highlight.id}
-          id={`highlight-${highlight.id}`}
-          className="highlight-item"
-        >
-          <div
-            className="highlight-accent"
-            style={{ backgroundColor: highlight.color }}
-          />
-          <div className="highlight-body">
-            <p className="quote">{highlight.quote}</p>
-            {editingId === highlight.id ? (
-              <div className="comment-edit">
-                <textarea
-                  value={draft}
-                  onChange={(event) => setDraft(event.target.value)}
-                  autoFocus
-                />
-                <button
-                  className="primary-button small"
-                  onClick={() => saveComment(highlight.id)}
-                >
-                  저장
-                </button>
-              </div>
-            ) : (
-              <button
-                className="comment-trigger"
-                onClick={() => startEditing(highlight)}
-              >
-                {highlight.comment || (
-                  <span className="placeholder">코멘트 추가...</span>
-                )}
-              </button>
-            )}
+    <div className="page">
+      {pageKey ? (
+        <section className="document-card">
+          <div className="document-main">
+            <div className="document-tile" aria-hidden="true">
+              {letterFromTitle(title, host)}
+            </div>
+            <div className="document-body">
+              <p className="document-title">{title || '이 페이지'}</p>
+              <p className="document-meta">
+                {host || '—'} · 밑줄 {highlights.length}
+              </p>
+            </div>
           </div>
-        </li>
-      ))}
-    </ul>
+          {localOnly ? null : (
+            <div className="document-actions">
+              <button
+                type="button"
+                className={`pill${catalog?.bookmarked ? ' pill-active' : ''}`}
+                onClick={toggleBookmark}
+              >
+                <BookmarkIcon filled={Boolean(catalog?.bookmarked)} />
+                {catalog?.bookmarked ? '북마크됨' : '북마크'}
+              </button>
+              <button type="button" className="pill" onClick={openPage}>
+                <OpenWebIcon />
+                웹에서 열기
+              </button>
+            </div>
+          )}
+        </section>
+      ) : null}
+
+      {isEmpty ? (
+        <div className="empty-state">
+          <p>아직 이 페이지에 남긴 밑줄이 없습니다.</p>
+          <p className="empty-hint">본문을 드래그하면 색 툴바가 뜹니다.</p>
+          <button type="button" className="library-link" onClick={openLibrary}>
+            라이브러리에서 보기 ↗
+          </button>
+        </div>
+      ) : (
+        <ul className="highlight-list">
+          {highlights.map((highlight) => {
+            const saving = pending.has(highlight.id);
+            return (
+              <li
+                key={highlight.id}
+                id={`highlight-${highlight.id}`}
+                className={`highlight-item${saving ? ' highlight-item-new' : ''}${focusedId === highlight.id ? ' highlight-item-focused' : ''}`}
+              >
+                <button
+                  type="button"
+                  className="highlight-hit"
+                  onClick={() => focusHighlight(highlight)}
+                >
+                  <span
+                    className="highlight-swatch"
+                    style={{ backgroundColor: highlight.color }}
+                  />
+                  <span className="highlight-body">
+                    <span className="quote">{highlight.quote}</span>
+                    <span className="highlight-meta">
+                      <span
+                        className={
+                          highlight.comment ? 'comment-text' : 'placeholder'
+                        }
+                      >
+                        {highlight.comment ||
+                          (saving ? '방금 밑줄' : '코멘트 추가')}
+                      </span>
+                      <span className="stamp">
+                        {saving ? (
+                          <>
+                            <span className="stamp-dot" aria-hidden="true" />
+                            저장 중…
+                          </>
+                        ) : (
+                          formatStamp(highlight.createdAt)
+                        )}
+                      </span>
+                    </span>
+                  </span>
+                </button>
+              </li>
+            );
+          })}
+        </ul>
+      )}
+
+      {localOnly ? null : (
+        <div className="sync-line">
+          <span className="stamp">
+            <span className="stamp-dot" aria-hidden="true" />
+            {syncLabel}
+          </span>
+          {syncAction ? (
+            <button type="button" className="sync-action" onClick={runSyncNow}>
+              {syncAction}
+            </button>
+          ) : null}
+        </div>
+      )}
+
+      <form
+        className="note-composer"
+        onSubmit={(event) => {
+          event.preventDefault();
+          saveComment();
+        }}
+      >
+        <CommentIcon />
+        <input
+          ref={composerRef}
+          value={draft}
+          onChange={(event) => setDraft(event.target.value)}
+          placeholder={
+            isEmpty ? '이 페이지에 메모…' : '선택한 문장에 코멘트…'
+          }
+          aria-label="코멘트"
+        />
+        <button type="submit" className="composer-save">
+          저장
+        </button>
+      </form>
+    </div>
   );
 }
 

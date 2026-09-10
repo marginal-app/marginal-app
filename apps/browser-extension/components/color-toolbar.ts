@@ -1,3 +1,4 @@
+import commentGlyphUrl from '@/assets/icons/comment.svg?url';
 import { OVERLAY_HOST_STYLES } from '@/components/overlay-styles';
 import {
   closePopover,
@@ -12,7 +13,9 @@ export const HIGHLIGHT_COLORS = [
   '#C9F2C7',
   '#C7E8FF',
   '#E3D4FF',
-];
+] as const;
+
+export const DEFAULT_HIGHLIGHT_COLOR = HIGHLIGHT_COLORS[0];
 
 export type ColorPickEvent = CustomEvent<{ color: string }>;
 
@@ -21,21 +24,55 @@ ${OVERLAY_HOST_STYLES}
 
 .bar {
   display: flex;
+  align-items: center;
   gap: 6px;
+  height: 32px;
   padding: 6px;
   background: var(--bg);
   border: 1px solid var(--border);
   border-radius: 999px;
-  box-shadow: 0 10px 30px rgba(20, 20, 30, 0.08);
+  box-shadow:
+    0 1px 1px rgba(20, 20, 30, 0.04),
+    0 8px 12px rgba(20, 20, 30, 0.06);
 }
 
 .dot {
   width: 18px;
   height: 18px;
   padding: 0;
-  border: 1px solid var(--border);
+  border: none;
   border-radius: 50%;
   cursor: pointer;
+}
+
+.rule {
+  width: 1px;
+  height: 14px;
+  background: var(--border);
+  flex-shrink: 0;
+}
+
+.comment {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 22px;
+  height: 22px;
+  padding: 0;
+  border: none;
+  border-radius: 6px;
+  background: transparent;
+  cursor: pointer;
+}
+
+.comment img {
+  display: block;
+  width: 16px;
+  height: 16px;
+}
+
+.comment:hover {
+  background: var(--bg-elevated);
 }
 `;
 
@@ -79,6 +116,28 @@ export class ColorToolbar {
       });
       this.#bar.append(dot);
     }
+
+    const rule = document.createElement('div');
+    rule.className = 'rule';
+    rule.setAttribute('aria-hidden', 'true');
+    this.#bar.append(rule);
+
+    const comment = document.createElement('button');
+    comment.type = 'button';
+    comment.className = 'comment';
+    comment.setAttribute('aria-label', '코멘트 남기기');
+    const glyph = document.createElement('img');
+    glyph.src = commentGlyphUrl;
+    glyph.alt = '';
+    glyph.width = 16;
+    glyph.height = 16;
+    comment.append(glyph);
+    comment.addEventListener('click', () => {
+      this.host.dispatchEvent(
+        new Event('comment-shortcut', { bubbles: true, composed: true }),
+      );
+    });
+    this.#bar.append(comment);
   }
 
   get open(): boolean {

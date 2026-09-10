@@ -15,6 +15,11 @@ const TOKEN_STYLES = `
   --danger: #c23b3b;
   --success: #237a45;
   --radius: 8px;
+  --highlight-yellow: #fff3b0;
+  --highlight-pink: #ffd6e0;
+  --highlight-green: #c9f2c7;
+  --highlight-blue: #c7e8ff;
+  --highlight-lavender: #e3d4ff;
 }
 
 @media (prefers-color-scheme: dark) {

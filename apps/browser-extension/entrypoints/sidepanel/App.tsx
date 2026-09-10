@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import HighlightsView from './HighlightsView';
 import SettingsView from './SettingsView';
+import { SettingsIcon } from './icons';
 import './App.css';
 
 function App() {
@@ -9,16 +10,40 @@ function App() {
 
   return (
     <div className="panel">
-      <header className="panel-header">
-        <h1>{isSettings ? '설정' : 'Marginal'}</h1>
-        <button
-          className="icon-button"
-          onClick={() => setView(isSettings ? 'highlights' : 'settings')}
-          aria-label={isSettings ? '목록으로 돌아가기' : '설정 열기'}
-          title={isSettings ? '목록으로' : '설정'}
-        >
-          {isSettings ? '←' : '⚙'}
-        </button>
+      <header className={`panel-header${isSettings ? ' panel-header-settings' : ''}`}>
+        {isSettings ? (
+          <>
+            <span className="brand-mark" aria-hidden="true">
+              M
+            </span>
+            <h1>설정</h1>
+            <button
+              className="text-back"
+              onClick={() => setView('highlights')}
+              type="button"
+            >
+              ← 이 페이지
+            </button>
+          </>
+        ) : (
+          <>
+            <div className="brand">
+              <span className="brand-mark" aria-hidden="true">
+                M
+              </span>
+              <h1>Marginal</h1>
+            </div>
+            <button
+              className="icon-button"
+              onClick={() => setView('settings')}
+              aria-label="설정 열기"
+              title="설정"
+              type="button"
+            >
+              <SettingsIcon />
+            </button>
+          </>
+        )}
       </header>
       {isSettings ? <SettingsView /> : <HighlightsView />}
     </div>

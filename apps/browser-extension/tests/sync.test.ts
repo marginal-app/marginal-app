@@ -99,3 +99,26 @@ describe('runSync', () => {
     expect(catalog?.title).toBe('Item');
   });
 });
+
+describe('getSyncUiState', () => {
+  it('is local-only when no token is stored', async () => {
+    const { getSyncUiState } = await import('@/utils/sync');
+    const state = await getSyncUiState();
+    expect(state.mode).toBe('local-only');
+  });
+
+  it('is error after a failed pull', async () => {
+    await browser.storage.local.set({
+      settings: { serverUrl: 'http://sync.test', apiToken: 'token' },
+    });
+    vi.stubGlobal(
+      'fetch',
+      vi.fn(async () => new Response('nope', { status: 500 })),
+    );
+
+    const { getSyncUiState, runSync } = await import('@/utils/sync');
+    await expect(runSync()).rejects.toThrow();
+    const state = await getSyncUiState();
+    expect(state.mode).toBe('error');
+  });
+});

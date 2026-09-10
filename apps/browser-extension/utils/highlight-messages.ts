@@ -56,9 +56,31 @@ export type GetFocusHighlightMessage = {
   type: 'GET_AND_CLEAR_FOCUS_HIGHLIGHT';
 };
 
+export type GetCatalogMessage = {
+  type: 'GET_CATALOG';
+  payload: { pageKey: string };
+};
+
+export type SetBookmarkMessage = {
+  type: 'SET_BOOKMARK';
+  payload: { pageKey: string; bookmarked: boolean };
+};
+
+export type GetSyncStatusMessage = {
+  type: 'GET_SYNC_STATUS';
+};
+
+export type RunSyncMessage = {
+  type: 'RUN_SYNC';
+};
+
 export type HighlightMessage =
   | SaveHighlightMessage
   | GetHighlightsMessage
   | UpdateCommentMessage
   | OpenSidePanelMessage
-  | GetFocusHighlightMessage;
+  | GetFocusHighlightMessage
+  | GetCatalogMessage
+  | SetBookmarkMessage
+  | GetSyncStatusMessage
+  | RunSyncMessage;

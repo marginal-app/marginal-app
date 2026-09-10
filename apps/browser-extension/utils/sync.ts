@@ -25,6 +25,16 @@ export type SyncState = {
   cursor: number;
   ackedHighlights: Record<string, number>;
   ackedMemberships: Record<string, number>;
+  lastError?: string;
+  lastSyncedAt?: number;
+};
+
+export type SyncUiState = {
+  mode: 'local-only' | 'syncing' | 'synced' | 'error';
+  pending: number;
+  pendingIds: string[];
+  lastSyncedAt?: number;
+  error?: string;
 };
 
 export async function loadCredentials(): Promise<SyncCredentials | null> {
@@ -48,7 +58,45 @@ export async function loadSyncState(): Promise<SyncState> {
     cursor: raw?.cursor ?? 0,
     ackedHighlights: raw?.ackedHighlights ?? {},
     ackedMemberships: raw?.ackedMemberships ?? {},
+    lastError: raw?.lastError,
+    lastSyncedAt: raw?.lastSyncedAt,
   };
+}
+
+export async function getSyncUiState(): Promise<SyncUiState> {
+  const credentials = await loadCredentials();
+  const state = await loadSyncState();
+  const highlights = await getAllHighlights();
+  const memberships = await getAllCatalogs();
+  const pendingHighlights = rowsToPush(
+    highlights,
+    state.ackedHighlights,
+    (row) => row.id,
+  );
+  const pendingMemberships = rowsToPush(
+    memberships,
+    state.ackedMemberships,
+    (row) => row.pageKey,
+  );
+  const pending = pendingHighlights.length + pendingMemberships.length;
+  const pendingIds = pendingHighlights.map((row) => row.id);
+
+  if (!credentials) {
+    return { mode: 'local-only', pending, pendingIds };
+  }
+  if (state.lastError) {
+    return {
+      mode: 'error',
+      pending,
+      pendingIds,
+      lastSyncedAt: state.lastSyncedAt,
+      error: state.lastError,
+    };
+  }
+  if (pending > 0) {
+    return { mode: 'syncing', pending, pendingIds, lastSyncedAt: state.lastSyncedAt };
+  }
+  return { mode: 'synced', pending: 0, pendingIds: [], lastSyncedAt: state.lastSyncedAt };
 }
 
 export async function saveSyncState(state: SyncState): Promise<void> {
@@ -76,7 +124,8 @@ export async function runSync(): Promise<void> {
     return;
   }
   const state = await loadSyncState();
-  const pulled = await pullSync(credentials, state.cursor);
+  try {
+    const pulled = await pullSync(credentials, state.cursor);
   const remoteHighlights = pulled.highlights.map(highlightFromApi);
   const remoteMemberships = pulled.memberships.map(membershipFromApi);
   const highlights = rebaseRows(
@@ -140,7 +189,14 @@ export async function runSync(): Promise<void> {
     ...pushedHighlightTimes,
     ...pushedMembershipTimes,
   );
+  state.lastError = undefined;
+  state.lastSyncedAt = Date.now();
   await saveSyncState(state);
+  } catch (error) {
+    state.lastError = error instanceof Error ? error.message : String(error);
+    await saveSyncState(state);
+    throw error;
+  }
 }
 
 let syncTimer: ReturnType<typeof setTimeout> | null = null;

@@ -253,6 +253,23 @@ export async function putCatalogRecord(record: CatalogRecord): Promise<void> {
   });
 }
 
+export async function setBookmarked(
+  pageKey: string,
+  bookmarked: boolean,
+): Promise<CatalogRecord> {
+  const current = await getCatalog(pageKey);
+  const identity = pageIdentityFromPageKey(pageKey);
+  const row: CatalogRecord = {
+    ...identity,
+    title: current?.title ?? '',
+    description: current?.description ?? '',
+    bookmarked,
+    updatedAt: bumpUpdatedAt(current?.updatedAt ?? 0),
+  };
+  await putCatalogRecord(row);
+  return row;
+}
+
 export async function updateComment(id: string, comment: string): Promise<HighlightRecord> {
   const db = await openDb();
   return new Promise((resolve, reject) => {
