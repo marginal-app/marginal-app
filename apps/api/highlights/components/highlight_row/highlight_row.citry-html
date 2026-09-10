@@ -1,0 +1,16 @@
+<article c-class="class_name">
+  <span class="ds-highlight-row__chip" c-style="chip_style" aria-hidden="true"></span>
+  <div class="ds-highlight-row__body">
+    <p class="ds-highlight-row__quote">{{ quote }}</p>
+    <c-if cond="show_title">
+      <p class="ds-highlight-row__title">{{ title }}</p>
+    </c-if>
+    <div class="ds-highlight-row__meta">
+      <c-if cond="selected">
+        <span class="ds-highlight-row__kicker">{{ title }}</span>
+      </c-if>
+      <span class="ds-highlight-row__host">{{ host }}</span>
+      <span class="ds-highlight-row__when">{{ when }}</span>
+    </div>
+  </div>
+</article>
