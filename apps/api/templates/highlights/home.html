@@ -1,0 +1,30 @@
+{% extends "citry_preview/base.html" %}
+
+{% block title %}홈{% endblock %}
+
+{% block extra_head %}
+<style>
+  body { background: #d8d8dc; }
+  .home-page { padding: 2rem 1rem; }
+  .home-page > p {
+    width: 1024px;
+    margin: 0 auto 0.75rem;
+    font-size: 0.75rem;
+    color: #6b6b6b;
+  }
+  .home-page > p a { color: #5b5bd6; }
+  .home-page .silhouette-desk { margin: 0 auto; }
+</style>
+{% endblock %}
+
+{% block body %}
+<div class="home-page">
+  <p>
+    Home desk —
+    <a href="{% url 'component_gallery' %}">gallery</a>
+  </p>
+  <div class="silhouette silhouette-desk">
+    <c-home_desk c-kicker="desk_kwargs['kicker']" />
+  </div>
+</div>
+{% endblock %}
