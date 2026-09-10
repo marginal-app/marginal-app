@@ -1,9 +1,11 @@
 from django.urls import path
 
-from highlights import catalog_views, library_views
+from highlights import catalog_views, home_views, library_views
 from highlights.components.highlight_card.highlight_card import highlight_card_edit_view
 
 urlpatterns = [
+    path("", home_views.home_desk_view, name="home"),
+    path("home/", home_views.home_desk_view),
     path("catalog/", catalog_views.catalog_desk_view, name="catalog_desk"),
     path(
         "catalog/<int:catalog_id>/",

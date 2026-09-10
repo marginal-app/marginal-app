@@ -1,0 +1,17 @@
+<article c-class="class_name">
+  <div class="ds-document-card__page">
+    <span class="ds-document-card__mark" aria-hidden="true">{{ mark }}</span>
+    <div class="ds-document-card__body">
+      <p class="ds-document-card__title">{{ title }}</p>
+      <p class="ds-document-card__meta">{{ meta }}</p>
+    </div>
+  </div>
+  <div class="ds-document-card__actions">
+    <c-pill_button
+      c-label="bookmark_label"
+      c-icon="bookmark_icon"
+      c-active="bookmarked"
+    />
+    <c-pill_button c-label="'웹에서 열기'" c-icon="'external'" />
+  </div>
+</article>

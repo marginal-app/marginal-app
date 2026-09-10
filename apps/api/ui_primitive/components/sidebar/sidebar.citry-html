@@ -1,0 +1,60 @@
+<aside c-class="class_name">
+  <div class="ds-sidebar__brand">
+    <c-if cond="collapsed">
+      <span class="ds-sidebar__mark" aria-hidden="true">M</span>
+    </c-if>
+    <c-else>
+      <c-wordmark c-size="'sm'" />
+      <span class="ds-sidebar__toggle" aria-hidden="true">
+        <c-icon c-name="'collapse'" />
+      </span>
+    </c-else>
+  </div>
+  <nav class="ds-sidebar__nav" aria-label="주요">
+    <c-for each="item in items">
+      <span c-class="item['class_name']">
+        <c-icon c-name="item['icon']" />
+        <c-if cond="expanded">
+          <span class="ds-sidebar__label">{{ item['label'] }}</span>
+          <c-if cond="item['has_count']">
+            <span class="ds-sidebar__count">{{ item['count'] }}</span>
+          </c-if>
+        </c-if>
+      </span>
+    </c-for>
+  </nav>
+  <div class="ds-sidebar__spacer" aria-hidden="true"></div>
+  <nav class="ds-sidebar__nav" aria-label="계정">
+    <c-for each="item in footer_items">
+      <span c-class="item['class_name']">
+        <c-icon c-name="item['icon']" />
+        <c-if cond="expanded">
+          <span class="ds-sidebar__label">{{ item['label'] }}</span>
+        </c-if>
+      </span>
+    </c-for>
+  </nav>
+  <c-if cond="expanded">
+    <div class="ds-sidebar__gap" aria-hidden="true"></div>
+    <c-sync_stamp c-tone="sync_tone" c-label="sync_label" />
+    <div class="ds-sidebar__gap" aria-hidden="true"></div>
+    <div class="ds-sidebar__account">
+      <c-avatar c-initials="account_initials" />
+      <div class="ds-sidebar__who">
+        <span class="ds-sidebar__name">{{ account_name }}</span>
+        <span class="ds-sidebar__host">{{ account_host }}</span>
+      </div>
+    </div>
+  </c-if>
+  <c-else>
+    <div class="ds-sidebar__gap" aria-hidden="true"></div>
+    <span class="ds-sidebar__toggle" aria-hidden="true">
+      <c-icon c-name="'expand'" />
+    </span>
+    <div class="ds-sidebar__gap ds-sidebar__gap--avatar" aria-hidden="true"></div>
+    <div class="ds-sidebar__avatar">
+      <c-avatar c-initials="account_initials" />
+      <span class="ds-sidebar__sync-dot" aria-hidden="true"></span>
+    </div>
+  </c-else>
+</aside>
