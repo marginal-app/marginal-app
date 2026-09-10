@@ -1,0 +1,7 @@
+<span c-class="class_name">
+  <span class="ds-view-tab__row">
+    <span class="ds-view-tab__label">{{ label }}</span>
+    <c-if cond="count"><span class="ds-view-tab__count">{{ count }}</span></c-if>
+  </span>
+  <c-if cond="active"><span class="ds-view-tab__rule" aria-hidden="true"></span></c-if>
+</span>

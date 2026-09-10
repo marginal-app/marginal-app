@@ -62,3 +62,26 @@
   font-size: 0.75rem;
   border-radius: calc(var(--radius) - 3px);
 }
+
+.button.quiet {
+  background: var(--bg);
+  border-color: var(--border);
+  color: var(--text);
+  box-shadow: none;
+}
+
+.button.quiet:hover:not(:disabled) {
+  background: var(--bg-elevated);
+  border-color: var(--border);
+}
+
+.button.quiet:active:not(:disabled) {
+  background: var(--bg-elevated);
+  box-shadow: none;
+}
+
+.button.quiet:disabled {
+  background: var(--bg);
+  border-color: var(--border);
+  color: var(--text-secondary);
+}

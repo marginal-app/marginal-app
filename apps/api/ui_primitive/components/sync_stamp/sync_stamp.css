@@ -1,0 +1,31 @@
+.ds-sync-stamp {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  margin: 0;
+  color: var(--text-secondary);
+  font-family: var(--font-stamp);
+  font-size: 10px;
+  font-weight: 500;
+  line-height: 14px;
+  letter-spacing: 0.8px;
+}
+
+.ds-sync-stamp__dot {
+  width: 6px;
+  height: 6px;
+  flex-shrink: 0;
+  border-radius: 999px;
+}
+
+.ds-sync-stamp--ok .ds-sync-stamp__dot {
+  background: var(--success);
+}
+
+.ds-sync-stamp--syncing .ds-sync-stamp__dot {
+  background: var(--accent);
+}
+
+.ds-sync-stamp--error .ds-sync-stamp__dot {
+  background: var(--danger);
+}

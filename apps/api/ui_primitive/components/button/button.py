@@ -16,9 +16,11 @@ class Button(Component):
     @dataclass
     class Kwargs:
         label: str = "Save & Test Connection"
+        kind: str = "primary"
         size: str = ""
         disabled: bool = False
         focused: bool = False
+        html_type: str = "button"
 
     class PreviewVariant(Kwargs):
         group: ClassVar[str] = "Primitives"
@@ -50,16 +52,26 @@ class Button(Component):
                     title="Button / focus-visible",
                     description="Keyboard focus ring — 2px accent over a background offset.",
                 ),
+                meta(
+                    variant(label="모두 보기", kind="quiet"),
+                    slug="button-quiet",
+                    title="Button / quiet",
+                    description="Hairline secondary — everything that is not the one real action.",
+                ),
             ]
 
     def template_data(self, kwargs, slots):
         classes = ["button"]
+        if kwargs.kind == "quiet":
+            classes.append("quiet")
         if kwargs.size == "small":
             classes.append("small")
         if kwargs.focused:
             classes.append("is-focused")
+        html_type = kwargs.html_type if kwargs.html_type in {"button", "submit"} else "button"
         return {
             "label": kwargs.label,
             "disabled": kwargs.disabled,
+            "html_type": html_type,
             "class_name": " ".join(classes),
         }

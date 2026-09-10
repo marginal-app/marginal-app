@@ -1,0 +1,4 @@
+<button type="button" c-class="class_name">
+  <c-icon c-name="icon" />
+  {{ label }}
+</button>
