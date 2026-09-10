@@ -11,7 +11,9 @@
   --success: #237a45;
   --radius: 8px;
   --font-wordmark: "Instrument Serif", "Iowan Old Style", Palatino, serif;
+  --font-entry: "Noto Serif KR", "Iowan Old Style", Palatino, serif;
   --font-stamp: "IBM Plex Mono", ui-monospace, "SF Mono", Menlo, Consolas, monospace;
+  --font-mono: "IBM Plex Mono", ui-monospace, "SF Mono", Menlo, Consolas, monospace;
 }
 
 * {

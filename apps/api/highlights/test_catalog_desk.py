@@ -12,18 +12,29 @@ class CatalogRowConstructionTests(SimpleTestCase):
         example = preview_by_slug(CatalogRow, "catalog-row-highlighted")
         html = render_component(example.component, example.kwargs)
         self.assertIn("catalog-row", html)
-        self.assertIn("Hypothesis", html)
-        self.assertIn("https://example.com/hypothesis", html)
-        self.assertIn("밑줄 2", html)
+        self.assertIn("catalog-row-folio", html)
+        self.assertIn("03", html)
+        self.assertIn("Why Server-Rendered HTML Still Wins", html)
+        self.assertIn("blog.example.org/posts/ssr", html)
+        self.assertIn("밑줄 5", html)
         self.assertNotIn("is-selected", html)
         self.assertNotIn("hx-get", html)
+        self.assertEqual(example.group, "Desk")
 
     def test_bookmarked_row_without_underlines(self):
         example = preview_by_slug(CatalogRow, "catalog-row-bookmarked")
         html = render_component(example.component, example.kwargs)
         self.assertIn("Item 321", html)
+        self.assertIn("example.com/item?id=321", html)
         self.assertIn("북마크", html)
         self.assertNotIn("밑줄", html)
+        self.assertIn("is-bookmarked", html)
+
+    def test_active_row_is_elevated(self):
+        example = preview_by_slug(CatalogRow, "catalog-row-highlighted-active")
+        html = render_component(example.component, example.kwargs)
+        self.assertIn("is-selected", html)
+        self.assertEqual(example.group, "Desk")
 
     def test_select_url_wires_htmx_onto_the_same_desk(self):
         html = render_component(
