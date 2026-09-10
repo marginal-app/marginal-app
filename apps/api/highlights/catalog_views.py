@@ -6,6 +6,7 @@ from django.urls import reverse
 from django.views.decorators.http import require_http_methods
 
 from citry_preview.rendering import render_component
+from highlights.components.catalog_row.catalog_row import display_host
 from highlights.library_views import _highlight_kwargs, _is_htmx, _seed_demo_highlights
 from highlights.models import Catalog, CatalogMembership, Highlight
 from identity.models import User
@@ -32,11 +33,13 @@ def _row_kwargs(
     membership: CatalogMembership,
     *,
     selected_id: int | None,
+    folio: str = "",
 ) -> dict[str, object]:
     catalog = membership.catalog
     page_key = catalog.page_key
     return {
         "catalog_id": str(catalog.id),
+        "folio": folio,
         "title": membership.title,
         "origin": catalog.origin,
         "path": catalog.path,
@@ -57,26 +60,48 @@ def _desk_kwargs(request: AuthenticatedRequest, catalog: Catalog | None) -> dict
         .select_related("catalog")
         .order_by("-updated_at")
     )
-    rows = [_row_kwargs(row, selected_id=selected_id) for row in memberships]
+    rows = [
+        _row_kwargs(row, selected_id=selected_id, folio=f"{index:02d}")
+        for index, row in enumerate(memberships, start=1)
+    ]
     highlights: list[dict[str, object]] = []
     pane_title = ""
+    pane_host = ""
+    pane_highlight_count = 0
+    pane_bookmarked = False
     if catalog:
         membership = CatalogMembership.objects.filter(user=request.user, catalog=catalog).first()
         pane_title = membership.title if membership and membership.title else catalog.page_key
+        pane_host = display_host(catalog.origin, "", "")
+        pane_bookmarked = bool(membership and membership.bookmarked)
         highlights = [
             _highlight_kwargs(highlight)
             for highlight in Highlight.objects.filter(user=request.user, catalog=catalog).order_by(
                 "created_at"
             )
         ]
+        pane_highlight_count = len(highlights)
+    toc_count = str(len(rows))
+    bookmark_count = str(sum(1 for row in rows if row["bookmarked"]))
+    highlight_count = str(
+        Highlight.objects.filter(user=request.user).count(),
+    )
     return {
         "rows": rows,
         "selected": catalog is not None,
         "pane_title": pane_title,
         "source_href": catalog.page_key if catalog else "",
+        "pane_host": pane_host,
+        "pane_highlight_count": pane_highlight_count,
+        "pane_bookmarked": pane_bookmarked,
         "highlights": highlights,
         "csrf_token": get_token(request),
         "dismiss_url": reverse("catalog_desk"),
+        "toc_count": toc_count,
+        "highlight_count": highlight_count,
+        "bookmark_count": bookmark_count,
+        "comment_count": "0",
+        "kicker": f"페이지 · 밑줄 {pane_highlight_count}" if pane_highlight_count else "페이지",
     }
 
 

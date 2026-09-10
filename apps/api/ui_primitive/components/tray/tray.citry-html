@@ -8,8 +8,28 @@
     ></a>
   </c-if>
   <aside c-class="class_name" c-aria-hidden="aria_hidden">
-    <c-slot>
-      <c-if cond="body"><div class="ds-tray-body">{{ body }}</div></c-if>
-    </c-slot>
+    <header class="ds-tray-header">
+      <p class="ds-tray-kicker">{{ kicker }}</p>
+      <c-if cond="show_dismiss">
+        <a
+          class="ds-tray-close"
+          c-href="dismiss_url"
+          c-bind="dismiss_attrs"
+          aria-label="닫기"
+        >
+          <c-icon c-name="'close'" />
+        </a>
+      </c-if>
+      <c-else>
+        <span class="ds-tray-close" aria-hidden="true">
+          <c-icon c-name="'close'" />
+        </span>
+      </c-else>
+    </header>
+    <div class="ds-tray-slot">
+      <c-slot>
+        <c-if cond="body"><div class="ds-tray-body">{{ body }}</div></c-if>
+      </c-slot>
+    </div>
   </aside>
 </div>
