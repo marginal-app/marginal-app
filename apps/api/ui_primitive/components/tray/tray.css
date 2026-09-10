@@ -7,7 +7,7 @@
 
 .ds-tray-host.is-staged {
   position: relative;
-  min-height: 16rem;
+  min-height: 640px;
   background: var(--bg-elevated);
 }
 
@@ -22,12 +22,15 @@
   position: absolute;
   inset: 0 0 0 auto;
   z-index: 1;
-  width: 22.5rem;
+  width: 400px;
   max-width: 100%;
   display: flex;
   flex-direction: column;
   background: var(--bg);
   border-left: 1px solid var(--border);
+  box-shadow:
+    0 1px 1px rgba(20, 20, 30, 0.04),
+    0 8px 12px rgba(20, 20, 30, 0.06);
   transform: translateX(100%);
   transition: transform 180ms ease;
   pointer-events: none;
@@ -45,9 +48,53 @@
   }
 }
 
+.ds-tray-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-shrink: 0;
+  width: 100%;
+  box-sizing: border-box;
+  padding: 10px 10px 6px 16px;
+}
+
+.ds-tray-kicker {
+  margin: 0;
+  color: var(--text-secondary);
+  font-family: var(--font-stamp);
+  font-size: 10px;
+  font-weight: 500;
+  letter-spacing: 0.8px;
+  line-height: 14px;
+}
+
+.ds-tray-close {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 28px;
+  border-radius: 6px;
+  color: var(--text-secondary);
+}
+
+.ds-tray-close .ds-icon {
+  color: inherit;
+}
+
+.ds-tray-slot {
+  display: flex;
+  flex: 1 1 auto;
+  flex-direction: column;
+  gap: 12px;
+  min-height: 0;
+  width: 100%;
+  box-sizing: border-box;
+  padding: 0 12px 12px;
+}
+
 .ds-tray-body {
   margin: 0;
-  padding: 0.85rem 1rem;
   color: var(--text);
   font-size: 0.9rem;
   line-height: 1.5;
