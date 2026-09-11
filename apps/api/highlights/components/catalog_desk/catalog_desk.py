@@ -150,6 +150,8 @@ class CatalogDesk(Component):
         pane_highlight_count: int = 0
         pane_bookmarked: bool = False
         note: str = ""
+        note_edit_url: str = ""
+        note_save_url: str = ""
         kicker: str = ""
 
     class PreviewVariant(Kwargs):
@@ -291,6 +293,8 @@ class CatalogDesk(Component):
             "pane_highlight_count": kwargs.pane_highlight_count,
             "pane_bookmarked": kwargs.pane_bookmarked,
             "note": kwargs.note,
+            "note_edit_url": kwargs.note_edit_url,
+            "note_save_url": kwargs.note_save_url,
             "tray_highlights": tray_highlights,
             "csrf_token": kwargs.csrf_token,
             "dismiss_url": dismiss_url,
