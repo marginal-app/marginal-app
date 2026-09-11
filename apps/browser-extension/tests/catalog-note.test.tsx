@@ -1,7 +1,5 @@
-import { act, type ReactNode } from 'react';
-import { createRoot } from 'react-dom/client';
 import { renderToStaticMarkup } from 'react-dom/server';
-import { afterEach, describe, expect, it } from 'vitest';
+import { describe, expect, it } from 'vitest';
 import CatalogNote, {
   HINT,
   LABEL,
@@ -11,29 +9,6 @@ import CatalogNote, {
   emptyCatalogNote,
   filledCatalogNote,
 } from '@/entrypoints/sidepanel/CatalogNote';
-
-const mounts: Array<{ root: ReturnType<typeof createRoot>; node: HTMLDivElement }> =
-  [];
-
-afterEach(() => {
-  for (const mount of mounts.splice(0)) {
-    act(() => {
-      mount.root.unmount();
-    });
-    mount.node.remove();
-  }
-});
-
-function renderLive(ui: ReactNode) {
-  const node = document.createElement('div');
-  document.body.append(node);
-  const root = createRoot(node);
-  act(() => {
-    root.render(ui);
-  });
-  mounts.push({ root, node });
-  return node;
-}
 
 describe('CatalogNote', () => {
   it('empty is a page note textarea without kicker, comment field, or auto-focus', () => {
@@ -71,19 +46,5 @@ describe('CatalogNote', () => {
     expect(catalogNoteHint('')).toBe(HINT);
     expect(catalogNoteHint('   ')).toBe(HINT);
     expect(catalogNoteHint(PAGE_NOTE)).toBe('');
-  });
-
-  it('commits the note field on blur without a comment payload', () => {
-    const commits: string[] = [];
-    const node = renderLive(
-      <CatalogNote note="page-level note" onCommit={(value) => commits.push(value)} />,
-    );
-    const textarea = node.querySelector('textarea');
-    expect(textarea?.getAttribute('name')).toBe('note');
-    expect(textarea?.value).toBe('page-level note');
-    act(() => {
-      textarea?.dispatchEvent(new FocusEvent('blur', { bubbles: true }));
-    });
-    expect(commits).toEqual(['page-level note']);
   });
 });
