@@ -8,11 +8,13 @@ import type {
   HighlightRecord,
   RunSyncMessage,
   SetBookmarkMessage,
+  UpdateCatalogNoteMessage,
   UpdateCommentMessage,
 } from '@/utils/highlight-messages';
 import type { CatalogRecord } from '@/utils/highlight-store';
 import type { SyncUiState } from '@/utils/sync';
 import { pageKeyFromHref } from '@/utils/page-key';
+import CatalogNote from './CatalogNote';
 import { BookmarkIcon, CommentIcon, OpenWebIcon } from './icons';
 
 function getPageKey(url: string | undefined): string | null {
@@ -51,6 +53,7 @@ function HighlightsView() {
   const [tabTitle, setTabTitle] = useState('');
   const [highlights, setHighlights] = useState<HighlightRecord[]>([]);
   const [catalog, setCatalog] = useState<CatalogRecord | undefined>();
+  const [pageNote, setPageNote] = useState('');
   const [sync, setSync] = useState<SyncUiState>({
     mode: 'local-only',
     pending: 0,
@@ -82,6 +85,7 @@ function HighlightsView() {
     if (!key) {
       setHighlights([]);
       setCatalog(undefined);
+      setPageNote('');
       return;
     }
 
@@ -103,6 +107,7 @@ function HighlightsView() {
     ]);
     setHighlights(records ?? []);
     setCatalog(row);
+    setPageNote(row?.note ?? '');
     await refreshSync();
   }
 
@@ -185,6 +190,23 @@ function HighlightsView() {
     browser.runtime.sendMessage(message).catch((error) => {
       console.error('코멘트 저장 실패', error);
     });
+  }
+
+  async function commitPageNote(note: string) {
+    if (!pageKey) return;
+    if (note === (catalog?.note ?? '')) return;
+    const message: UpdateCatalogNoteMessage = {
+      type: 'UPDATE_CATALOG_NOTE',
+      payload: { pageKey, note },
+    };
+    try {
+      const row = (await browser.runtime.sendMessage(message)) as CatalogRecord;
+      setCatalog(row);
+      setPageNote(row.note);
+      await refreshSync();
+    } catch (error) {
+      console.error('페이지 노트 저장 실패', error);
+    }
   }
 
   async function toggleBookmark() {
@@ -271,6 +293,14 @@ function HighlightsView() {
         </section>
       ) : null}
 
+      {pageKey ? (
+        <CatalogNote
+          note={pageNote}
+          onChange={setPageNote}
+          onCommit={commitPageNote}
+        />
+      ) : null}
+
       {isEmpty ? (
         <div className="empty-state">
           <p>아직 이 페이지에 남긴 밑줄이 없습니다.</p>
@@ -354,9 +384,7 @@ function HighlightsView() {
           ref={composerRef}
           value={draft}
           onChange={(event) => setDraft(event.target.value)}
-          placeholder={
-            isEmpty ? '이 페이지에 메모…' : '선택한 문장에 코멘트…'
-          }
+          placeholder="선택한 문장에 코멘트…"
           aria-label="코멘트"
         />
         <button type="submit" className="composer-save">

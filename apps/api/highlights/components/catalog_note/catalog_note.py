@@ -7,9 +7,9 @@ from citry_preview.variants import meta
 from config.citry_app import app
 
 LABEL = "페이지 노트"
-HINT = "이 페이지 전체에 대한 메모입니다. 밑줄 코멘트와는 다릅니다."
+HINT = "이 페이지 전체에 대한 메모입니다. 하이라이트 코멘트와는 다릅니다."
 PLACEHOLDER = "페이지 노트 추가..."
-PAGE_NOTE = "SSR 실루엣은 이 페이지 노트에서 리뷰한다. 밑줄 코멘트와는 별개다."
+PAGE_NOTE = "SSR 실루엣은 이 페이지 노트에서 리뷰한다. 하이라이트 코멘트와는 별개다."
 
 
 class CatalogNote(Component):
@@ -32,10 +32,10 @@ class CatalogNote(Component):
         def variants(variant: type[Self]):
             return [
                 meta(
-                    variant(focused=True),
+                    variant(),
                     slug="catalog-note-empty",
                     title="CatalogNote / empty",
-                    description="Empty page-level note. Distinct from highlight comment.",
+                    description="Empty page-level note. Hint only; no auto-focus.",
                 ),
                 meta(
                     variant(note=PAGE_NOTE),
@@ -46,10 +46,11 @@ class CatalogNote(Component):
             ]
 
     def template_data(self, kwargs, slots):
+        note = kwargs.note
         return {
             "label": LABEL,
-            "hint": HINT,
-            "note": kwargs.note,
+            "hint": "" if note.strip() else HINT,
+            "note": note,
             "placeholder": kwargs.placeholder,
             "focused": kwargs.focused,
             "rows": kwargs.rows,

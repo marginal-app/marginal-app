@@ -1,6 +1,5 @@
 <section class="catalog-note">
   <c-label
-    c-kicker="'페이지'"
     c-text="label"
     c-hint="hint"
   />
