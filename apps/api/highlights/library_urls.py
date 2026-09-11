@@ -1,6 +1,7 @@
 from django.urls import path
 
 from highlights import catalog_views, home_views, library_views
+from highlights.components.catalog_note.catalog_note import catalog_note_view
 from highlights.components.highlight_card.highlight_card import highlight_card_edit_view
 
 urlpatterns = [
@@ -11,6 +12,11 @@ urlpatterns = [
         "catalog/<int:catalog_id>/",
         catalog_views.catalog_desk_detail_view,
         name="catalog_desk_detail",
+    ),
+    path(
+        "catalog/<int:catalog_id>/note",
+        catalog_note_view,
+        name="catalog_note",
     ),
     path("library/", library_views.library_highlights_view, name="library_highlights"),
     path("library/settings", library_views.library_settings_view, name="library_settings"),

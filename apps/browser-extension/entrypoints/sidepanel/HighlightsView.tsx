@@ -14,7 +14,7 @@ import type {
 import type { CatalogRecord } from '@/utils/highlight-store';
 import type { SyncUiState } from '@/utils/sync';
 import { pageKeyFromHref } from '@/utils/page-key';
-import CatalogNote from './CatalogNote';
+import CatalogNote, { SAVE_ERROR } from './CatalogNote';
 import { BookmarkIcon, CommentIcon, OpenWebIcon } from './icons';
 
 function getPageKey(url: string | undefined): string | null {
@@ -54,6 +54,9 @@ function HighlightsView() {
   const [highlights, setHighlights] = useState<HighlightRecord[]>([]);
   const [catalog, setCatalog] = useState<CatalogRecord | undefined>();
   const [pageNote, setPageNote] = useState('');
+  const [noteDraft, setNoteDraft] = useState('');
+  const [noteEditing, setNoteEditing] = useState(false);
+  const [noteError, setNoteError] = useState('');
   const [sync, setSync] = useState<SyncUiState>({
     mode: 'local-only',
     pending: 0,
@@ -86,6 +89,9 @@ function HighlightsView() {
       setHighlights([]);
       setCatalog(undefined);
       setPageNote('');
+      setNoteDraft('');
+      setNoteEditing(false);
+      setNoteError('');
       return;
     }
 
@@ -107,7 +113,11 @@ function HighlightsView() {
     ]);
     setHighlights(records ?? []);
     setCatalog(row);
-    setPageNote(row?.note ?? '');
+    const saved = row?.note ?? '';
+    setPageNote(saved);
+    setNoteDraft(saved);
+    setNoteEditing(false);
+    setNoteError('');
     await refreshSync();
   }
 
@@ -192,20 +202,28 @@ function HighlightsView() {
     });
   }
 
-  async function commitPageNote(note: string) {
+  async function savePageNote() {
     if (!pageKey) return;
-    if (note === (catalog?.note ?? '')) return;
+    if (noteDraft === (catalog?.note ?? pageNote)) {
+      setNoteEditing(false);
+      setNoteError('');
+      return;
+    }
     const message: UpdateCatalogNoteMessage = {
       type: 'UPDATE_CATALOG_NOTE',
-      payload: { pageKey, note },
+      payload: { pageKey, note: noteDraft },
     };
     try {
       const row = (await browser.runtime.sendMessage(message)) as CatalogRecord;
       setCatalog(row);
       setPageNote(row.note);
+      setNoteDraft(row.note);
+      setNoteEditing(false);
+      setNoteError('');
       await refreshSync();
     } catch (error) {
       console.error('페이지 노트 저장 실패', error);
+      setNoteError(SAVE_ERROR);
     }
   }
 
@@ -295,9 +313,26 @@ function HighlightsView() {
 
       {pageKey ? (
         <CatalogNote
-          note={pageNote}
-          onChange={setPageNote}
-          onCommit={commitPageNote}
+          note={noteEditing ? noteDraft : pageNote}
+          savedNote={pageNote}
+          editing={noteEditing}
+          dirty={noteDraft !== pageNote}
+          error={noteError}
+          focused={noteEditing}
+          onEdit={() => {
+            setNoteDraft(pageNote);
+            setNoteError('');
+            setNoteEditing(true);
+          }}
+          onChange={setNoteDraft}
+          onSave={() => {
+            void savePageNote();
+          }}
+          onCancel={() => {
+            setNoteDraft(pageNote);
+            setNoteError('');
+            setNoteEditing(false);
+          }}
         />
       ) : null}
 

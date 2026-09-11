@@ -1,13 +1,57 @@
 <section class="catalog-note">
-  <c-label
-    c-text="label"
-    c-hint="hint"
-  />
-  <c-textarea
-    c-name="'note'"
-    c-value="note"
-    c-placeholder="placeholder"
-    c-focused="focused"
-    c-rows="rows"
-  />
+  <div class="catalog-note__head">
+    <c-label
+      c-text="label"
+      c-hint="hint"
+    />
+    <c-if cond="show_pencil">
+      <c-icon_button
+        c-label="edit_label"
+        c-icon="'✎'"
+        c-attrs="edit_attrs"
+      />
+    </c-if>
+  </div>
+  <c-if cond="editing">
+    <form
+      class="catalog-note__edit"
+      method="post"
+      c-bind="form_attrs"
+    >
+      <input type="hidden" name="csrfmiddlewaretoken" c-value="csrf_token">
+      <c-textarea
+        c-name="'note'"
+        c-value="note"
+        c-placeholder="placeholder"
+        c-focused="focused"
+        c-autofocus="autofocus"
+        c-rows="rows"
+      />
+      <div class="catalog-note__actions">
+        <c-button
+          c-label="save_label"
+          c-size="'small'"
+          c-html_type="'submit'"
+          c-disabled="save_disabled"
+        />
+        <button
+          type="submit"
+          name="cancel"
+          value="1"
+          class="button quiet small"
+        >{{ cancel_label }}</button>
+      </div>
+      <c-if cond="has_error">
+        <c-status c-tone="'error'" c-message="error" />
+      </c-if>
+    </form>
+  </c-if>
+  <c-else>
+    <c-if cond="empty">
+      <p class="catalog-note__read is-empty">{{ placeholder }}</p>
+    </c-if>
+    <c-else>
+      <p class="catalog-note__read">{{ note }}</p>
+    </c-else>
+  </c-else>
 </section>

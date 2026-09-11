@@ -1,6 +1,9 @@
+from unittest.mock import patch
+
 from django.test import TestCase
 from django.urls import reverse
 
+from highlights.components.catalog_note.catalog_note import SAVE_ERROR
 from highlights.models import Catalog, CatalogMembership, Highlight
 from identity.tokens import seed_dev_user
 
@@ -110,7 +113,9 @@ class CatalogDeskHtmxTests(TestCase):
         self.assertContains(response, "ds-tray is-open")
         self.assertContains(response, "HTMX returns the same HighlightCard")
         self.assertContains(response, "페이지 노트")
-        self.assertContains(response, 'name="note"')
+        self.assertContains(response, "catalog-note__read")
+        self.assertContains(response, "✎")
+        self.assertNotContains(response, "<textarea")
         self.assertContains(
             response,
             "SSR 실루엣은 이 페이지 노트에서 리뷰한다",
@@ -135,3 +140,58 @@ class CatalogDeskHtmxTests(TestCase):
         self.assertContains(response, "Hypothesis")
         self.assertNotContains(response, "ds-tray is-open")
         self.assertNotContains(response, 'class="ds-tray-dismiss"')
+
+    def test_catalog_note_edit_save_and_cancel(self):
+        self.client.get(reverse("catalog_desk"))
+        catalog = Catalog.objects.get(path="/hypothesis")
+        membership = CatalogMembership.objects.get(user__username="dev", catalog=catalog)
+        note_url = reverse("catalog_note", args=[catalog.id])
+
+        edit = self.client.get(note_url, HTTP_HX_REQUEST="true")
+        self.assertEqual(edit.status_code, 200)
+        self.assertContains(edit, "<textarea")
+        self.assertContains(edit, "저장")
+        self.assertContains(edit, "취소")
+        self.assertContains(edit, "SSR 실루엣은 이 페이지 노트에서 리뷰한다")
+        self.assertNotContains(edit, "✎")
+
+        canceled = self.client.post(
+            note_url,
+            {"note": "이 초안은 버려져야 한다.", "cancel": "1"},
+            HTTP_HX_REQUEST="true",
+        )
+        self.assertEqual(canceled.status_code, 200)
+        self.assertContains(canceled, "catalog-note__read")
+        self.assertContains(canceled, "SSR 실루엣은 이 페이지 노트에서 리뷰한다")
+        self.assertNotContains(canceled, "<textarea")
+        membership.refresh_from_db()
+        self.assertIn("SSR 실루엣은 이 페이지 노트에서 리뷰한다", membership.note)
+
+        saved = self.client.post(
+            note_url,
+            {"note": "트레이에서 저장한 페이지 노트."},
+            HTTP_HX_REQUEST="true",
+        )
+        self.assertEqual(saved.status_code, 200)
+        self.assertContains(saved, "트레이에서 저장한 페이지 노트.")
+        self.assertContains(saved, "catalog-note__read")
+        self.assertNotContains(saved, "<textarea")
+        membership.refresh_from_db()
+        self.assertEqual(membership.note, "트레이에서 저장한 페이지 노트.")
+
+    def test_catalog_note_save_failure_stays_in_edit(self):
+        self.client.get(reverse("catalog_desk"))
+        catalog = Catalog.objects.get(path="/hypothesis")
+        note_url = reverse("catalog_note", args=[catalog.id])
+        with patch.object(CatalogMembership, "save", side_effect=RuntimeError("nope")):
+            failed = self.client.post(
+                note_url,
+                {"note": "이 저장은 실패한다."},
+                HTTP_HX_REQUEST="true",
+            )
+        self.assertEqual(failed.status_code, 200)
+        self.assertContains(failed, "<textarea")
+        self.assertContains(failed, "이 저장은 실패한다.")
+        self.assertContains(failed, SAVE_ERROR)
+        self.assertContains(failed, "저장")
+        self.assertNotContains(failed, "✎")

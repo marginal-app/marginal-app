@@ -84,6 +84,9 @@ def _desk_kwargs(request: AuthenticatedRequest, catalog: Catalog | None) -> dict
             )
         ]
         pane_highlight_count = len(highlights)
+        note_url = reverse("catalog_note", args=[catalog.id])
+    else:
+        note_url = ""
     toc_count = str(len(rows))
     bookmark_count = str(sum(1 for row in rows if row["bookmarked"]))
     highlight_count = str(
@@ -98,6 +101,8 @@ def _desk_kwargs(request: AuthenticatedRequest, catalog: Catalog | None) -> dict
         "pane_highlight_count": pane_highlight_count,
         "pane_bookmarked": pane_bookmarked,
         "note": note,
+        "note_edit_url": note_url,
+        "note_save_url": note_url,
         "highlights": highlights,
         "csrf_token": get_token(request),
         "dismiss_url": reverse("catalog_desk"),
