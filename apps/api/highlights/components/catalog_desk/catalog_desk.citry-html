@@ -82,6 +82,7 @@
         c-bookmarked="pane_bookmarked"
         c-layout="'row'"
       />
+      <c-catalog_note c-note="note" />
       <c-for each="row in tray_highlights">
         <article class="catalog-tray-row">
           <span class="catalog-tray-row__chip" c-style="row['chip_style']" aria-hidden="true"></span>

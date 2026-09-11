@@ -4,6 +4,7 @@ from django.test import SimpleTestCase
 
 from citry_preview.testing import preview_by_slug, render_component
 from highlights.components.catalog_desk.catalog_desk import CatalogDesk
+from highlights.components.catalog_note.catalog_note import LABEL, PAGE_NOTE
 from highlights.components.catalog_row.catalog_row import CatalogRow
 
 
@@ -74,6 +75,7 @@ class CatalogDeskConstructionTests(SimpleTestCase):
         self.assertIn('class="ds-tray"', html)
         self.assertNotIn("is-open", html)
         self.assertNotIn("Hypothesis", html)
+        self.assertNotIn('name="note"', html)
 
     def test_idle_list_keeps_the_tray_closed(self):
         example = preview_by_slug(CatalogDesk, "catalog-desk-idle")
@@ -97,6 +99,10 @@ class CatalogDeskConstructionTests(SimpleTestCase):
         self.assertIn("This is the silhouette we review before merge.", html)
         self.assertIn("웹에서 열기", html)
         self.assertIn("페이지 · 밑줄 5", html)
+        self.assertIn(LABEL, html)
+        self.assertIn(PAGE_NOTE, html)
+        self.assertIn('name="note"', html)
+        self.assertIn("코멘트 추가", html)
         self.assertIn('class="ds-tray-dismiss"', html)
         self.assertIn('href="/catalog/"', html)
         self.assertIn('hx-target="#catalog-desk"', html)
@@ -106,6 +112,8 @@ class CatalogDeskConstructionTests(SimpleTestCase):
         html = render_component(example.component, example.kwargs)
         self.assertIn("ds-highlight-row is-selected", html)
         self.assertIn("Cloud Agents can screenshot a component URL.", html)
+        self.assertIn(LABEL, html)
+        self.assertIn(PAGE_NOTE, html)
         self.assertEqual(example.group, "Desk")
 
     def test_comments_tab_uses_comment_rows(self):

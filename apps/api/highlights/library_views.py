@@ -6,6 +6,7 @@ from django.urls import reverse
 from django.views.decorators.http import require_http_methods
 
 from citry_preview.rendering import render_component
+from highlights.components.catalog_note.catalog_note import PAGE_NOTE
 from highlights.models import Catalog, CatalogMembership, Highlight
 from identity.models import User
 from identity.request import AuthenticatedRequest
@@ -47,7 +48,7 @@ def _seed_demo_highlights(user: User | None) -> list[Highlight]:
     CatalogMembership.objects.get_or_create(
         user=owner,
         catalog=catalog,
-        defaults={"title": "Hypothesis"},
+        defaults={"title": "Hypothesis", "note": PAGE_NOTE},
     )
     rows: list[Highlight] = []
     for payload in DEMO_HIGHLIGHTS:
