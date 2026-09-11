@@ -4,7 +4,7 @@ from django.test import SimpleTestCase
 
 from citry_preview.testing import preview_by_slug, render_component
 from highlights.components.catalog_desk.catalog_desk import CatalogDesk
-from highlights.components.catalog_note.catalog_note import LABEL, PAGE_NOTE
+from highlights.components.catalog_note.catalog_note import HINT, LABEL, PAGE_NOTE
 from highlights.components.catalog_row.catalog_row import CatalogRow
 
 
@@ -102,6 +102,8 @@ class CatalogDeskConstructionTests(SimpleTestCase):
         self.assertIn(LABEL, html)
         self.assertIn(PAGE_NOTE, html)
         self.assertIn('name="note"', html)
+        self.assertNotIn(HINT, html)
+        self.assertNotIn("ds-label-kicker", html)
         self.assertIn("코멘트 추가", html)
         self.assertIn('class="ds-tray-dismiss"', html)
         self.assertIn('href="/catalog/"', html)
