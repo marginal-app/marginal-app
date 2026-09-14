@@ -2,7 +2,7 @@
 
 Phase 1 is **break-only counterexamples** (`schemaVersion` 2).
 
-Every row in `phase1-break-fixtures.json` started as a case the content script was expected to lose. Step 2 runs `A_reject` through wrap `paintRange` and keeps those `expect` fields live; B/C/D/E still describe older counterexamples (stale flatten, parser recovery, restore orphans, mouseup / ghost SAVE).
+Every row in `phase1-break-fixtures.json` started as a case the content script was expected to lose. Step 2 runs `A_reject` through wrap `paintRange`. Step 3 runs `D_restore_orphan` through scored `resolveAndPaint`. B/C/E still describe older counterexamples (stale flatten, parser recovery, mouseup / ghost SAVE).
 
 Happy paths (single text node inside `p | li | h*`, unique `prefix+quote+suffix` restore, fresh `flattenText` per record) are **deferred**. Do not add them here.
 

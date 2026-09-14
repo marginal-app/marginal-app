@@ -67,7 +67,7 @@
       "product_hooks": {
         "paintRange": "apps/browser-extension/entrypoints/content.ts — wrap intersecting text nodes; first mark or null",
         "flattenText": "TreeWalker SHOW_TEXT, reject SCRIPT/STYLE/NOSCRIPT",
-        "resolveAndPaint": "indexOf(prefix+quote+suffix) then indexOf(quote); first match wins",
+        "resolveAndPaint": "scored quote match (whitespace/NBSP/shy fold; prefix/suffix + word-boundary; refuse cross-block concat and tied duplicates)",
         "mouseup": "closest('p, li, h1, h2, h3, h4, h5, h6'); otherwise hide toolbar",
         "savePendingHighlight": "sends SAVE_HIGHLIGHT even when paintRange returns null (E05)"
       }
@@ -5350,9 +5350,9 @@
       "story": "The paragraph is “Nothing matches here.” A stored highlight record still asks for “brown fox” with prefix “quick” and suffix “jumps” — none of that text exists.",
       "selectHow": "no mouse; restore looks for ‹brown fox› (prefix quick / suffix jumps) which is not on the page",
       "selectionAnnotated": "Nothing matches here.  (no mouse; restore looks for ‹brown fox› — quote is absent)",
-      "expectHuman": "resolveAndPaint indexOf misses; returns null. The stored record is an orphan. No mark.",
+      "expectHuman": "quote is not on the page; resolveAndPaint returns null. The stored record is an orphan. No mark.",
       "repro": "1. Load the paragraph. 2. flattenText. 3. resolveAndPaint {quote:'brown fox'} — null.",
-      "why_breaks": "resolveAndPaint indexOf misses; returns null. The stored record is an orphan.",
+      "why_breaks": "True orphan — flatten has no “brown fox”. Restore stays null.",
       "html": "<p>Nothing matches here.</p>",
       "load": "container-innerHTML",
       "selection": null,
@@ -5376,7 +5376,7 @@
         "restore": "null",
         "wrongSpan": false,
         "ghostRecord": false,
-        "notes": ""
+        "notes": "No candidate after normalized / scored matching."
       },
       "oracle": {
         "kind": "resolve-null",
@@ -5384,6 +5384,10 @@
           {
             "fn": "resolveAndPaint",
             "returns": null
+          },
+          {
+            "query": "mark",
+            "count": 0
           }
         ]
       },
@@ -5400,9 +5404,9 @@
       "story": "The sentence has two “shift” tokens (“shift left then shift right”). The record wants the second, but prefix/suffix have drifted to GONE/AWAY.",
       "selectHow": "no mouse; restore looks for ‹shift› with dead prefix/suffix, so fallback indexOf hits the first",
       "selectionAnnotated": "‹shift› left then shift right  (no mouse; intended target is the second: shift left then ‹shift› right)",
-      "expectHuman": "prefix+quote+suffix miss; fallback indexOf(“shift”) paints occurrence 0, not 1. Wrong span.",
+      "expectHuman": "two equal-score “shift” hits and dead prefix/suffix; restore returns null rather than painting the first occurrence.",
       "repro": "1. Load the sentence. 2. Restore with prefix GONE. 3. The first “shift” is marked, not the second.",
-      "why_breaks": "prefix+quote+suffix miss; fallback indexOf(quote) paints the first 'shift', not the second.",
+      "why_breaks": "Prefix/suffix GONE/AWAY do not disambiguate duplicate quotes. Matcher refuses first-indexOf (no wrong span).",
       "html": "<p>shift left then shift right</p>",
       "load": "container-innerHTML",
       "selection": null,
@@ -5421,20 +5425,23 @@
       "expect": {
         "paint": null,
         "exceptionName": null,
-        "markCount": 1,
+        "markCount": 0,
         "toolbar": null,
-        "restore": "wrong-span",
-        "wrongSpan": true,
+        "restore": "null",
+        "wrongSpan": false,
         "ghostRecord": false,
-        "notes": ""
+        "notes": "Ambiguous duplicates with no usable prefix/suffix → null."
       },
       "oracle": {
-        "kind": "wrong-span-first-indexOf",
+        "kind": "ambiguous-duplicate",
         "checks": [
           {
-            "intendedOccurrence": 1,
-            "paintedOccurrence": 0,
-            "paintedText": "shift"
+            "fn": "resolveAndPaint",
+            "returns": null
+          },
+          {
+            "query": "mark",
+            "count": 0
           }
         ]
       },
@@ -5452,9 +5459,9 @@
       "story": "Two tiny paragraphs: “un” and “ion”. flattenText concatenates them to “union”. A record quotes that invented word.",
       "selectHow": "no mouse; restore looks for ‹union› which only exists as flatten(“un”)+flatten(“ion”)",
       "selectionAnnotated": "<p>‹un</p><p>ion›</p>  (no mouse; flatten concatenates across the block boundary)",
-      "expectHuman": "indexOf(“union”) succeeds, but setStart/setEnd span two blocks; paintRange returns null.",
+      "expectHuman": "flatten still concatenates “un”+“ion”, but restore rejects a match that crosses a block boundary. No mark.",
       "repro": "1. Load the two <p>s. 2. flattenText === “union”. 3. resolveAndPaint “union” — null.",
-      "why_breaks": "flattenText is 'union' from <p>un</p><p>ion</p>. indexOf('union') succeeds; setStart/setEnd span two blocks; paintRange returns null.",
+      "why_breaks": "flattenText is still “union”. Wrap would paint both <p>s; resolveAndPaint now refuses cross-block flatten hits.",
       "html": "<p>un</p><p>ion</p>",
       "load": "container-innerHTML",
       "selection": null,
@@ -5472,20 +5479,25 @@
       ],
       "expect": {
         "paint": null,
-        "exceptionName": "InvalidStateError",
+        "exceptionName": null,
         "markCount": 0,
         "toolbar": null,
         "restore": "null",
         "wrongSpan": false,
         "ghostRecord": false,
-        "notes": ""
+        "notes": "Cross-block flatten concat is not a restore."
       },
       "oracle": {
         "kind": "concat-false-positive",
         "checks": [
           {
+            "flatten": "union",
             "fn": "resolveAndPaint",
             "returns": null
+          },
+          {
+            "query": "mark",
+            "count": 0
           }
         ]
       },
@@ -5503,9 +5515,9 @@
       "story": "The DOM already has two spaces (“hello  world”). The record stores a single space (“hello world”).",
       "selectHow": "no mouse; restore looks for ‹hello world› but the live text is hello  world",
       "selectionAnnotated": "hello  world again  (no mouse; restore looks for ‹hello world› — one space vs two)",
-      "expectHuman": "quote is not a substring; resolveAndPaint returns null.",
+      "expectHuman": "whitespace-collapsed match restores the double-spaced “hello  world”.",
       "repro": "1. Load “hello  world again”. 2. Restore quote “hello world”. 3. null, no mark.",
-      "why_breaks": "quote 'hello world' is not a substring of 'hello  world'. Restore null.",
+      "why_breaks": "Was an exact-indexOf miss on extra spaces. Restore now folds runs of whitespace and paints the DOM span.",
       "html": "<p>hello  world again</p>",
       "load": "container-innerHTML",
       "selection": null,
@@ -5522,21 +5534,28 @@
         "restore"
       ],
       "expect": {
-        "paint": null,
+        "paint": "first-mark",
         "exceptionName": null,
-        "markCount": 0,
+        "markCount": 1,
         "toolbar": null,
-        "restore": "null",
+        "restore": "ok",
         "wrongSpan": false,
         "ghostRecord": false,
-        "notes": ""
+        "notes": "Normalized match; painted text keeps the two DOM spaces."
       },
       "oracle": {
-        "kind": "whitespace-mismatch",
+        "kind": "restore-ok",
         "checks": [
           {
             "fn": "resolveAndPaint",
-            "returns": null
+            "returns": "first-mark"
+          },
+          {
+            "paintedText": "hello  world"
+          },
+          {
+            "query": "mark",
+            "count": 1
           }
         ]
       },
@@ -5553,9 +5572,9 @@
       "story": "The DOM uses a non-breaking space (hello&nbsp;world). The record uses a regular U+0020 space.",
       "selectHow": "no mouse; restore looks for ‹hello world› with U+0020; the node holds U+00A0",
       "selectionAnnotated": "hello&nbsp;world again  (no mouse; restore looks for ‹hello world› — NBSP ≠ space)",
-      "expectHuman": "indexOf fails on the NBSP; resolveAndPaint returns null.",
+      "expectHuman": "NBSP folds to a space for matching; restore paints hello+nbsp+world.",
       "repro": "1. Load hello&nbsp;world. 2. Confirm node.data contains \\u00a0. 3. restore “hello world” — null.",
-      "why_breaks": "textNode.data contains \\u00a0; record.quote uses U+0020. indexOf fails.",
+      "why_breaks": "Was an exact-indexOf miss on U+00A0 vs U+0020. Restore now folds NBSP and paints the DOM span.",
       "html": "<p>hello&nbsp;world again</p>",
       "load": "container-innerHTML",
       "selection": null,
@@ -5572,21 +5591,28 @@
         "restore"
       ],
       "expect": {
-        "paint": null,
+        "paint": "first-mark",
         "exceptionName": null,
-        "markCount": 0,
+        "markCount": 1,
         "toolbar": null,
-        "restore": "null",
+        "restore": "ok",
         "wrongSpan": false,
         "ghostRecord": false,
-        "notes": ""
+        "notes": "NBSP normalizes to space for matching; mark keeps the NBSP."
       },
       "oracle": {
-        "kind": "nbsp-mismatch",
+        "kind": "restore-ok",
         "checks": [
           {
             "fn": "resolveAndPaint",
-            "returns": null
+            "returns": "first-mark"
+          },
+          {
+            "paintedText": "hello world"
+          },
+          {
+            "query": "mark",
+            "count": 1
           }
         ]
       },
@@ -5604,9 +5630,9 @@
       "story": "The page has “caterpillar” and later a standalone “cat”. A record quotes “cat” with dead prefix/suffix, so indexOf hits the prefix of “caterpillar”.",
       "selectHow": "no mouse; restore looks for ‹cat›; first hit is inside ‹cat›erpillar, not the later word",
       "selectionAnnotated": "‹cat›erpillar and a cat sat  (no mouse; intended target is the standalone cat)",
-      "expectHuman": "indexOf(“cat”) paints the start of “caterpillar” — wrong span.",
+      "expectHuman": "word-boundary match paints the standalone “cat”, not the prefix of “caterpillar”.",
       "repro": "1. Load the sentence. 2. Restore quote “cat” with GONE prefix. 3. Mark is on “cat” inside “caterpillar”.",
-      "why_breaks": "indexOf('cat') hits 'caterpillar', not the later standalone 'cat'.",
+      "why_breaks": "Was first-indexOf into “caterpillar”. Restore now prefers a word-bounded occurrence when prefix/suffix miss.",
       "html": "<p>caterpillar and a cat sat</p>",
       "load": "container-innerHTML",
       "selection": null,
@@ -5623,21 +5649,28 @@
         "restore"
       ],
       "expect": {
-        "paint": null,
+        "paint": "first-mark",
         "exceptionName": null,
         "markCount": 1,
         "toolbar": null,
-        "restore": "wrong-span",
-        "wrongSpan": true,
+        "restore": "ok",
+        "wrongSpan": false,
         "ghostRecord": false,
-        "notes": ""
+        "notes": "Standalone “cat” scores higher than the substring hit."
       },
       "oracle": {
-        "kind": "wrong-span-substring",
+        "kind": "restore-ok",
         "checks": [
           {
-            "paintedText": "cat",
-            "paintedParentWord": "caterpillar"
+            "fn": "resolveAndPaint",
+            "returns": "first-mark"
+          },
+          {
+            "paintedText": "cat"
+          },
+          {
+            "query": "mark",
+            "count": 1
           }
         ]
       },
@@ -5655,9 +5688,9 @@
       "story": "The only copy of “secret phrase” lives in a <script> string. The visible paragraph just says “visible”. flattenText rejects SCRIPT parents.",
       "selectHow": "no mouse; restore looks for ‹secret phrase› which exists only inside <script>",
       "selectionAnnotated": "<p>visible</p><script>…‹secret phrase›…</script>  (no mouse; flatten skips SCRIPT)",
-      "expectHuman": "flatten does not contain the quote; resolveAndPaint returns null.",
+      "expectHuman": "flatten still excludes SCRIPT; resolveAndPaint returns null. No mark.",
       "repro": "1. Load paragraph + script. 2. flattenText === “visible”. 3. restore “secret phrase” — null.",
-      "why_breaks": "flattenText rejects SCRIPT parents, so the only copy of the quote is invisible. Restore null.",
+      "why_breaks": "The only copy of the quote lives in SCRIPT, which flattenText rejects. Still an orphan.",
       "html": "<p>visible</p><script>const quote = \"secret phrase\";</script>",
       "load": "container-innerHTML",
       "selection": null,
@@ -5681,7 +5714,7 @@
         "restore": "null",
         "wrongSpan": false,
         "ghostRecord": false,
-        "notes": ""
+        "notes": "Script text is not flattened."
       },
       "oracle": {
         "kind": "script-excluded",
@@ -5690,6 +5723,10 @@
             "flatten": "visible",
             "fn": "resolveAndPaint",
             "returns": null
+          },
+          {
+            "query": "mark",
+            "count": 0
           }
         ]
       },
@@ -5706,9 +5743,9 @@
       "story": "“The noteworthy note.” Restore first paints “noteworthy”. A second record quotes “note” with dead prefix/suffix; indexOf hits text already inside the first mark (or the same node).",
       "selectHow": "no mouse; restore ‹noteworthy›, then restore ‹note› (substring of the first quote)",
       "selectionAnnotated": "The ‹noteworthy› ‹note›.  (no mouse; second quote is a substring of the first mark)",
-      "expectHuman": "second restore paints the wrong span, nests, or returns null — it does not isolate the trailing “note”.",
+      "expectHuman": "second restore prefers the word-bounded trailing “note” outside the first mark. Two marks; no nest.",
       "repro": "1. Restore “noteworthy”. 2. Restore “note” with GONE prefix. 3. Second paint is inside the first mark or null.",
-      "why_breaks": "After painting 'noteworthy', fallback indexOf('note') hits the text inside the first mark (or the same node). Wrong span / nested attempt.",
+      "why_breaks": "Was first-indexOf into “noteworthy”. Restore now prefers word-boundary + not-inside-existing-mark.",
       "html": "<p>The noteworthy note.</p>",
       "load": "container-innerHTML",
       "selection": null,
@@ -5719,21 +5756,33 @@
         "restore:note"
       ],
       "expect": {
-        "paint": null,
+        "paint": "first-mark",
         "exceptionName": null,
-        "markCount": 0,
+        "markCount": 2,
         "toolbar": null,
-        "restore": "wrong-span-or-null",
-        "wrongSpan": true,
+        "restore": "ok",
+        "wrongSpan": false,
         "ghostRecord": false,
-        "notes": ""
+        "notes": "Second record paints the trailing “note”, not a nest inside “noteworthy”."
       },
       "oracle": {
-        "kind": "substring-of-existing-mark",
+        "kind": "restore-ok",
         "checks": [
           {
+            "fn": "resolveAndPaint",
+            "returns": "first-mark"
+          },
+          {
             "firstMark": "noteworthy",
-            "second": "null-or-nested-or-inside-first"
+            "secondMark": "note"
+          },
+          {
+            "query": "mark",
+            "count": 2
+          },
+          {
+            "query": "mark mark",
+            "count": 0
           }
         ]
       },
@@ -5767,9 +5816,9 @@
       "story": "A stored record has an empty quote (product mouseup would have hidden the toolbar). indexOf('') is 0, so a naive restore would paint at the start of the paragraph.",
       "selectHow": "no mouse; restore looks for an empty quote ‹› with prefix “Some” / suffix “text”",
       "selectionAnnotated": "Some visible text.  (no mouse; record.quote is empty — must not paint at offset 0)",
-      "expectHuman": "empty quote must be treated as an orphan. resolveAndPaint must not paint an arbitrary range at index 0.",
+      "expectHuman": "empty quote is an orphan; resolveAndPaint returns null and does not paint offset 0.",
       "repro": "1. Load “Some visible text.” 2. Restore {quote:''}. 3. No mark (do not accept a paint at offset 0).",
-      "why_breaks": "Product mouseup trims and hides the toolbar, but a stored record can still have quote ''. indexOf('') is 0; resolveAndPaint would try to paint a zero-length or entire-prefix range and then fail or mark the wrong place.",
+      "why_breaks": "A stored record can have quote ''. Matcher treats blank quotes as unrestorable (indexOf('') is no longer used).",
       "html": "<p>Some visible text.</p>",
       "load": "container-innerHTML",
       "selection": null,
@@ -5790,18 +5839,21 @@
         "exceptionName": null,
         "markCount": 0,
         "toolbar": null,
-        "restore": "null-or-wrong-span",
+        "restore": "null",
         "wrongSpan": false,
         "ghostRecord": false,
-        "notes": "indexOf('') === 0. Harness must treat empty quote as orphan, not as a paint at offset 0."
+        "notes": "Empty quote short-circuits to null."
       },
       "oracle": {
         "kind": "empty-quote",
         "checks": [
           {
-            "record.quote": "",
             "fn": "resolveAndPaint",
-            "mustNotPaintArbitrary": true
+            "returns": null
+          },
+          {
+            "query": "mark",
+            "count": 0
           }
         ]
       },
@@ -5818,9 +5870,9 @@
       "story": "The DOM has a soft hyphen in “af&shy;ter”. The record quotes “after” without U+00AD.",
       "selectHow": "no mouse; restore looks for ‹after› but flatten may be af\\u00adter",
       "selectionAnnotated": "look ‹af&shy;ter› that  (no mouse; restore looks for ‹after› without the soft hyphen)",
-      "expectHuman": "if the UA keeps U+00AD, indexOf(“after”) fails (null). If it strips shy, restore may mark a word the user never selected as “after” — still a break.",
+      "expectHuman": "soft hyphen is ignored for matching; restore paints af+shy+ter as “after”.",
       "repro": "1. Load look af&shy;ter that. 2. Inspect whether flatten contains U+00AD. 3. restore “after” — null, or a mark the user did not draw.",
-      "why_breaks": "af&shy;ter flattens to 'af\\u00adter' (or is stripped by some UAs). Record quote 'after' misses.",
+      "why_breaks": "Was an exact-indexOf miss on U+00AD. Restore now strips soft hyphens when matching and paints the DOM span.",
       "html": "<p>look af&shy;ter that</p>",
       "load": "container-innerHTML",
       "selection": null,
@@ -5837,21 +5889,28 @@
         "restore"
       ],
       "expect": {
-        "paint": null,
+        "paint": "first-mark",
         "exceptionName": null,
-        "markCount": 0,
+        "markCount": 1,
         "toolbar": null,
-        "restore": "null-or-wrong-span",
+        "restore": "ok",
         "wrongSpan": false,
         "ghostRecord": false,
-        "notes": "If the UA preserves U+00AD, indexOf('after') fails. If it strips shy, this particular restore might succeed — then the break is a mid-word mark that the user never selected as 'after'."
+        "notes": "Soft hyphen skipped in the normalized needle; mark keeps U+00AD."
       },
       "oracle": {
-        "kind": "soft-hyphen",
+        "kind": "restore-ok",
         "checks": [
           {
-            "flattenMayContain": "­",
-            "quote": "after"
+            "fn": "resolveAndPaint",
+            "returns": "first-mark"
+          },
+          {
+            "paintedText": "af­ter"
+          },
+          {
+            "query": "mark",
+            "count": 1
           }
         ]
       },
