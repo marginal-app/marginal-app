@@ -44,6 +44,8 @@ Phase 1 **maximizes counterexamples**. A fixture belongs here only if today's im
 
 Happy-path coverage is a later pack. Do not mix “this should paint” rows into this JSON.
 
+Product `paintRange` now wraps intersecting text nodes (`splitText` + one `<mark>` per segment, grouped by `data-paint-group`) and does not use `surroundContents` for success. This pack remains a counterexample catalog for the **old surroundContents** failure modes, restore orphans, and product sequences — not a live regression suite against current paint. Do not delete fixtures or rewrite `expect` rows to “pass.”
+
 ## Families
 
 | Family | Count | What it attacks |
