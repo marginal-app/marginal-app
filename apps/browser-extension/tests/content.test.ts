@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest';
 import {
   extractContext,
   flattenText,
+  paintRange,
   resolveAndPaint,
   resolveOffset,
 } from '@/entrypoints/content';
@@ -115,8 +116,8 @@ describe('resolveAndPaint', () => {
   });
 
   it('recomputing flattenText fresh before each paint lets multiple highlights on one page restore without offset corruption', () => {
-    // Regression test: painting a highlight mutates the DOM (surroundContents
-    // splits text nodes), so reusing one flattenText() snapshot across
+    // Regression test: painting a highlight mutates the DOM (wrap splits
+    // text nodes), so reusing one flattenText() snapshot across
     // multiple records produces stale spans and throws IndexSizeError on the
     // second-or-later record. The fix is recomputing flattenText per record.
     document.body.innerHTML = '<p>Alpha beta gamma delta epsilon.</p>';
@@ -133,5 +134,89 @@ describe('resolveAndPaint', () => {
     }
 
     expect(document.querySelectorAll('mark')).toHaveLength(2);
+  });
+
+  it('restores a cross-inline quote via wrap after flatten is recomputed', () => {
+    document.body.innerHTML = '<p>See <strong>bold text</strong> now later</p>';
+
+    const crossInline = makeRecord({
+      id: '1',
+      quote: 'text now',
+      prefix: 'bold',
+      suffix: 'later',
+    });
+    {
+      const { text, spans } = flattenText(document.body);
+      const mark = resolveAndPaint(crossInline, spans, text);
+      expect(mark).not.toBeNull();
+      const marks = [...document.querySelectorAll('mark')];
+      expect(marks.length).toBeGreaterThanOrEqual(1);
+      expect(marks.map((node) => node.textContent).join('')).toBe('text now');
+    }
+
+    const second = makeRecord({
+      id: '2',
+      quote: 'See',
+      prefix: '',
+      suffix: 'bold',
+    });
+    const { text, spans } = flattenText(document.body);
+    const mark = resolveAndPaint(second, spans, text);
+    expect(mark).not.toBeNull();
+    expect(mark?.textContent).toBe('See');
+  });
+});
+
+describe('paintRange', () => {
+  it('wraps a same-text-node selection in a single mark', () => {
+    document.body.innerHTML = '<p>The quick brown fox jumps.</p>';
+    const text = document.querySelector('p')!.firstChild as Text;
+    const range = document.createRange();
+    range.setStart(text, 10);
+    range.setEnd(text, 19);
+
+    const mark = paintRange(range, '#FFF3B0');
+
+    expect(mark).not.toBeNull();
+    expect(mark?.tagName).toBe('MARK');
+    expect(mark?.textContent).toBe('brown fox');
+    expect(mark?.style.backgroundColor).toBeTruthy();
+    expect(mark?.style.cursor).toBe('pointer');
+    expect(document.querySelectorAll('mark')).toHaveLength(1);
+  });
+
+  it('paints a partial-inline selection like A02 (bold text → following plain)', () => {
+    document.body.innerHTML = '<p>See <strong>bold text</strong> now</p>';
+    const paragraph = document.querySelector('p')!;
+    const strongText = paragraph.querySelector('strong')!.firstChild as Text;
+    const after = paragraph.lastChild as Text;
+    const range = document.createRange();
+    range.setStart(strongText, 5);
+    range.setEnd(after, 4);
+    expect(range.toString()).toBe('text now');
+
+    const mark = paintRange(range, '#FFF3B0');
+
+    expect(mark).not.toBeNull();
+    const marks = [...document.querySelectorAll('mark')];
+    expect(marks.length).toBeGreaterThanOrEqual(1);
+    expect(marks.map((node) => node.textContent).join('')).toBe('text now');
+    expect(mark).toBe(marks[0]);
+    const groups = new Set(
+      marks.map((node) => (node as HTMLElement).dataset.paintGroup),
+    );
+    expect(groups.size).toBe(1);
+    expect([...groups][0]).toBeTruthy();
+  });
+
+  it('returns null when the range has no paintable text', () => {
+    document.body.innerHTML = '<p>Hello</p>';
+    const text = document.querySelector('p')!.firstChild as Text;
+    const range = document.createRange();
+    range.setStart(text, 2);
+    range.setEnd(text, 2);
+
+    expect(paintRange(range, '#FFF3B0')).toBeNull();
+    expect(document.querySelectorAll('mark')).toHaveLength(0);
   });
 });
