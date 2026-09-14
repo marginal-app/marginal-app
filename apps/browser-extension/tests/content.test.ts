@@ -1,10 +1,13 @@
 import { describe, expect, it } from 'vitest';
 import {
   extractContext,
+  findToolbarBlock,
   flattenText,
   paintRange,
+  quoteOffsetInBlock,
   resolveAndPaint,
   resolveOffset,
+  shouldPersistHighlight,
 } from '@/entrypoints/content';
 import type { HighlightRecord } from '@/utils/highlight-messages';
 
@@ -45,6 +48,59 @@ describe('extractContext', () => {
       prefix: '',
       suffix: '',
     });
+  });
+
+  it('records prefix/suffix against the selected occurrence, not the first indexOf', () => {
+    document.body.innerHTML = '<p id="p">red fox jumps and red fox sleeps</p>';
+    const blockEl = document.getElementById('p')!;
+    const text = blockEl.firstChild as Text;
+    const range = document.createRange();
+    range.setStart(text, 18);
+    range.setEnd(text, 25);
+    expect(range.toString()).toBe('red fox');
+
+    const idx = quoteOffsetInBlock(blockEl, range);
+    expect(extractContext(blockEl, 'red fox')).toEqual({
+      prefix: '',
+      suffix: 'jumps and red fox sleeps',
+    });
+    expect(extractContext(blockEl, 'red fox', 6, idx)).toEqual({
+      prefix: 'red fox jumps and',
+      suffix: 'sleeps',
+    });
+  });
+});
+
+describe('toolbar block + persist guard', () => {
+  it('treats div / td / blockquote / figcaption as toolbar blocks', () => {
+    document.body.innerHTML =
+      '<div>Bare division text</div><table><tbody><tr><td>left cell text</td></tr></tbody></table><blockquote>Quoted line only</blockquote><figure><figcaption>Caption text here</figcaption></figure>';
+
+    const cases: Array<[string, string]> = [
+      ['div', 'division'],
+      ['td', 'cell'],
+      ['blockquote', 'Quoted'],
+      ['figcaption', 'Caption'],
+    ];
+    for (const [tag, snippet] of cases) {
+      const el = document.querySelector(tag)!;
+      const text = el.firstChild as Text;
+      const start = text.data.indexOf(snippet);
+      const range = document.createRange();
+      range.setStart(text, start);
+      range.setEnd(text, start + snippet.length);
+      expect(findToolbarBlock(range)?.tagName, tag).toBe(tag.toUpperCase());
+    }
+  });
+
+  it('does not persist a highlight when paint produced no mark', () => {
+    expect(shouldPersistHighlight(null)).toBe(false);
+    document.body.innerHTML = '<p>Hello</p>';
+    const text = document.querySelector('p')!.firstChild as Text;
+    const range = document.createRange();
+    range.setStart(text, 2);
+    range.setEnd(text, 2);
+    expect(shouldPersistHighlight(paintRange(range, '#FFF3B0'))).toBe(false);
   });
 });
 
@@ -207,6 +263,25 @@ describe('resolveAndPaint', () => {
       resolveAndPaint(makeRecord({ quote: 'union' }), spans, text),
     ).toBeNull();
     expect(document.querySelectorAll('mark')).toHaveLength(0);
+  });
+
+  it('returns the existing mark instead of nesting when the same record is restored twice', () => {
+    document.body.innerHTML = '<p>The unique phrase here.</p>';
+    const record = makeRecord({
+      quote: 'unique phrase',
+      prefix: 'The',
+      suffix: 'here',
+    });
+    {
+      const { text, spans } = flattenText(document.body);
+      expect(resolveAndPaint(record, spans, text)).not.toBeNull();
+    }
+    const { text, spans } = flattenText(document.body);
+    const again = resolveAndPaint(record, spans, text);
+    expect(again).not.toBeNull();
+    expect(document.querySelectorAll('mark')).toHaveLength(1);
+    expect(document.querySelectorAll('mark mark')).toHaveLength(0);
+    expect(again?.textContent).toBe('unique phrase');
   });
 
   it('ignores soft hyphens when matching a stored quote', () => {

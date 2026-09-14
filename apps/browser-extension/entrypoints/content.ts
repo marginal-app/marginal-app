@@ -11,9 +11,25 @@ import type {
 import { pageCatalogFromDocument } from '@/utils/page-catalog';
 import { pageKeyFromLocation } from '@/utils/page-key';
 
-export function extractContext(blockEl: Element, quote: string, wordCount = 6) {
+export function extractContext(
+  blockEl: Element,
+  quote: string,
+  wordCount = 6,
+  quoteIndex = -1,
+) {
   const text = blockEl.textContent ?? '';
-  const idx = text.indexOf(quote);
+  let idx = -1;
+  if (
+    quoteIndex >= 0 &&
+    quote.length > 0 &&
+    text.slice(quoteIndex, quoteIndex + quote.length) === quote
+  ) {
+    idx = quoteIndex;
+  } else if (quoteIndex >= 0) {
+    idx = text.indexOf(quote, quoteIndex);
+  } else {
+    idx = text.indexOf(quote);
+  }
   if (idx === -1) return { prefix: '', suffix: '' };
 
   const before = text.slice(0, idx);
@@ -378,6 +394,27 @@ function resolveQuoteOffsets(
   return null;
 }
 
+function alreadyPaintedMark(
+  spans: TextSpan[],
+  start: number,
+  end: number,
+): HTMLElement | null {
+  const from = resolveOffset(spans, start);
+  const to = resolveOffset(spans, end > start ? end - 1 : end);
+  if (!from || !to) return null;
+  const startMark = from.node.parentElement?.closest('mark');
+  const endMark = to.node.parentElement?.closest('mark');
+  if (
+    startMark instanceof HTMLElement &&
+    startMark === endMark &&
+    startMark.contains(from.node) &&
+    startMark.contains(to.node)
+  ) {
+    return startMark;
+  }
+  return null;
+}
+
 export function resolveAndPaint(
   record: HighlightRecord,
   spans: TextSpan[],
@@ -385,6 +422,9 @@ export function resolveAndPaint(
 ): HTMLElement | null {
   const resolved = resolveQuoteOffsets(record, spans, text);
   if (!resolved) return null;
+
+  const existing = alreadyPaintedMark(spans, resolved.start, resolved.end);
+  if (existing) return existing;
 
   const start = resolveOffset(spans, resolved.start);
   const end = resolveOffset(spans, resolved.end);
@@ -394,6 +434,33 @@ export function resolveAndPaint(
   range.setStart(start.node, start.offset);
   range.setEnd(end.node, end.offset);
   return paintRange(range, record.color);
+}
+
+export const TOOLBAR_BLOCK_SELECTOR =
+  'p, li, h1, h2, h3, h4, h5, h6, div, td, th, blockquote, figcaption, dt, dd, pre, caption';
+
+export function findToolbarBlock(range: Range): Element | null {
+  const startNode = range.commonAncestorContainer;
+  const containerEl =
+    startNode.nodeType === Node.TEXT_NODE
+      ? startNode.parentElement
+      : (startNode as Element);
+  return containerEl?.closest(TOOLBAR_BLOCK_SELECTOR) ?? null;
+}
+
+export function quoteOffsetInBlock(blockEl: Element, range: Range): number {
+  const pre = document.createRange();
+  pre.selectNodeContents(blockEl);
+  try {
+    pre.setEnd(range.startContainer, range.startOffset);
+    return pre.toString().length;
+  } catch {
+    return -1;
+  }
+}
+
+export function shouldPersistHighlight(mark: HTMLElement | null): boolean {
+  return mark != null;
 }
 
 export default defineContentScript({
@@ -445,6 +512,11 @@ export default defineContentScript({
       if (!pending) return;
       const { range, quote, prefix, suffix } = pending;
       const mark = paintRange(range, color);
+      if (!mark || !shouldPersistHighlight(mark)) {
+        hideToolbar();
+        window.getSelection()?.removeAllRanges();
+        return;
+      }
 
       const message: SaveHighlightMessage = {
         type: 'SAVE_HIGHLIGHT',
@@ -460,7 +532,6 @@ export default defineContentScript({
       browser.runtime
         .sendMessage(message)
         .then((record: HighlightRecord) => {
-          if (!mark) return;
           attachCommentHandler(mark, record.id, '');
           if (openComment) openCommentBox(mark, record.id);
         })
@@ -547,18 +618,18 @@ export default defineContentScript({
         return;
       }
 
-      const startNode = range.commonAncestorContainer;
-      const containerEl =
-        startNode.nodeType === Node.TEXT_NODE
-          ? startNode.parentElement
-          : (startNode as Element);
-      const blockEl = containerEl?.closest('p, li, h1, h2, h3, h4, h5, h6');
+      const blockEl = findToolbarBlock(range);
       if (!blockEl) {
         hideToolbar();
         return;
       }
 
-      const { prefix, suffix } = extractContext(blockEl, quote);
+      const { prefix, suffix } = extractContext(
+        blockEl,
+        quote,
+        6,
+        quoteOffsetInBlock(blockEl, range),
+      );
       pending = { range: range.cloneRange(), quote, prefix, suffix };
 
       hideCommentBox();
