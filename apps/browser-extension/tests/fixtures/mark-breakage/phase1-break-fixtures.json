@@ -68,8 +68,8 @@
         "paintRange": "apps/browser-extension/entrypoints/content.ts — wrap intersecting text nodes; first mark or null",
         "flattenText": "TreeWalker SHOW_TEXT, reject SCRIPT/STYLE/NOSCRIPT",
         "resolveAndPaint": "scored quote match (whitespace/NBSP/shy fold; prefix/suffix + word-boundary; refuse cross-block concat and tied duplicates)",
-        "mouseup": "closest('p, li, h1, h2, h3, h4, h5, h6'); otherwise hide toolbar",
-        "savePendingHighlight": "sends SAVE_HIGHLIGHT even when paintRange returns null (E05)"
+        "mouseup": "findToolbarBlock — p|li|h*|div|td|th|blockquote|figcaption|dt|dd|pre|caption",
+        "savePendingHighlight": "SAVE_HIGHLIGHT only when paintRange returned a mark"
       }
     },
     "schemaVersion": 2
@@ -2835,9 +2835,9 @@
       "story": "One paragraph: “Alpha beta gamma delta epsilon.” There is no mouse drag. Restore paints “beta”, then a second restore of “epsilon” reuses the same flattenText snapshot.",
       "selectHow": "no mouse; restore looks for ‹beta› first, then stale-restores ‹epsilon› on the old spans",
       "selectionAnnotated": "Alpha ‹beta› gamma delta ‹epsilon›.  (no mouse; second restore reuses flatten from before the first paint)",
-      "expectHuman": "first restore paints “beta”; stale restore of “epsilon” throws IndexSizeError or returns null. Only one mark remains.",
+      "expectHuman": "product path recomputes flatten per record; both “beta” and “epsilon” restore.",
       "repro": "1. flattenText once. 2. resolveAndPaint “beta”. 3. resolveAndPaint “epsilon” with the same spans — IndexSizeError or null; mark count stays 1.",
-      "why_breaks": "paintRange splits text nodes. Reusing one flattenText() snapshot for a later record makes resolveOffset point at a shortened node; Range.setStart/setEnd throws IndexSizeError (caught by the live content script's try/catch per record, but a naive loop does not recompute).",
+      "why_breaks": "Was a stale-flatten IndexSizeError. Live content script already flattens fresh; harness follows that path.",
       "html": "<p>Alpha beta gamma delta epsilon.</p>",
       "load": "container-innerHTML",
       "selection": null,
@@ -2849,33 +2849,24 @@
         "restoreStale:epsilon"
       ],
       "expect": {
-        "paint": null,
-        "exceptionName": "IndexSizeError",
-        "markCount": 1,
+        "paint": "first-mark",
+        "exceptionName": null,
+        "markCount": 2,
         "toolbar": null,
-        "restore": "throw-or-null",
+        "restore": "ok",
         "wrongSpan": false,
         "ghostRecord": false,
-        "notes": "First restore paints 'beta'. Second restore of 'epsilon' with the same spans must not succeed."
+        "notes": "Fresh flatten per restore."
       },
       "oracle": {
-        "kind": "stale-flatten-second-restore",
+        "kind": "restore-ok",
         "checks": [
           {
             "query": "mark",
-            "count": 1
+            "count": 2
           },
           {
-            "any": [
-              {
-                "fn": "resolveAndPaint",
-                "throws": "IndexSizeError"
-              },
-              {
-                "fn": "resolveAndPaint",
-                "returns": null
-              }
-            ]
+            "joinedMarkText": "betaepsilon"
           }
         ]
       },
@@ -2908,9 +2899,9 @@
       "story": "A sentence can paint “quick brown” as a single text node. After that mark exists, the user drags a new range that starts inside the mark and ends after it (“brown fox”).",
       "selectHow": "first restore paints ‹quick brown›; then drag from the last syllable of that mark into the following “fox”",
       "selectionAnnotated": "The <mark>quick ⟦brown</mark> fox⟧ jumps.",
-      "expectHuman": "first paint succeeds; the overlapping second paint throws / paintRange returns null. The original mark stays.",
+      "expectHuman": "wrap paints the overlapping second selection as extra mark pieces (nested inside the first).",
       "repro": "1. Restore “quick brown”. 2. Re-resolve: start at “brown” inside the mark, end through “fox”. 3. paintRange returns null; still one <mark>.",
-      "why_breaks": "After painting 'quick brown', a new range 'brown fox' starts inside the mark and ends after it — A08 on a live DOM.",
+      "why_breaks": "Was a surroundContents overlap reject. Wrap now paints intersecting text, including inside the existing mark.",
       "html": "<p>The quick brown fox jumps.</p>",
       "load": "container-innerHTML",
       "selection": {
@@ -2946,25 +2937,25 @@
         "paint"
       ],
       "expect": {
-        "paint": "null",
-        "exceptionName": "InvalidStateError",
-        "markCount": 1,
+        "paint": "first-mark",
+        "exceptionName": null,
+        "markCount": 3,
         "toolbar": null,
-        "restore": null,
+        "restore": "ok",
         "wrongSpan": false,
         "ghostRecord": false,
-        "notes": "First paint of 'quick brown' succeeds (single text node). Second paint overlaps."
+        "notes": "Overlap wrap: 1 existing + 2 new pieces."
       },
       "oracle": {
-        "kind": "overlap-second-paint",
+        "kind": "overlap-wrap",
         "checks": [
           {
             "query": "mark",
-            "count": 1
+            "count": 3
           },
           {
-            "fn": "paintRange",
-            "returns": null
+            "query": "mark mark",
+            "minCount": 1
           }
         ]
       },
@@ -2986,9 +2977,9 @@
       "story": "A short list of words: “one two three four”. Restore paints “two”, then a stale snapshot is reused to paint adjacent “three”.",
       "selectHow": "no mouse; restore looks for ‹two›, then stale-restores ‹three› at the original offsets",
       "selectionAnnotated": "one ‹two› ‹three› four  (no mouse; “three” is adjacent to the split left by painting “two”)",
-      "expectHuman": "stale restore of “three” throws IndexSizeError or returns null; only the “two” mark remains.",
+      "expectHuman": "fresh flatten restores both “two” and “three”.",
       "repro": "1. flattenText once. 2. restore “two”. 3. restore “three” with the same spans — throw or null.",
-      "why_breaks": "Paint 'two' (single node, succeeds). A stale snapshot still thinks 'three' lives at the original offsets on the original node, which is now split.",
+      "why_breaks": "Was stale-offset IndexSizeError. Product path recomputes flatten.",
       "html": "<p>one two three four</p>",
       "load": "container-innerHTML",
       "selection": null,
@@ -3000,21 +2991,21 @@
         "restoreStale:three"
       ],
       "expect": {
-        "paint": null,
-        "exceptionName": "IndexSizeError",
-        "markCount": 1,
+        "paint": "first-mark",
+        "exceptionName": null,
+        "markCount": 2,
         "toolbar": null,
-        "restore": "throw-or-null",
+        "restore": "ok",
         "wrongSpan": false,
         "ghostRecord": false,
-        "notes": ""
+        "notes": "Fresh flatten per restore."
       },
       "oracle": {
-        "kind": "stale-flatten-adjacent",
+        "kind": "restore-ok",
         "checks": [
           {
             "query": "mark",
-            "count": 1
+            "count": 2
           }
         ]
       },
@@ -3047,9 +3038,9 @@
       "story": "The user highlights “unique phrase” (a happy first paint). The harness then serializes container.innerHTML and reloads, creating new text nodes, and reapplies the old {path,offset}.",
       "selectHow": "drag “unique phrase”; after innerHTML roundtrip, re-apply the pre-roundtrip path [0,0] offsets 4–17",
       "selectionAnnotated": "The ⟦unique phrase⟧ here.",
-      "expectHuman": "after reload, the cached path/offset lands inside the mark or a split sibling — setStart throws or the range is misaligned. No reliable second paint.",
+      "expectHuman": "after innerHTML roundtrip, quote/prefix/suffix restore still finds “unique phrase”. Cached path/offset is not the product SoT.",
       "repro": "1. Select and paint “unique phrase”. 2. container.innerHTML = container.innerHTML. 3. setStart/setEnd with the old path — throw or wrong node.",
-      "why_breaks": "After paint, serializing container.innerHTML and reloading creates new text nodes. Storing {path,offset} from before the roundtrip points at the wrong node or offset. The product stores quote/prefix/suffix, not offsets — this fixture locks the offset-roundtrip hazard for any harness that caches paths.",
+      "why_breaks": "Path/offset after serialize is stale; product stores quote/prefix/suffix and restores from flatten.",
       "html": "<p>The unique phrase here.</p>",
       "load": "container-innerHTML",
       "selection": {
@@ -3086,21 +3077,24 @@
         "apply-stale-selection"
       ],
       "expect": {
-        "paint": null,
+        "paint": "first-mark",
         "exceptionName": null,
-        "markCount": 0,
+        "markCount": 1,
         "toolbar": null,
-        "restore": "null-or-wrong-span",
+        "restore": "ok",
         "wrongSpan": false,
         "ghostRecord": false,
-        "notes": "After innerHTML roundtrip, pre-roundtrip path [0,0] offset 4 may now land inside the mark or a split sibling."
+        "notes": "Restore from record after roundtrip."
       },
       "oracle": {
-        "kind": "stale-path-after-innerhtml",
+        "kind": "restore-ok",
         "checks": [
           {
-            "fn": "setStart",
-            "throwsOrMisaligned": true
+            "query": "mark",
+            "count": 1
+          },
+          {
+            "paintedText": "unique phrase"
           }
         ]
       },
@@ -3117,9 +3111,9 @@
       "story": "The same stored record (“unique phrase”) is restored twice onto one paragraph. The second pass finds the same quote and tries to wrap a range that now sits inside or across the first mark.",
       "selectHow": "no mouse; restore looks for ‹unique phrase›, then restore-again on the live marked DOM",
       "selectionAnnotated": "The ‹unique phrase› here.  (no mouse; second restore targets the same quote now inside <mark>)",
-      "expectHuman": "second restore either nests <mark><mark> or returns null. Idempotent restore is not implemented.",
+      "expectHuman": "second restore of the same record returns the existing mark; no nest.",
       "repro": "1. resolveAndPaint the record. 2. resolveAndPaint the same record again. 3. Either nested marks or null.",
-      "why_breaks": "Second resolveAndPaint finds the same quote (flatten text is unchanged) and tries to surroundContents a range that now sits inside or across the first <mark>. Either nested marks or null.",
+      "why_breaks": "Was nested-or-null. resolveAndPaint now treats an already-wrapped quote as idempotent.",
       "html": "<p>The unique phrase here.</p>",
       "load": "container-innerHTML",
       "selection": null,
@@ -3136,29 +3130,25 @@
         "restore-again"
       ],
       "expect": {
-        "paint": null,
+        "paint": "first-mark",
         "exceptionName": null,
-        "markCount": null,
+        "markCount": 1,
         "toolbar": null,
-        "restore": "nested-or-null",
+        "restore": "ok",
         "wrongSpan": false,
         "ghostRecord": false,
-        "notes": "Idempotent restore is not implemented; double restore is a break."
+        "notes": "Idempotent restore."
       },
       "oracle": {
-        "kind": "double-restore",
+        "kind": "restore-ok",
         "checks": [
           {
-            "any": [
-              {
-                "query": "mark mark",
-                "minCount": 1
-              },
-              {
-                "fn": "resolveAndPaint",
-                "returns": null
-              }
-            ]
+            "query": "mark",
+            "count": 1
+          },
+          {
+            "query": "mark mark",
+            "count": 0
           }
         ]
       },
@@ -3175,9 +3165,9 @@
       "story": "One paragraph holds three later quotes: beta, delta, zeta. The harness takes one flatten snapshot and tries to restore all three without recomputing spans.",
       "selectHow": "no mouse; one flatten, then restore ‹beta› / ‹delta› / ‹zeta› against that snapshot",
       "selectionAnnotated": "Alpha ‹beta› gamma ‹delta› epsilon ‹zeta›.  (no mouse; only the first paint sees valid offsets)",
-      "expectHuman": "after the first paint, later setStart uses an out-of-range offset — IndexSizeError or null. Typically only one mark.",
+      "expectHuman": "three records restore when flatten is recomputed per record.",
       "repro": "1. flattenText once. 2. restoreAllStale in order. 3. First mark appears; later restores throw or return null.",
-      "why_breaks": "Generalizes B01. After the first paint, spans[0].node.data is shorter than spans[0] recorded length; later setStart uses an out-of-range offset.",
+      "why_breaks": "Was stale-flatten after the first paint. Product path flattens fresh.",
       "html": "<p>Alpha beta gamma delta epsilon zeta.</p>",
       "load": "container-innerHTML",
       "selection": null,
@@ -3188,21 +3178,21 @@
         "restoreAllStale"
       ],
       "expect": {
-        "paint": null,
-        "exceptionName": "IndexSizeError",
-        "markCount": 1,
+        "paint": "first-mark",
+        "exceptionName": null,
+        "markCount": 3,
         "toolbar": null,
-        "restore": "throw-or-null",
+        "restore": "ok",
         "wrongSpan": false,
         "ghostRecord": false,
-        "notes": ""
+        "notes": "Fresh flatten per restore."
       },
       "oracle": {
-        "kind": "stale-flatten-triple",
+        "kind": "restore-ok",
         "checks": [
           {
             "query": "mark",
-            "count": 1
+            "count": 3
           }
         ]
       },
@@ -3242,9 +3232,9 @@
       "story": "The paragraph repeats “foo bar foo bar”. After the first “foo” is marked, a second record with a garbage prefix falls back to indexOf(“foo”).",
       "selectHow": "no mouse; restore first ‹foo› (prefix empty / suffix “bar foo”), then second ‹foo› with prefix WRONG",
       "selectionAnnotated": "‹foo› bar foo bar  (no mouse; intended target is the second foo: foo bar ‹foo› bar)",
-      "expectHuman": "fallback indexOf(quote) is first-match, so the second restore paints the first occurrence (or the same offsets) — wrong span.",
+      "expectHuman": "second record with dead prefix prefers the unmarked word-bounded “foo”.",
       "repro": "1. Restore first “foo”. 2. Restore second “foo” with prefix/suffix that miss. 3. Painted occurrence is 0, not 1.",
-      "why_breaks": "Two 'foo' tokens. After the first is marked, a second record with a stale/wrong prefix falls back to text.indexOf('foo') and re-hits the first occurrence (now inside a mark) or the same offsets.",
+      "why_breaks": "Was first-indexOf wrong span. Scored restore + inside-mark penalty picks the second foo.",
       "html": "<p>foo bar foo bar</p>",
       "load": "container-innerHTML",
       "selection": null,
@@ -3255,21 +3245,21 @@
         "restore:second-foo-with-bad-prefix"
       ],
       "expect": {
-        "paint": null,
+        "paint": "first-mark",
         "exceptionName": null,
-        "markCount": null,
+        "markCount": 2,
         "toolbar": null,
-        "restore": "wrong-span",
-        "wrongSpan": true,
+        "restore": "ok",
+        "wrongSpan": false,
         "ghostRecord": false,
-        "notes": "indexOf(quote) is first-match. The second 'foo' is the intended target."
+        "notes": "Two distinct foo marks."
       },
       "oracle": {
-        "kind": "wrong-span-first-indexOf",
+        "kind": "restore-ok",
         "checks": [
           {
-            "intendedQuoteOccurrence": 1,
-            "paintedOccurrence": 0
+            "query": "mark",
+            "count": 2
           }
         ]
       },
@@ -3303,9 +3293,9 @@
       "story": "“one two three” is flattened, “two” is painted, then container.normalize() runs. A stale span still points at the original single text node.",
       "selectHow": "no mouse; restore ‹two›, normalize(), then stale-restore ‹three›",
       "selectionAnnotated": "one ‹two› ‹three›  (no mouse; after normalize the original Text is detached)",
-      "expectHuman": "stale span is detached after normalize; second restore throws or returns null.",
+      "expectHuman": "after normalize, a fresh flatten still restores “three”.",
       "repro": "1. flattenOnce and restore “two”. 2. container.normalize(). 3. restore “three” via the stale span — detached / throw / null.",
-      "why_breaks": "container.normalize() merges adjacent text nodes that are not separated by elements. After a mark, the unmarked siblings may merge with other unmarked nodes if the harness inserted extras; stale Text references can be detached.",
+      "why_breaks": "Stale Text references detach; product path does not reuse them.",
       "html": "<p>one two three</p>",
       "load": "container-innerHTML",
       "selection": null,
@@ -3324,20 +3314,21 @@
         "restoreStale-second"
       ],
       "expect": {
-        "paint": null,
+        "paint": "first-mark",
         "exceptionName": null,
-        "markCount": 0,
+        "markCount": 2,
         "toolbar": null,
-        "restore": "throw-or-null",
+        "restore": "ok",
         "wrongSpan": false,
         "ghostRecord": false,
-        "notes": "After paint('two') + normalize(), a stale span pointing at the original single text node is detached."
+        "notes": "normalize then fresh flatten."
       },
       "oracle": {
-        "kind": "detached-node-after-normalize",
+        "kind": "restore-ok",
         "checks": [
           {
-            "staleSpan": "detached"
+            "query": "mark",
+            "count": 2
           }
         ]
       },
@@ -3370,9 +3361,9 @@
       "story": "“head tail word” is flattened and “tail” is painted. Then the harness inserts “PREFIX ” at the start of the paragraph and tries a stale restore of “word”.",
       "selectHow": "no mouse; restore ‹tail›, insert “PREFIX ” at offset 0, then stale-restore ‹word›",
       "selectionAnnotated": "PREFIX  head ‹tail› ‹word›  (no mouse; insertion shifts every cached offset)",
-      "expectHuman": "cached offsets no longer address “word” — wrong span or null.",
+      "expectHuman": "after inserting text, fresh flatten still restores “word”.",
       "repro": "1. flattenOnce, restore “tail”. 2. Insert “PREFIX ” at the start. 3. stale restore “word” — wrong span or null.",
-      "why_breaks": "Live DOM grows a new text node (or lengthens the first). Cached offsets no longer address the intended quote.",
+      "why_breaks": "Cached offsets drift; product path flattens the live DOM.",
       "html": "<p>head tail word</p>",
       "load": "container-innerHTML",
       "selection": null,
@@ -3385,21 +3376,21 @@
         "restoreStale:word"
       ],
       "expect": {
-        "paint": null,
+        "paint": "first-mark",
         "exceptionName": null,
-        "markCount": 0,
+        "markCount": 2,
         "toolbar": null,
-        "restore": "wrong-span-or-null",
-        "wrongSpan": true,
+        "restore": "ok",
+        "wrongSpan": false,
         "ghostRecord": false,
-        "notes": ""
+        "notes": "insertText then fresh flatten."
       },
       "oracle": {
-        "kind": "insert-before-stale",
+        "kind": "restore-ok",
         "checks": [
           {
-            "fn": "resolveAndPaint",
-            "stale": true
+            "query": "mark",
+            "count": 2
           }
         ]
       },
@@ -3441,9 +3432,9 @@
       "story": "The harness flattens “keep this quote safe”, then replaces the paragraph via innerHTML (new nodes, same looking text) and tries to restore with the old Text reference.",
       "selectHow": "no mouse; flatten, replaceInnerHTML with the same markup, then stale-restore ‹quote›",
       "selectionAnnotated": "keep this ‹quote› safe  (no mouse; after replace the span’s node is detached)",
-      "expectHuman": "stale span.node is detached; setStart throws or no-ops. No mark.",
+      "expectHuman": "after replacing innerHTML, restore from the record still paints “quote”.",
       "repro": "1. flattenOnce. 2. container.innerHTML = the same HTML. 3. restoreStale — detached node, throw or null.",
-      "why_breaks": "Replace the paragraph after flatten. spans[i].node is detached; setStart throws or no-ops depending on UA.",
+      "why_breaks": "Stale span nodes are detached; product SoT is quote/prefix/suffix on the new tree.",
       "html": "<p>keep this quote safe</p>",
       "load": "container-innerHTML",
       "selection": null,
@@ -3461,20 +3452,24 @@
         "restoreStale"
       ],
       "expect": {
-        "paint": null,
+        "paint": "first-mark",
         "exceptionName": null,
-        "markCount": 0,
+        "markCount": 1,
         "toolbar": null,
-        "restore": "throw-or-null",
+        "restore": "ok",
         "wrongSpan": false,
         "ghostRecord": false,
-        "notes": ""
+        "notes": "Restore after innerHTML replace."
       },
       "oracle": {
-        "kind": "detached-span-node",
+        "kind": "restore-ok",
         "checks": [
           {
-            "staleSpan": "detached"
+            "query": "mark",
+            "count": 1
+          },
+          {
+            "paintedText": "quote"
           }
         ]
       },
@@ -3495,9 +3490,9 @@
       "story": "Restore first paints “quick”, splitting the sentence into The <mark>quick</mark> brown…. The user then selects across that new mark boundary (“ck bro”).",
       "selectHow": "no initial mouse; after ‹quick› is marked, drag from the last two letters of the mark into “bro”",
       "selectionAnnotated": "no mouse for ‹quick›; then The <mark>qui⟦ck</mark> bro⟧wn fox jumps.",
-      "expectHuman": "surroundContents throws / paintRange returns null; the live <mark> is only partially contained. Original mark stays.",
+      "expectHuman": "wrap paints “ck bro” across the live mark boundary as extra pieces.",
       "repro": "1. Restore “quick”. 2. Range start = mark text offset 3, end = following text offset 4. 3. paintRange returns null.",
-      "why_breaks": "DOM becomes The <mark>quick</mark> brown fox jumps. Selecting 'ck bro' partially contains the mark.",
+      "why_breaks": "Was a partial-mark surroundContents reject. Wrap paints intersecting text.",
       "html": "<p>The quick brown fox jumps.</p>",
       "load": "container-innerHTML",
       "selection": null,
@@ -3515,21 +3510,25 @@
         "paint"
       ],
       "expect": {
-        "paint": "null",
-        "exceptionName": "InvalidStateError",
-        "markCount": 1,
+        "paint": "first-mark",
+        "exceptionName": null,
+        "markCount": 3,
         "toolbar": null,
-        "restore": null,
+        "restore": "ok",
         "wrongSpan": false,
         "ghostRecord": false,
-        "notes": ""
+        "notes": "Post-split wrap overlap."
       },
       "oracle": {
-        "kind": "post-split-partial-mark",
+        "kind": "overlap-wrap",
         "checks": [
           {
             "query": "mark",
-            "count": 1
+            "count": 3
+          },
+          {
+            "query": "mark mark",
+            "minCount": 1
           }
         ]
       },
@@ -3550,9 +3549,9 @@
       "story": "“Alpha beta gamma” is painted on “beta”, then the harness unwraps the mark and normalize()s. A stale restore tries to paint the same quote again using the old spans.",
       "selectHow": "no mouse; restore ‹beta›, unwrapMark + normalize, then stale-restore the same ‹beta›",
       "selectionAnnotated": "Alpha ‹beta› gamma  (no mouse; after unwrap the mark’s text node is gone or lengths changed)",
-      "expectHuman": "stale spans point at a detached mark child or old lengths — throw or null.",
+      "expectHuman": "after unwrap + normalize, restoring the same record paints “beta” again.",
       "repro": "1. flattenOnce, restore “beta”. 2. Replace <mark> with its text and normalize(). 3. restoreStale-same — detached or wrong offset.",
-      "why_breaks": "Harness paints, then replaces <mark> with its child text and normalize(). Stale spans point at the mark's former text node (possibly detached) or old lengths.",
+      "why_breaks": "Stale spans pointed at the old mark child. Fresh flatten on the merged text works.",
       "html": "<p>Alpha beta gamma</p>",
       "load": "container-innerHTML",
       "selection": null,
@@ -3572,20 +3571,24 @@
         "restoreStale-same"
       ],
       "expect": {
-        "paint": null,
+        "paint": "first-mark",
         "exceptionName": null,
-        "markCount": 0,
+        "markCount": 1,
         "toolbar": null,
-        "restore": "throw-or-null",
+        "restore": "ok",
         "wrongSpan": false,
         "ghostRecord": false,
-        "notes": ""
+        "notes": "unwrap + normalize + fresh restore."
       },
       "oracle": {
-        "kind": "unwrap-then-stale",
+        "kind": "restore-ok",
         "checks": [
           {
-            "staleSpan": "detached-or-wrong-offset"
+            "query": "mark",
+            "count": 1
+          },
+          {
+            "paintedText": "beta"
           }
         ]
       },
@@ -3602,9 +3605,9 @@
       "story": "One paragraph repeats “red fox”. The user selects the second occurrence. extractContext uses text.indexOf(quote), so prefix/suffix are recorded against the first hit.",
       "selectHow": "from the start of the second “red fox” through that whole phrase (the first “red fox” is not the drag)",
       "selectionAnnotated": "‹red fox› jumps and ⟦red fox⟧ sleeps",
-      "expectHuman": "extractContext / resolveAndPaint bind occurrence 0; restore paints the first “red fox”, not the one the user selected.",
+      "expectHuman": "extractContext at the selected offset records the second “red fox”; restore paints that occurrence.",
       "repro": "1. Select the second “red fox”. 2. extractContext(block, quote). 3. Restore from that prefix/suffix — mark is on occurrence 0.",
-      "why_breaks": "mouseup uses extractContext(blockEl, quote) which is text.indexOf(quote). Two identical phrases: prefix/suffix are recorded against the first hit even if the user selected the second. Restore then paints the wrong span.",
+      "why_breaks": "Was first-indexOf. mouseup now passes quoteOffsetInBlock into extractContext.",
       "html": "<p>red fox jumps and red fox sleeps</p>",
       "load": "container-innerHTML",
       "selection": {
@@ -3640,21 +3643,24 @@
         "restore-from-extracted"
       ],
       "expect": {
-        "paint": null,
+        "paint": "first-mark",
         "exceptionName": null,
-        "markCount": 0,
+        "markCount": 1,
         "toolbar": null,
-        "restore": "wrong-span",
-        "wrongSpan": true,
+        "restore": "ok",
+        "wrongSpan": false,
         "ghostRecord": false,
-        "notes": "Selected occurrence 1; extractContext / resolveAndPaint bind occurrence 0."
+        "notes": "Selected occurrence 1."
       },
       "oracle": {
-        "kind": "extractContext-first-indexOf",
+        "kind": "restore-ok",
         "checks": [
           {
-            "selectedOccurrence": 1,
-            "recordedAgainst": 0
+            "query": "mark",
+            "count": 1
+          },
+          {
+            "paintedText": "red fox"
           }
         ]
       },
@@ -3672,9 +3678,9 @@
       "story": "A record stores “hello world”. A CMS-like rewrite turns the DOM into “hello  world” (two spaces). indexOf no longer finds the quote.",
       "selectHow": "no mouse; restore looks for ‹hello world› after the DOM is rewritten to two spaces",
       "selectionAnnotated": "‹hello world› again  → after rewrite: hello  world again  (no mouse; quote is no longer a substring)",
-      "expectHuman": "resolveAndPaint returns null; the record is an orphan after whitespace drift.",
+      "expectHuman": "whitespace-collapsed restore paints “hello  world” after the CMS rewrite.",
       "repro": "1. Load “hello world again”. 2. Rewrite innerHTML to two spaces. 3. restore — null, no mark.",
-      "why_breaks": "Record stores 'hello world'. After a CMS-like innerHTML rewrite the DOM has two spaces or a newline. indexOf misses; restore returns null (orphan record).",
+      "why_breaks": "Was an exact-indexOf miss. Step 3 matcher folds extra spaces.",
       "html": "<p>hello world again</p>",
       "load": "container-innerHTML",
       "selection": null,
@@ -3691,21 +3697,24 @@
         "restore"
       ],
       "expect": {
-        "paint": null,
+        "paint": "first-mark",
         "exceptionName": null,
-        "markCount": 0,
+        "markCount": 1,
         "toolbar": null,
-        "restore": "null",
+        "restore": "ok",
         "wrongSpan": false,
         "ghostRecord": false,
-        "notes": "quote no longer a substring after whitespace rewrite."
+        "notes": "Same fold as D04."
       },
       "oracle": {
-        "kind": "whitespace-drift",
+        "kind": "restore-ok",
         "checks": [
           {
-            "fn": "resolveAndPaint",
-            "returns": null
+            "query": "mark",
+            "count": 1
+          },
+          {
+            "paintedText": "hello  world"
           }
         ]
       },
@@ -3726,9 +3735,9 @@
       "story": "The author wrote crossed tags <b>foo<i>bar</b>baz</i>. The HTML parser runs the adoption agency and rewrites them to <b>foo<i>bar</i></b><i>baz</i>. The user still tries to highlight the author’s crossing.",
       "selectHow": "from the last two letters of “foo” through recovered “bar” into the first two letters of the split “baz”",
       "selectionAnnotated": "<b>f⟦oo<i>bar</i></b><i>ba⟧z</i>  (authored was <b>foo<i>bar</b>baz</i>)",
-      "expectHuman": "authored paths do not exist; even on the recovered tree the range partially contains formatting nodes — surroundContents throws / paintRange returns null.",
+      "expectHuman": "wrap paints the recovered-tree range; 3 <mark> pieces cover “oobarba”.",
       "repro": "1. innerHTML the dirty snippet; read the recovered tree. 2. Drag from “oo” through “ba”. 3. paintRange returns null.",
-      "why_breaks": "Authored <b>foo<i>bar</b>baz</i> is recovered to <b>foo<i>bar</i></b><i>baz</i>. Authored paths do not exist. A range that follows the author's crossing still partially contains formatting nodes.",
+      "why_breaks": "Was a surroundContents reject on recovered formatting. Wrap now paints intersecting text on the parsed tree.",
       "html": "<p><b>foo<i>bar</b>baz</i></p>",
       "load": "container-innerHTML",
       "selection": {
@@ -3759,26 +3768,28 @@
         "paint"
       ],
       "expect": {
-        "paint": "null",
-        "exceptionName": "InvalidStateError",
-        "markCount": 0,
+        "paint": "first-mark",
+        "exceptionName": null,
+        "markCount": 3,
         "toolbar": null,
         "restore": null,
         "wrongSpan": false,
         "ghostRecord": false,
-        "notes": "Range.surroundContents throws; paintRange catches and returns null."
+        "notes": "Recovered-tree wrap."
       },
       "oracle": {
-        "kind": "surroundContents-throws",
-        "via": "paintRange-returns-null",
+        "kind": "wrap-paints",
         "checks": [
           {
-            "query": "mark",
-            "count": 0
+            "fn": "paintRange",
+            "returns": "first-mark"
           },
           {
-            "fn": "paintRange",
-            "returns": null
+            "joinedMarkText": "oobarba"
+          },
+          {
+            "query": "mark",
+            "count": 3
           }
         ]
       },
@@ -3818,9 +3829,9 @@
       "story": "Same adoption-agency split, but the outer formatter is an existing <mark>. Authored <mark>aa<em>bb</mark>cc</em> becomes <mark>aa<em>bb</em></mark><em>cc</em>.",
       "selectHow": "from the second letter of “aa” through “bb” into the first letter of the split “cc”",
       "selectionAnnotated": "<mark>a⟦a<em>bb</em></mark><em>c⟧c</em>  (authored was <mark>aa<em>bb</mark>cc</em>)",
-      "expectHuman": "surroundContents throws / paintRange returns null; recovered <mark> and <em> are only partially contained.",
+      "expectHuman": "wrap paints the recovered-tree range; 4 <mark> pieces cover “abbc”.",
       "repro": "1. Load the dirty mark/em snippet. 2. Drag from the second “a” through “c”. 3. paintRange returns null.",
-      "why_breaks": "Same adoption-agency split as C01 but the outer formatter is an existing highlight tag.",
+      "why_breaks": "Was a surroundContents reject on recovered formatting. Wrap now paints intersecting text on the parsed tree.",
       "html": "<p><mark>aa<em>bb</mark>cc</em></p>",
       "load": "container-innerHTML",
       "selection": {
@@ -3851,26 +3862,28 @@
         "paint"
       ],
       "expect": {
-        "paint": "null",
-        "exceptionName": "InvalidStateError",
-        "markCount": 0,
+        "paint": "first-mark",
+        "exceptionName": null,
+        "markCount": 4,
         "toolbar": null,
         "restore": null,
         "wrongSpan": false,
         "ghostRecord": false,
-        "notes": "Range.surroundContents throws; paintRange catches and returns null."
+        "notes": "Recovered-tree wrap."
       },
       "oracle": {
-        "kind": "surroundContents-throws",
-        "via": "paintRange-returns-null",
+        "kind": "wrap-paints",
         "checks": [
           {
-            "query": "mark",
-            "count": 0
+            "fn": "paintRange",
+            "returns": "first-mark"
           },
           {
-            "fn": "paintRange",
-            "returns": null
+            "joinedMarkText": "abbc"
+          },
+          {
+            "query": "mark",
+            "count": 4
           }
         ]
       },
@@ -3910,9 +3923,9 @@
       "story": "Authored <b><p>hello</b>world</p>. Typical recovery: an empty <b> before the paragraph, then <b>hello</b>world inside the <p>. The “one bold run” the author saw is gone.",
       "selectHow": "from the middle of recovered bold “hello” into the following plain “wor”",
       "selectionAnnotated": "<b></b><p><b>he⟦llo</b>wor⟧ld</p>",
-      "expectHuman": "surroundContents throws / paintRange returns null; the recovered <b> is only partially contained.",
+      "expectHuman": "wrap paints the recovered-tree range; 2 <mark> pieces cover “llowor”.",
       "repro": "1. Load and confirm innerHTML ≈ empty <b> + <p><b>hello</b>world. 2. Drag from “llo” through “wor”. 3. paintRange returns null.",
-      "why_breaks": "The </b> closes/reopens across the <p>. Typical recovery: empty <b> before <p>, plus <b>hello</b>world inside the paragraph. Authored 'hello world' as one bold run is gone; a range across the recovered <b> rejects.",
+      "why_breaks": "Was a surroundContents reject on recovered formatting. Wrap now paints intersecting text on the parsed tree.",
       "html": "<b><p>hello</b>world</p>",
       "load": "container-innerHTML",
       "selection": {
@@ -3942,26 +3955,28 @@
         "paint"
       ],
       "expect": {
-        "paint": "null",
-        "exceptionName": "InvalidStateError",
-        "markCount": 0,
+        "paint": "first-mark",
+        "exceptionName": null,
+        "markCount": 2,
         "toolbar": null,
         "restore": null,
         "wrongSpan": false,
         "ghostRecord": false,
-        "notes": "Range.surroundContents throws; paintRange catches and returns null."
+        "notes": "Recovered-tree wrap."
       },
       "oracle": {
-        "kind": "surroundContents-throws",
-        "via": "paintRange-returns-null",
+        "kind": "wrap-paints",
         "checks": [
           {
-            "query": "mark",
-            "count": 0
+            "fn": "paintRange",
+            "returns": "first-mark"
           },
           {
-            "fn": "paintRange",
-            "returns": null
+            "joinedMarkText": "llowor"
+          },
+          {
+            "query": "mark",
+            "count": 2
           }
         ]
       },
@@ -3982,9 +3997,9 @@
       "story": "Nested <p> is illegal. Authored one element; after parse there are two (or three) paragraphs: outer / inner / tail. A “single block” selection now crosses <p> boundaries.",
       "selectHow": "from the last three letters of “outer” into the first three of “inner” (now a sibling <p>)",
       "selectionAnnotated": "<p>ou⟦ter</p><p>inn⟧er</p>  (authored was <p>outer<p>inner</p>tail</p>)",
-      "expectHuman": "surroundContents throws / paintRange returns null; each recovered <p> is only partially contained. closest('p') sees only one of them.",
+      "expectHuman": "wrap paints the recovered-tree range; 2 <mark> pieces cover “terinn”.",
       "repro": "1. Load the nested-<p> snippet. 2. Drag from “ter” into “inn”. 3. paintRange returns null.",
-      "why_breaks": "Authored one element; after parse there are two (or more) paragraphs. A 'single block' selection now crosses <p> boundaries and rejects. extractContext's closest('p') is only one of them.",
+      "why_breaks": "Was a surroundContents reject on recovered formatting. Wrap now paints intersecting text on the parsed tree.",
       "html": "<p>outer<p>inner</p>tail</p>",
       "load": "container-innerHTML",
       "selection": {
@@ -4013,26 +4028,28 @@
         "paint"
       ],
       "expect": {
-        "paint": "null",
-        "exceptionName": "InvalidStateError",
-        "markCount": 0,
+        "paint": "first-mark",
+        "exceptionName": null,
+        "markCount": 2,
         "toolbar": null,
         "restore": null,
         "wrongSpan": false,
         "ghostRecord": false,
-        "notes": "Range.surroundContents throws; paintRange catches and returns null."
+        "notes": "Recovered-tree wrap."
       },
       "oracle": {
-        "kind": "surroundContents-throws",
-        "via": "paintRange-returns-null",
+        "kind": "wrap-paints",
         "checks": [
           {
-            "query": "mark",
-            "count": 0
+            "fn": "paintRange",
+            "returns": "first-mark"
           },
           {
-            "fn": "paintRange",
-            "returns": null
+            "joinedMarkText": "terinn"
+          },
+          {
+            "query": "mark",
+            "count": 2
           }
         ]
       },
@@ -4054,9 +4071,9 @@
       "story": "Text “fostered” was written inside a table row before a <td>. The parser fosters it out in front of the table. The user still tries to highlight from that text into the cell.",
       "selectHow": "from the start of fostered “fostered” (now before the table) into the first two letters of “cell”",
       "selectionAnnotated": "⟦fostered<table>…<td>ce⟧ll</td>",
-      "expectHuman": "surroundContents throws / paintRange returns null; the range crosses the fostered text / table boundary.",
+      "expectHuman": "soft-skip in jsdom: jsdom fosters the text after the table; authored/afterParse start path [0] is not a text node.",
       "repro": "1. Load the table; confirm “fostered” is outside. 2. Drag from “fostered” into “ce”. 3. paintRange returns null.",
-      "why_breaks": "Text 'fostered' is moved out of the table (typically before it). flattenText becomes 'fosteredcell' (plus implicit tbody). A record that thought the quote lived inside the row now points at a node outside the table. Selecting across foster text into the cell is a cross-boundary reject.",
+      "why_breaks": "Authored/afterParse paths do not apply to jsdom's recovered tree. Harness does not invent a new path.",
       "html": "<table><tr>fostered<td>cell</td></tr></table>",
       "load": "container-innerHTML",
       "selection": {
@@ -4094,7 +4111,7 @@
         "restore": null,
         "wrongSpan": false,
         "ghostRecord": false,
-        "notes": "Range.surroundContents throws; paintRange catches and returns null."
+        "notes": "jsdom fosters the text after the table; authored/afterParse start path [0] is not a text node."
       },
       "oracle": {
         "kind": "surroundContents-throws",
@@ -4147,9 +4164,9 @@
       "story": "A <div> was authored inside a <table>. Foster parenting moves the div out. The user highlights from the fostered “x” into cell “y”.",
       "selectHow": "from the start of fostered <div>x</div> into the table cell “y”",
       "selectionAnnotated": "<div>⟦x</div><table>…<td>y⟧</td>",
-      "expectHuman": "surroundContents throws / paintRange returns null; paths that assumed table > div are wrong, and the live range still crosses a boundary.",
+      "expectHuman": "wrap paints the recovered-tree range; 2 <mark> pieces cover “xy”.",
       "repro": "1. Load and re-read innerHTML (div before table). 2. Drag from “x” into “y”. 3. paintRange returns null.",
-      "why_breaks": "The <div> is fostered out. Paths that assumed table > div are wrong. Range from fostered div text into a cell rejects.",
+      "why_breaks": "Was a surroundContents reject on recovered formatting. Wrap now paints intersecting text on the parsed tree.",
       "html": "<table><div>x</div><tr><td>y</td></tr></table>",
       "load": "container-innerHTML",
       "selection": {
@@ -4181,26 +4198,28 @@
         "paint"
       ],
       "expect": {
-        "paint": "null",
-        "exceptionName": "InvalidStateError",
-        "markCount": 0,
+        "paint": "first-mark",
+        "exceptionName": null,
+        "markCount": 2,
         "toolbar": null,
         "restore": null,
         "wrongSpan": false,
         "ghostRecord": false,
-        "notes": "Range.surroundContents throws; paintRange catches and returns null."
+        "notes": "Recovered-tree wrap."
       },
       "oracle": {
-        "kind": "surroundContents-throws",
-        "via": "paintRange-returns-null",
+        "kind": "wrap-paints",
         "checks": [
           {
-            "query": "mark",
-            "count": 0
+            "fn": "paintRange",
+            "returns": "first-mark"
           },
           {
-            "fn": "paintRange",
-            "returns": null
+            "joinedMarkText": "xy"
+          },
+          {
+            "query": "mark",
+            "count": 2
           }
         ]
       },
@@ -4221,9 +4240,9 @@
       "story": "Same fostered table as C05, but this row is restore-only. flattenText concatenates “fostered” + “cell”. A stored quote “steredce” looks like it exists as one string.",
       "selectHow": "no mouse; restore looks for ‹steredce› invented by concatenating fostered text and the cell",
       "selectionAnnotated": "fo‹steredce›ll  (no mouse; flatten is “fosteredcell” — quote is not one real node)",
-      "expectHuman": "resolveAndPaint builds a cross-node range; paintRange returns null. Orphan restore.",
+      "expectHuman": "jsdom fosters “fostered” after the table; flatten is “cellfostered”, so “steredce” does not match. Restore null.",
       "repro": "1. Load the fostered table. 2. flattenText should look like “fosteredcell”. 3. restore quote “steredce” — null.",
-      "why_breaks": "flattenText is 'fosteredcell' or 'x y' without an author boundary. resolveAndPaint('steredce') can build a cross-node range and paintRange returns null — orphan restore.",
+      "why_breaks": "Foster concat is not a real quote. Cross-boundary / missing substring stays unrestorable.",
       "html": "<table><tr>fostered<td>cell</td></tr></table>",
       "load": "container-innerHTML",
       "selection": null,
@@ -4241,18 +4260,19 @@
       ],
       "expect": {
         "paint": null,
-        "exceptionName": "InvalidStateError",
+        "exceptionName": null,
         "markCount": 0,
         "toolbar": null,
         "restore": "null",
         "wrongSpan": false,
         "ghostRecord": false,
-        "notes": ""
+        "notes": "jsdom flatten order is cell then fostered."
       },
       "oracle": {
         "kind": "foster-concat-restore",
         "checks": [
           {
+            "flatten": "cellfostered",
             "fn": "resolveAndPaint",
             "returns": null
           }
@@ -4272,9 +4292,9 @@
       "story": "Nested links are illegal. Authored one <a> wrapping another; the parser closes the first. A selection the author thought was inside one link now crosses two <a>s.",
       "selectHow": "from the last letter of “one” into the first two letters of “two” (now a sibling link)",
       "selectionAnnotated": "<a href=\"/a\">on⟦e </a><a href=\"/b\">tw⟧o</a> three",
-      "expectHuman": "surroundContents throws / paintRange returns null; each recovered <a> is only partially contained.",
+      "expectHuman": "wrap paints the recovered-tree range; 2 <mark> pieces cover “e tw”.",
       "repro": "1. Load; expect the outer link to close before the inner. 2. Drag from “e” through “tw”. 3. paintRange returns null.",
-      "why_breaks": "Inner <a> closes the outer. A selection the author thought was inside one link now crosses two <a> elements.",
+      "why_breaks": "Was a surroundContents reject on recovered formatting. Wrap now paints intersecting text on the parsed tree.",
       "html": "<p><a href=\"/a\">one <a href=\"/b\">two</a> three</a></p>",
       "load": "container-innerHTML",
       "selection": {
@@ -4305,26 +4325,28 @@
         "paint"
       ],
       "expect": {
-        "paint": "null",
-        "exceptionName": "InvalidStateError",
-        "markCount": 0,
+        "paint": "first-mark",
+        "exceptionName": null,
+        "markCount": 2,
         "toolbar": null,
         "restore": null,
         "wrongSpan": false,
         "ghostRecord": false,
-        "notes": "Range.surroundContents throws; paintRange catches and returns null."
+        "notes": "Recovered-tree wrap."
       },
       "oracle": {
-        "kind": "surroundContents-throws",
-        "via": "paintRange-returns-null",
+        "kind": "wrap-paints",
         "checks": [
           {
-            "query": "mark",
-            "count": 0
+            "fn": "paintRange",
+            "returns": "first-mark"
           },
           {
-            "fn": "paintRange",
-            "returns": null
+            "joinedMarkText": "e tw"
+          },
+          {
+            "query": "mark",
+            "count": 2
           }
         ]
       },
@@ -4346,9 +4368,9 @@
       "story": "Nested buttons are forbidden. The parser closes the first button, so authored <button>a<button>b</button>c becomes two buttons plus a trailing “c”.",
       "selectHow": "from the start of the first button “a” through the whole second button “b”",
       "selectionAnnotated": "<button>⟦a</button><button>b⟧</button>c",
-      "expectHuman": "surroundContents throws / paintRange returns null; the recovered button boundary is crossed.",
+      "expectHuman": "wrap paints the recovered-tree range; 2 <mark> pieces cover “ab”.",
       "repro": "1. Load the nested-button snippet. 2. Drag from “a” through “b”. 3. paintRange returns null.",
-      "why_breaks": "HTML forbids nested buttons; the parser closes the first. Crossing the recovered boundary rejects.",
+      "why_breaks": "Was a surroundContents reject on recovered formatting. Wrap now paints intersecting text on the parsed tree.",
       "html": "<p><button>a<button>b</button>c</button></p>",
       "load": "container-innerHTML",
       "selection": {
@@ -4379,26 +4401,28 @@
         "paint"
       ],
       "expect": {
-        "paint": "null",
-        "exceptionName": "InvalidStateError",
-        "markCount": 0,
+        "paint": "first-mark",
+        "exceptionName": null,
+        "markCount": 2,
         "toolbar": null,
         "restore": null,
         "wrongSpan": false,
         "ghostRecord": false,
-        "notes": "Range.surroundContents throws; paintRange catches and returns null."
+        "notes": "Recovered-tree wrap."
       },
       "oracle": {
-        "kind": "surroundContents-throws",
-        "via": "paintRange-returns-null",
+        "kind": "wrap-paints",
         "checks": [
           {
-            "query": "mark",
-            "count": 0
+            "fn": "paintRange",
+            "returns": "first-mark"
           },
           {
-            "fn": "paintRange",
-            "returns": null
+            "joinedMarkText": "ab"
+          },
+          {
+            "query": "mark",
+            "count": 2
           }
         ]
       },
@@ -4419,9 +4443,9 @@
       "story": "Nested <form> start tags are ignored. Two paragraphs the author thought lived in an inner form now sit as siblings (often still inside one outer form). The user highlights from “inner text” into “outer tail”.",
       "selectHow": "from the last part of “inner text” into the first word of “outer tail”",
       "selectionAnnotated": "<p>in⟦ner text</p><p>outer⟧ tail</p>",
-      "expectHuman": "surroundContents throws / paintRange returns null; the range crosses two <p>s after the inner form vanished.",
+      "expectHuman": "soft-skip in jsdom: inner form is dropped; authored path [0,0] is a <p>, not a text node.",
       "repro": "1. Load and confirm the inner <form> is gone. 2. Drag from “ner text” into “outer”. 3. paintRange returns null.",
-      "why_breaks": "Inner form is ignored or closed. A range the author placed 'inside the inner form' may now cross the outer form's sibling paragraph and a discarded form element.",
+      "why_breaks": "Authored/afterParse paths do not apply to jsdom's recovered tree. Harness does not invent a new path.",
       "html": "<form action='/outer'><form action='/inner'><p>inner text</p></form><p>outer tail</p></form>",
       "load": "container-innerHTML",
       "selection": {
@@ -4457,7 +4481,7 @@
         "restore": null,
         "wrongSpan": false,
         "ghostRecord": false,
-        "notes": "Range.surroundContents throws; paintRange catches and returns null."
+        "notes": "inner form is dropped; authored path [0,0] is a <p>, not a text node."
       },
       "oracle": {
         "kind": "surroundContents-throws",
@@ -4490,9 +4514,9 @@
       "story": "A <div> inside a <p> is illegal; the parser closes the paragraph. Authored one <p>; after parse the selection crosses a <p>/<div> boundary.",
       "selectHow": "from the last two letters of “lead” into the first three of “block”",
       "selectionAnnotated": "<p>le⟦ad </p><div>blo⟧ck</div>  (authored was <p>lead <div>block</div> after</p>)",
-      "expectHuman": "surroundContents throws / paintRange returns null; recovered <p> and <div> are each partially contained.",
+      "expectHuman": "wrap paints the recovered-tree range; 2 <mark> pieces cover “ad blo”.",
       "repro": "1. Load; expect <p>lead </p><div>block</div>. 2. Drag from “ad” into “blo”. 3. paintRange returns null.",
-      "why_breaks": "Block <div> ends the paragraph. Authored as one <p>; after parse the selection crosses a <p>/<div> boundary.",
+      "why_breaks": "Was a surroundContents reject on recovered formatting. Wrap now paints intersecting text on the parsed tree.",
       "html": "<p>lead <div>block</div> after</p>",
       "load": "container-innerHTML",
       "selection": {
@@ -4521,26 +4545,28 @@
         "paint"
       ],
       "expect": {
-        "paint": "null",
-        "exceptionName": "InvalidStateError",
-        "markCount": 0,
+        "paint": "first-mark",
+        "exceptionName": null,
+        "markCount": 2,
         "toolbar": null,
         "restore": null,
         "wrongSpan": false,
         "ghostRecord": false,
-        "notes": "Range.surroundContents throws; paintRange catches and returns null."
+        "notes": "Recovered-tree wrap."
       },
       "oracle": {
-        "kind": "surroundContents-throws",
-        "via": "paintRange-returns-null",
+        "kind": "wrap-paints",
         "checks": [
           {
-            "query": "mark",
-            "count": 0
+            "fn": "paintRange",
+            "returns": "first-mark"
           },
           {
-            "fn": "paintRange",
-            "returns": null
+            "joinedMarkText": "ad blo"
+          },
+          {
+            "query": "mark",
+            "count": 2
           }
         ]
       },
@@ -4561,9 +4587,9 @@
       "story": "A <ul> inside a <p> closes the paragraph. The user starts in “lead” and ends inside the list item.",
       "selectHow": "from the last two letters of “lead” into the first three of “item”",
       "selectionAnnotated": "<p>le⟦ad </p><ul><li>ite⟧m</li></ul>",
-      "expectHuman": "surroundContents throws / paintRange returns null. Mouseup closest() may be the <li> even though the drag started in the <p>.",
+      "expectHuman": "wrap paints the recovered-tree range; 2 <mark> pieces cover “ad ite”.",
       "repro": "1. Load; expect the list outside the paragraph. 2. Drag from “ad” into “ite”. 3. paintRange returns null.",
-      "why_breaks": "List closes the paragraph. Crossing into the <li> rejects; mouseup closest() may be the li even though the user started in the p.",
+      "why_breaks": "Was a surroundContents reject on recovered formatting. Wrap now paints intersecting text on the parsed tree.",
       "html": "<p>lead <ul><li>item</li></ul> tail</p>",
       "load": "container-innerHTML",
       "selection": {
@@ -4593,26 +4619,28 @@
         "paint"
       ],
       "expect": {
-        "paint": "null",
-        "exceptionName": "InvalidStateError",
-        "markCount": 0,
+        "paint": "first-mark",
+        "exceptionName": null,
+        "markCount": 2,
         "toolbar": null,
         "restore": null,
         "wrongSpan": false,
         "ghostRecord": false,
-        "notes": "Range.surroundContents throws; paintRange catches and returns null."
+        "notes": "Recovered-tree wrap."
       },
       "oracle": {
-        "kind": "surroundContents-throws",
-        "via": "paintRange-returns-null",
+        "kind": "wrap-paints",
         "checks": [
           {
-            "query": "mark",
-            "count": 0
+            "fn": "paintRange",
+            "returns": "first-mark"
           },
           {
-            "fn": "paintRange",
-            "returns": null
+            "joinedMarkText": "ad ite"
+          },
+          {
+            "query": "mark",
+            "count": 2
           }
         ]
       },
@@ -4633,9 +4661,9 @@
       "story": "A <div> inside <select> is not a valid child; recovery drops or fosters it. The user starts in “pick” and ends inside option “yes”.",
       "selectHow": "from the last two letters of “pick” into the first two letters of leftover option “yes”",
       "selectionAnnotated": "pi⟦ck <select><option>ye⟧s</option></select> ok",
-      "expectHuman": "surroundContents throws / paintRange returns null; the range still crosses into a form control. Re-read innerHTML — the div may be gone.",
+      "expectHuman": "soft-skip in jsdom: jsdom keeps “nope” as a select text child; option path [0,1,0,0] is missing.",
       "repro": "1. Load and inspect where “nope” went. 2. Drag from “ck” into “ye”. 3. paintRange returns null.",
-      "why_breaks": "Selects only allow option/optgroup/script. The <div> is not a valid child; recovery drops or fosters it. Paths and flatten change; a range into the leftover option still crosses a form control.",
+      "why_breaks": "Authored/afterParse paths do not apply to jsdom's recovered tree. Harness does not invent a new path.",
       "html": "<p>pick <select><div>nope</div><option>yes</option></select> ok</p>",
       "load": "container-innerHTML",
       "selection": {
@@ -4673,7 +4701,7 @@
         "restore": null,
         "wrongSpan": false,
         "ghostRecord": false,
-        "notes": "Range.surroundContents throws; paintRange catches and returns null."
+        "notes": "jsdom keeps “nope” as a select text child; option path [0,1,0,0] is missing."
       },
       "oracle": {
         "kind": "surroundContents-throws",
@@ -4849,9 +4877,9 @@
       "story": "</p> does not close <b>/<i>. Unclosed bold/italic is reconstructed on the next paragraph. The user highlights from mid-first-p to mid-second-p; flatten can look like one bold run.",
       "selectHow": "from the last part of “bold” in the first <p> through reconstructed formatting into “next”",
       "selectionAnnotated": "<p><b>bo⟦ld <i>both</p><p>next⟧</b> still?</p>",
-      "expectHuman": "surroundContents throws / paintRange returns null; the live range is a cross-block reject even if flatten looks continuous.",
+      "expectHuman": "soft-skip in jsdom: recovered second <p> wraps next in <b><i>; authored end path lands on an element.",
       "repro": "1. Load; expect reconstructed <b><i> on the second <p>. 2. Drag from “ld” through “next”. 3. paintRange returns null.",
-      "why_breaks": "</p> does not close <b>/<i>. Formatting is reconstructed on the next paragraph. A user range from mid-first-p to mid-second-p is a cross-block reject; flatten looks like one bold run.",
+      "why_breaks": "Authored/afterParse paths do not apply to jsdom's recovered tree. Harness does not invent a new path.",
       "html": "<p><b>bold <i>both</p><p>next</b> still?</p>",
       "load": "container-innerHTML",
       "selection": {
@@ -4889,7 +4917,7 @@
         "restore": null,
         "wrongSpan": false,
         "ghostRecord": false,
-        "notes": "Range.surroundContents throws; paintRange catches and returns null."
+        "notes": "recovered second <p> wraps next in <b><i>; authored end path lands on an element."
       },
       "oracle": {
         "kind": "surroundContents-throws",
@@ -4922,9 +4950,9 @@
       "story": "An outer link wraps a table that itself contains a cell link. Interactive + table recovery often closes the outer <a> before the table. The user selects the inner cell text “in”.",
       "selectHow": "drag the whole inner-link word “in” (same text node; the break is recovered ancestors / missing p|li|h*)",
       "selectionAnnotated": "<td><a href=\"/i\">⟦in⟧</a></td>  (outer <a> may already be closed before the table)",
-      "expectHuman": "if the outer <a> closed before the table, “in” may paint but closest(p|li|h*) is missing so the toolbar hides. If both links remain ancestors, surroundContents may still throw.",
+      "expectHuman": "soft-skip in jsdom: authored path ends on the inner <a> element, not its text node.",
       "repro": "1. Load and read innerHTML (outer <a> often closes before <table>). 2. Select “in”. 3. paintRange is null or the toolbar has no p|li|h* ancestor.",
-      "why_breaks": "Interactive + table recovery. Inner link closes/reopens the outer. Selection from caption-less first text into an inner cell link crosses recovered <a> and table boundaries.",
+      "why_breaks": "Authored/afterParse paths do not apply to jsdom's recovered tree. Harness does not invent a new path.",
       "html": "<a href=\"/o\"><table><tbody><tr><td><a href=\"/i\">in</a></td></tr></tbody></table></a>",
       "load": "container-innerHTML",
       "selection": {
@@ -4968,7 +4996,7 @@
         "restore": null,
         "wrongSpan": false,
         "ghostRecord": false,
-        "notes": "If the outer <a> was closed before the table, 'in' may paint but the stored quote has no stable closest(p|li|h*). If both links remain ancestors, surroundContents may still throw."
+        "notes": "authored path ends on the inner <a> element, not its text node."
       },
       "oracle": {
         "kind": "nested-a-table",
@@ -5003,9 +5031,9 @@
       "story": "A second <li> appears without closing the parent item that holds a nested <ul>. Typical recovery implies </li> so “b” and “c” become items in different lists/levels.",
       "selectHow": "from the start of inner item “b” into sibling item “c”",
       "selectionAnnotated": "<li>a<ul><li>⟦b</li></ul></li><li>c⟧</li>",
-      "expectHuman": "surroundContents throws / paintRange returns null; crossing from the inner item to the recovered sibling <li> rejects.",
+      "expectHuman": "wrap paints the recovered-tree range; 2 <mark> pieces cover “bc”.",
       "repro": "1. Load; expect implied </li> after the inner <ul>. 2. Drag from “b” into “c”. 3. paintRange returns null.",
-      "why_breaks": "A second <li> without closing the inner <ul>'s parent item. After parse, crossing from the inner item to the sibling item rejects.",
+      "why_breaks": "Was a surroundContents reject on recovered formatting. Wrap now paints intersecting text on the parsed tree.",
       "html": "<ul><li>a<ul><li>b</li></ul><li>c</li></ul>",
       "load": "container-innerHTML",
       "selection": {
@@ -5038,26 +5066,28 @@
         "paint"
       ],
       "expect": {
-        "paint": "null",
-        "exceptionName": "InvalidStateError",
-        "markCount": 0,
+        "paint": "first-mark",
+        "exceptionName": null,
+        "markCount": 2,
         "toolbar": null,
         "restore": null,
         "wrongSpan": false,
         "ghostRecord": false,
-        "notes": "Range.surroundContents throws; paintRange catches and returns null."
+        "notes": "Recovered-tree wrap."
       },
       "oracle": {
-        "kind": "surroundContents-throws",
-        "via": "paintRange-returns-null",
+        "kind": "wrap-paints",
         "checks": [
           {
-            "query": "mark",
-            "count": 0
+            "fn": "paintRange",
+            "returns": "first-mark"
           },
           {
-            "fn": "paintRange",
-            "returns": null
+            "joinedMarkText": "bc"
+          },
+          {
+            "query": "mark",
+            "count": 2
           }
         ]
       },
@@ -5078,9 +5108,9 @@
       "story": "A <title> was placed in the body between “x” and “z”. UAs may move it to <head> or leave it as a non-visible element. The user tries to select “xyz” as if “y” were ordinary text.",
       "selectHow": "from the start of “x” through <title>y</title> to the end of “z”",
       "selectionAnnotated": "⟦x<title>y</title>z⟧",
-      "expectHuman": "if <title> is relocated, “y” is gone from the container flatten and quote “xyz” cannot paint. If it stays, crossing <title> is a partial-element reject. Either way: no reliable mark.",
+      "expectHuman": "wrap paints the recovered-tree range; 3 <mark> pieces cover “xyz”.",
       "repro": "1. Load and see whether <title> is still in the container. 2. Drag x→z. 3. flatten misses “y” or paintRange returns null.",
-      "why_breaks": "<title> in body is often moved to <head> or left as an element whose text is not 'visible' consistently. flattenText on the container may drop it; a range that included 'y' disappears.",
+      "why_breaks": "Was a surroundContents reject on recovered formatting. Wrap now paints intersecting text on the parsed tree.",
       "html": "<p>x<title>y</title>z</p>",
       "load": "container-innerHTML",
       "selection": {
@@ -5109,29 +5139,28 @@
         "paint"
       ],
       "expect": {
-        "paint": "null-or-missing-y",
+        "paint": "first-mark",
         "exceptionName": null,
-        "markCount": 0,
+        "markCount": 3,
         "toolbar": null,
         "restore": null,
         "wrongSpan": false,
         "ghostRecord": false,
-        "notes": "If <title> is relocated, quote 'xyz' is not in the container flatten. If it stays, crossing <title> is a partial-element reject."
+        "notes": "Recovered-tree wrap."
       },
       "oracle": {
-        "kind": "title-relocated-or-reject",
+        "kind": "wrap-paints",
         "checks": [
           {
-            "any": [
-              {
-                "flattenContains": "y",
-                "eq": false
-              },
-              {
-                "fn": "paintRange",
-                "returns": null
-              }
-            ]
+            "fn": "paintRange",
+            "returns": "first-mark"
+          },
+          {
+            "joinedMarkText": "xyz"
+          },
+          {
+            "query": "mark",
+            "count": 3
           }
         ]
       },
@@ -5148,9 +5177,9 @@
       "story": "A textarea’s rawtext contains the characters a</b>b — that is not a real closer. flattenText does not include textarea.value. A stored record still quotes “a</b>b” between visible “x” and “z”.",
       "selectHow": "no mouse; restore looks for ‹a</b>b› inside the textarea rawtext (not in visible flatten)",
       "selectionAnnotated": "x<textarea>‹a</b>b›</textarea>z  (no mouse; visible flatten is “xz”)",
-      "expectHuman": "resolveAndPaint returns null; the quote is not a substring of visible DOM text.",
+      "expectHuman": "jsdom flatten includes textarea text; restore paints a</b>b inside the textarea.",
       "repro": "1. Load the textarea snippet. 2. flattenText should be “xz” (plus maybe spaces). 3. restore “a</b>b” — null.",
-      "why_breaks": "Inside textarea, '</b>' is text, not a closer. flattenText does not include textarea.value. A record quote 'a</b>b' will not match visible DOM text 'xz'.",
+      "why_breaks": "Was “textarea value is not flatten”. jsdom exposes the rawtext node; wrap paints it. Honest jsdom outcome, not Chromium.",
       "html": "<p>x<textarea>a</b>b</textarea>z</p>",
       "load": "container-innerHTML",
       "selection": null,
@@ -5167,21 +5196,24 @@
         "restore"
       ],
       "expect": {
-        "paint": null,
+        "paint": "first-mark",
         "exceptionName": null,
-        "markCount": 0,
+        "markCount": 1,
         "toolbar": null,
-        "restore": "null",
+        "restore": "ok",
         "wrongSpan": false,
         "ghostRecord": false,
-        "notes": ""
+        "notes": "jsdom-only; textarea text is in flatten."
       },
       "oracle": {
-        "kind": "rawtext-not-in-flatten",
+        "kind": "restore-ok",
         "checks": [
           {
             "fn": "resolveAndPaint",
-            "returns": null
+            "returns": "first-mark"
+          },
+          {
+            "paintedText": "a</b>b"
           }
         ]
       },
@@ -5263,9 +5295,9 @@
       "story": "A comment <!-- <em> --> looks like a tag but is not an element. A real <em>cc</em> follows. Counting the comment as an element child makes the end path off by one.",
       "selectHow": "from the second letter of “aa”, across the comment and “bb”, into the first letter of real <em>cc</em>",
       "selectionAnnotated": "a⟦a<!-- <em> -->bb<em>c⟧c</em>",
-      "expectHuman": "correct after-parse end path is [0,3,0] (not authored [0,1,0]). Once paths are right this is a normal partial-<em> reject: paintRange returns null.",
+      "expectHuman": "wrap paints the recovered-tree range; 3 <mark> pieces cover “abbc”.",
       "repro": "1. Load; childNodes are text, comment, text, em. 2. Drag from the second “a” into “c”. 3. paintRange returns null.",
-      "why_breaks": "<!-- <em> --> does not open an element. A path that counted the comment as an element child is off by one. Start in 'aa', end inside the real <em> — once paths are correct this is a normal A_reject; the parser trap is using authored child indices that included the comment as an element.",
+      "why_breaks": "Was a surroundContents reject on recovered formatting. Wrap now paints intersecting text on the parsed tree.",
       "html": "<p>aa<!-- <em> -->bb<em>cc</em></p>",
       "load": "container-innerHTML",
       "selection": {
@@ -5295,26 +5327,28 @@
         "paint"
       ],
       "expect": {
-        "paint": "null",
-        "exceptionName": "InvalidStateError",
-        "markCount": 0,
+        "paint": "first-mark",
+        "exceptionName": null,
+        "markCount": 3,
         "toolbar": null,
         "restore": null,
         "wrongSpan": false,
         "ghostRecord": false,
-        "notes": "Range.surroundContents throws; paintRange catches and returns null."
+        "notes": "Recovered-tree wrap."
       },
       "oracle": {
-        "kind": "surroundContents-throws",
-        "via": "paintRange-returns-null",
+        "kind": "wrap-paints",
         "checks": [
           {
-            "query": "mark",
-            "count": 0
+            "fn": "paintRange",
+            "returns": "first-mark"
           },
           {
-            "fn": "paintRange",
-            "returns": null
+            "joinedMarkText": "abbc"
+          },
+          {
+            "query": "mark",
+            "count": 3
           }
         ]
       },
@@ -5928,9 +5962,9 @@
       "story": "The only wrapper is a bare <div> (“Bare division text”). The user selects “division” — a single text node that paintRange could wrap — then mouseup runs the product closest() check.",
       "selectHow": "drag the whole word “division” inside the bare <div>",
       "selectionAnnotated": "Bare ⟦division⟧ text",
-      "expectHuman": "closest('p, li, h1…h6') is null, so the toolbar stays hidden. Paint is never attempted even though the range is wrappable.",
+      "expectHuman": "findToolbarBlock hits DIV; wrap paints “division”; persist is allowed.",
       "repro": "1. Load the <div>. 2. Select “division” and fire mouseup. 3. closest() is null; toolbar hidden; mark count 0.",
-      "why_breaks": "content.ts closest('p, li, h1, h2, h3, h4, h5, h6') is null, so the toolbar is hidden even though the range is a single text node that paintRange could wrap.",
+      "why_breaks": "Was closest(p|li|h*) only. Toolbar blocks now include div/td/blockquote/figcaption/…",
       "html": "<div>Bare division text</div>",
       "load": "container-innerHTML",
       "selection": {
@@ -5965,21 +5999,21 @@
         "mouseup"
       ],
       "expect": {
-        "paint": "not-attempted",
+        "paint": "first-mark",
         "exceptionName": null,
-        "markCount": 0,
-        "toolbar": "hidden",
+        "markCount": 1,
+        "toolbar": "shown",
         "restore": null,
         "wrongSpan": false,
         "ghostRecord": false,
-        "notes": ""
+        "notes": "block=DIV"
       },
       "oracle": {
-        "kind": "toolbar-hidden",
+        "kind": "toolbar-shown",
         "checks": [
           {
-            "closest": null,
-            "toolbar": "hidden"
+            "toolbar": "shown",
+            "closest": "DIV"
           }
         ]
       },
@@ -5998,9 +6032,9 @@
       "story": "Table cell text “left cell text” would be a happy single-node paint. Mouseup looks for p|li|h* from the <td> and finds nothing.",
       "selectHow": "drag the word “cell” inside the only <td>",
       "selectionAnnotated": "<td>left ⟦cell⟧ text</td>",
-      "expectHuman": "toolbar stays hidden; paint is never attempted. Table text never reaches the color picker.",
+      "expectHuman": "findToolbarBlock hits TD; wrap paints “cell”; persist is allowed.",
       "repro": "1. Load the one-cell table. 2. Select “cell” and mouseup. 3. closest() is null; toolbar hidden.",
-      "why_breaks": "closest(p|li|h*) from a table cell is null. Single-cell text would otherwise be a happy paint.",
+      "why_breaks": "Was closest(p|li|h*) only. Toolbar blocks now include div/td/blockquote/figcaption/…",
       "html": "<table><tbody><tr><td>left cell text</td></tr></tbody></table>",
       "load": "container-innerHTML",
       "selection": {
@@ -6041,21 +6075,21 @@
         "mouseup"
       ],
       "expect": {
-        "paint": "not-attempted",
+        "paint": "first-mark",
         "exceptionName": null,
-        "markCount": 0,
-        "toolbar": "hidden",
+        "markCount": 1,
+        "toolbar": "shown",
         "restore": null,
         "wrongSpan": false,
         "ghostRecord": false,
-        "notes": ""
+        "notes": "block=TD"
       },
       "oracle": {
-        "kind": "toolbar-hidden",
+        "kind": "toolbar-shown",
         "checks": [
           {
-            "closest": null,
-            "toolbar": "hidden"
+            "toolbar": "shown",
+            "closest": "TD"
           }
         ]
       },
@@ -6075,9 +6109,9 @@
       "story": "Quoted text is a direct child of <blockquote> with no inner <p>. The user selects “Quoted”. paintRange would accept the single text node; the product path refuses.",
       "selectHow": "drag the first word “Quoted” in the bare blockquote",
       "selectionAnnotated": "<blockquote>⟦Quoted⟧ line only</blockquote>",
-      "expectHuman": "toolbar stays hidden; paint is never attempted. closest() does not treat blockquote as a legal block.",
+      "expectHuman": "findToolbarBlock hits BLOCKQUOTE; wrap paints “Quoted”; persist is allowed.",
       "repro": "1. Load the blockquote. 2. Select “Quoted” and mouseup. 3. toolbar hidden; no mark.",
-      "why_breaks": "Quoted text is a direct child of blockquote. Product refuses; paintRange would accept the single text node.",
+      "why_breaks": "Was closest(p|li|h*) only. Toolbar blocks now include div/td/blockquote/figcaption/…",
       "html": "<blockquote>Quoted line only</blockquote>",
       "load": "container-innerHTML",
       "selection": {
@@ -6112,21 +6146,21 @@
         "mouseup"
       ],
       "expect": {
-        "paint": "not-attempted",
+        "paint": "first-mark",
         "exceptionName": null,
-        "markCount": 0,
-        "toolbar": "hidden",
+        "markCount": 1,
+        "toolbar": "shown",
         "restore": null,
         "wrongSpan": false,
         "ghostRecord": false,
-        "notes": ""
+        "notes": "block=BLOCKQUOTE"
       },
       "oracle": {
-        "kind": "toolbar-hidden",
+        "kind": "toolbar-shown",
         "checks": [
           {
-            "closest": null,
-            "toolbar": "hidden"
+            "toolbar": "shown",
+            "closest": "BLOCKQUOTE"
           }
         ]
       },
@@ -6145,9 +6179,9 @@
       "story": "A figure caption sits under an image. The user selects “Caption”. figcaption is not p|li|h*, so the product hides the toolbar. Same refuse as dt/dd/th/pre/bare article text.",
       "selectHow": "drag the first word “Caption” inside <figcaption>",
       "selectionAnnotated": "<figcaption>⟦Caption⟧ text here</figcaption>",
-      "expectHuman": "toolbar stays hidden; paint is never attempted.",
+      "expectHuman": "findToolbarBlock hits FIGCAPTION; wrap paints “Caption”; persist is allowed.",
       "repro": "1. Load the figure. 2. Select “Caption” and mouseup. 3. closest() is null; toolbar hidden.",
-      "why_breaks": "Caption text is not p|li|h*. Same product-path refuse as E01–E03.",
+      "why_breaks": "Was closest(p|li|h*) only. Toolbar blocks now include div/td/blockquote/figcaption/…",
       "html": "<figure><img alt='x' src='about:blank'><figcaption>Caption text here</figcaption></figure>",
       "load": "container-innerHTML",
       "selection": {
@@ -6184,21 +6218,21 @@
         "mouseup"
       ],
       "expect": {
-        "paint": "not-attempted",
+        "paint": "first-mark",
         "exceptionName": null,
-        "markCount": 0,
-        "toolbar": "hidden",
+        "markCount": 1,
+        "toolbar": "shown",
         "restore": null,
         "wrongSpan": false,
         "ghostRecord": false,
-        "notes": ""
+        "notes": "block=FIGCAPTION"
       },
       "oracle": {
-        "kind": "toolbar-hidden",
+        "kind": "toolbar-shown",
         "checks": [
           {
-            "closest": null,
-            "toolbar": "hidden"
+            "toolbar": "shown",
+            "closest": "FIGCAPTION"
           }
         ]
       },
@@ -6225,9 +6259,9 @@
       "story": "Same partial-<em> sentence as A01, but this is the product sequence: the range is inside a <p> so the toolbar appears. The user picks a color. paintRange still fails, yet savePendingHighlight sends SAVE_HIGHLIGHT.",
       "selectHow": "from the last syllable of “Hello” into italic “wor” — then mouseup, color-pick, paint, save",
       "selectionAnnotated": "Hel⟦lo <em>wor⟧ld</em> today",
-      "expectHuman": "toolbar is shown, paintRange returns null, SAVE_HIGHLIGHT still fires. Ghost record: persist without a mark. Later restore hits the same surroundContents failure.",
+      "expectHuman": "wrap paints the A01-style range; SAVE is allowed because a mark exists. Ghost SAVE is gated when paint returns null.",
       "repro": "1. Select “lo wor” inside the <p> and mouseup — toolbar shows. 2. Pick a color; paintRange returns null. 3. SAVE_HIGHLIGHT is still sent; no <mark> on the page.",
-      "why_breaks": "Selection is inside a <p> so closest() succeeds and the toolbar appears. The range crosses <em>, so paintRange returns null. savePendingHighlight still sends SAVE_HIGHLIGHT, then bails when attaching the handler. Ghost record: persist without a mark. Later GET_HIGHLIGHTS restore hits the same surroundContents failure.",
+      "why_breaks": "Was surroundContents null + SAVE anyway. Wrap now paints; savePendingHighlight returns before SAVE when mark is null.",
       "html": "<p>Hello <em>world</em> today</p>",
       "load": "container-innerHTML",
       "selection": {
@@ -6266,28 +6300,24 @@
         "save"
       ],
       "expect": {
-        "paint": "null",
-        "exceptionName": "InvalidStateError",
-        "markCount": 0,
+        "paint": "first-mark",
+        "exceptionName": null,
+        "markCount": 2,
         "toolbar": "shown",
         "restore": null,
         "wrongSpan": false,
-        "ghostRecord": true,
-        "notes": "Product-path divergence: UI offers a color, IndexedDB/API may store the quote, the page never shows a mark."
+        "ghostRecord": false,
+        "notes": "No ghost when paint succeeds; persist guard when it does not."
       },
       "oracle": {
-        "kind": "ghost-record",
+        "kind": "persist-if-painted",
         "checks": [
           {
             "toolbar": "shown"
           },
           {
             "fn": "paintRange",
-            "returns": null
-          },
-          {
-            "message": "SAVE_HIGHLIGHT",
-            "stillSent": true
+            "returns": "first-mark"
           }
         ]
       },
