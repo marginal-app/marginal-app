@@ -35,7 +35,7 @@
     "harness_hints": {
       "jsdom": {
         "ok": [
-          "Most A_reject via paintRange (Range + surroundContents exist).",
+          "Most A_reject via wrap paintRange (Step 2 harness: mark-breakage-a-reject-paint.test.ts).",
           "B_live_split stale flatten / IndexSizeError.",
           "D_restore_orphan resolveAndPaint.",
           "C_parser_x recovery via innerHTML (parse5 ≈ HTML parser for these cases)."
@@ -65,7 +65,7 @@
         ]
       },
       "product_hooks": {
-        "paintRange": "apps/browser-extension/entrypoints/content.ts — range.surroundContents(mark), catch → null",
+        "paintRange": "apps/browser-extension/entrypoints/content.ts — wrap intersecting text nodes; first mark or null",
         "flattenText": "TreeWalker SHOW_TEXT, reject SCRIPT/STYLE/NOSCRIPT",
         "resolveAndPaint": "indexOf(prefix+quote+suffix) then indexOf(quote); first match wins",
         "mouseup": "closest('p, li, h1, h2, h3, h4, h5, h6'); otherwise hide toolbar",
@@ -82,9 +82,9 @@
       "story": "A paragraph reads “Hello world today”, with world in italics. The user tries to highlight a run that starts in the plain “Hello” and finishes inside the italic word.",
       "selectHow": "from the last syllable of “Hello” into the first three letters of italic “world”",
       "selectionAnnotated": "Hel⟦lo <em>wor⟧ld</em> today",
-      "expectHuman": "surroundContents throws / paintRange returns null; no mark. The <em> is only partially contained.",
+      "expectHuman": "wrap paints; 2 <mark> pieces cover “lo wor”.",
       "repro": "1. Load the snippet. 2. Drag from ⟦ through italic “wor”. 3. paintRange returns null; querySelectorAll('mark') is empty.",
-      "why_breaks": "surroundContents rejects a range that starts in a text node and ends inside a sibling <em>; the <em> is partially contained.",
+      "why_breaks": "Was a surroundContents reject (partial boundary). Wrap now paints the intersecting text nodes.",
       "html": "<p>Hello <em>world</em> today</p>",
       "load": "container-innerHTML",
       "selection": {
@@ -114,26 +114,29 @@
         "paint"
       ],
       "expect": {
-        "paint": "null",
-        "exceptionName": "InvalidStateError",
-        "markCount": 0,
+        "paint": "first-mark",
+        "exceptionName": null,
+        "markCount": 2,
         "toolbar": null,
         "restore": null,
         "wrongSpan": false,
         "ghostRecord": false,
-        "notes": "Range.surroundContents throws; paintRange catches and returns null."
+        "notes": "paintRange wrap returns the first mark; 2 <mark> pieces in one paint group cover “lo wor”."
       },
       "oracle": {
-        "kind": "surroundContents-throws",
-        "via": "paintRange-returns-null",
+        "kind": "wrap-paints",
+        "via": "paintRange-returns-first-mark",
         "checks": [
           {
             "query": "mark",
-            "count": 0
+            "count": 2
           },
           {
             "fn": "paintRange",
-            "returns": null
+            "returns": "first-mark"
+          },
+          {
+            "joinedMarkText": "lo wor"
           }
         ]
       },
@@ -151,9 +154,9 @@
       "story": "A paragraph has a bold run (“bold text”) followed by plain “now”. The user tries to highlight from inside the bold out into the following text.",
       "selectHow": "from the last syllable of the bold run into the following plain text",
       "selectionAnnotated": "See <strong>bold ⟦text</strong> now⟧",
-      "expectHuman": "surroundContents throws / paintRange returns null; no mark. The <strong> is only partially contained.",
+      "expectHuman": "wrap paints; 2 <mark> pieces cover “text now”.",
       "repro": "1. Load the snippet. 2. Drag from bold “text” through “now”. 3. paintRange returns null; no <mark>.",
-      "why_breaks": "Start inside <strong>, end in the following text node. The <strong> is partially contained.",
+      "why_breaks": "Was a surroundContents reject (partial boundary). Wrap now paints the intersecting text nodes.",
       "html": "<p>See <strong>bold text</strong> now</p>",
       "load": "container-innerHTML",
       "selection": {
@@ -183,26 +186,29 @@
         "paint"
       ],
       "expect": {
-        "paint": "null",
-        "exceptionName": "InvalidStateError",
-        "markCount": 0,
+        "paint": "first-mark",
+        "exceptionName": null,
+        "markCount": 2,
         "toolbar": null,
         "restore": null,
         "wrongSpan": false,
         "ghostRecord": false,
-        "notes": "Range.surroundContents throws; paintRange catches and returns null."
+        "notes": "paintRange wrap returns the first mark; 2 <mark> pieces in one paint group cover “text now”."
       },
       "oracle": {
-        "kind": "surroundContents-throws",
-        "via": "paintRange-returns-null",
+        "kind": "wrap-paints",
+        "via": "paintRange-returns-first-mark",
         "checks": [
           {
             "query": "mark",
-            "count": 0
+            "count": 2
           },
           {
             "fn": "paintRange",
-            "returns": null
+            "returns": "first-mark"
+          },
+          {
+            "joinedMarkText": "text now"
           }
         ]
       },
@@ -220,9 +226,9 @@
       "story": "Bold “aabbcc” wraps an inner italic “bb”. The user starts in the bold letters before the italic and stops inside the italic.",
       "selectHow": "from the second letter of bold “aa” through the whole nested italic “bb”",
       "selectionAnnotated": "x <strong>a⟦a<em>bb⟧</em>cc</strong> y",
-      "expectHuman": "surroundContents throws / paintRange returns null; no mark. Both the <strong> and the inner <em> are partially contained.",
+      "expectHuman": "wrap paints; 2 <mark> pieces cover “abb”.",
       "repro": "1. Load the snippet. 2. Drag from the second “a” through italic “bb”. 3. paintRange returns null.",
-      "why_breaks": "Start in the strong's leading text, end inside nested <em>. Both formatting nodes are partially contained.",
+      "why_breaks": "Was a surroundContents reject (partial boundary). Wrap now paints the intersecting text nodes.",
       "html": "<p>x <strong>aa<em>bb</em>cc</strong> y</p>",
       "load": "container-innerHTML",
       "selection": {
@@ -254,26 +260,29 @@
         "paint"
       ],
       "expect": {
-        "paint": "null",
-        "exceptionName": "InvalidStateError",
-        "markCount": 0,
+        "paint": "first-mark",
+        "exceptionName": null,
+        "markCount": 2,
         "toolbar": null,
         "restore": null,
         "wrongSpan": false,
         "ghostRecord": false,
-        "notes": "Range.surroundContents throws; paintRange catches and returns null."
+        "notes": "paintRange wrap returns the first mark; 2 <mark> pieces in one paint group cover “abb”."
       },
       "oracle": {
-        "kind": "surroundContents-throws",
-        "via": "paintRange-returns-null",
+        "kind": "wrap-paints",
+        "via": "paintRange-returns-first-mark",
         "checks": [
           {
             "query": "mark",
-            "count": 0
+            "count": 2
           },
           {
             "fn": "paintRange",
-            "returns": null
+            "returns": "first-mark"
+          },
+          {
+            "joinedMarkText": "abb"
           }
         ]
       },
@@ -292,9 +301,9 @@
       "story": "Two sibling spans sit in one paragraph: Latin “alpha” then RTL “שלום”. The user drags across the span boundary.",
       "selectHow": "from the last syllable of “alpha” into the first two letters of the RTL span",
       "selectionAnnotated": "<span>alp⟦ha</span><span dir=\"rtl\">של⟧ום</span>",
-      "expectHuman": "surroundContents throws / paintRange returns null; no mark. Each <span> is only partially contained.",
+      "expectHuman": "wrap paints; two <mark> pieces cover the path/offset range “haשל” (authored quote “phaשל” is off by one on that path).",
       "repro": "1. Load the snippet. 2. Drag from “pha” into “של”. 3. paintRange returns null.",
-      "why_breaks": "Start in first span text, end in second. Each span is partially contained.",
+      "why_breaks": "Was a surroundContents reject (partial sibling <span>s). Wrap now paints the intersecting text nodes. Authored quote does not match the path offsets.",
       "html": "<p><span>alpha</span><span dir=\"rtl\">שלום</span></p>",
       "load": "container-innerHTML",
       "selection": {
@@ -325,26 +334,29 @@
         "paint"
       ],
       "expect": {
-        "paint": "null",
-        "exceptionName": "InvalidStateError",
-        "markCount": 0,
+        "paint": "first-mark",
+        "exceptionName": null,
+        "markCount": 2,
         "toolbar": null,
         "restore": null,
         "wrongSpan": false,
         "ghostRecord": false,
-        "notes": "Range.surroundContents throws; paintRange catches and returns null."
+        "notes": "Was surroundContents reject. Wrap paints the path/offset range (“haשל”); authored selection.quote “phaשל” is one UTF-16 unit off that path."
       },
       "oracle": {
-        "kind": "surroundContents-throws",
-        "via": "paintRange-returns-null",
+        "kind": "wrap-paints",
+        "via": "paintRange-returns-first-mark",
         "checks": [
           {
             "query": "mark",
-            "count": 0
+            "count": 2
           },
           {
             "fn": "paintRange",
-            "returns": null
+            "returns": "first-mark"
+          },
+          {
+            "joinedMarkText": "haשל"
           }
         ]
       },
@@ -363,9 +375,9 @@
       "story": "A sentence contains a link (“the site”). The user starts in the word before the link and ends inside the link text.",
       "selectHow": "from the last two letters of “visit” into the middle of the <a> text",
       "selectionAnnotated": "vis⟦it <a href=\"/x\">the si⟧te</a> today",
-      "expectHuman": "surroundContents throws / paintRange returns null; no mark. The <a> is only partially contained.",
+      "expectHuman": "wrap paints; two <mark> pieces cover “it the sit” (authored quote ended one unit earlier).",
       "repro": "1. Load the snippet. 2. Drag from “it” through “the si”. 3. paintRange returns null.",
-      "why_breaks": "The <a> is partially contained. Product also later fails restore of any ghost quote that spans the link.",
+      "why_breaks": "Was a surroundContents reject (partial <a>). Wrap now paints the intersecting text nodes.",
       "html": "<p>visit <a href=\"/x\">the site</a> today</p>",
       "load": "container-innerHTML",
       "selection": {
@@ -395,26 +407,29 @@
         "paint"
       ],
       "expect": {
-        "paint": "null",
-        "exceptionName": "InvalidStateError",
-        "markCount": 0,
+        "paint": "first-mark",
+        "exceptionName": null,
+        "markCount": 2,
         "toolbar": null,
         "restore": null,
         "wrongSpan": false,
         "ghostRecord": false,
-        "notes": "Range.surroundContents throws; paintRange catches and returns null."
+        "notes": "Was surroundContents reject. Wrap paints the path/offset range (“it the sit”); authored selection.quote ends one unit earlier."
       },
       "oracle": {
-        "kind": "surroundContents-throws",
-        "via": "paintRange-returns-null",
+        "kind": "wrap-paints",
+        "via": "paintRange-returns-first-mark",
         "checks": [
           {
             "query": "mark",
-            "count": 0
+            "count": 2
           },
           {
             "fn": "paintRange",
-            "returns": null
+            "returns": "first-mark"
+          },
+          {
+            "joinedMarkText": "it the sit"
           }
         ]
       },
@@ -431,9 +446,9 @@
       "story": "A sentence wraps a <code> run (“npm test”). The user starts in “run” and stops inside the code.",
       "selectHow": "from the last two letters of “run” into the first token of the <code>",
       "selectionAnnotated": "r⟦un <code>npm⟧ test</code> now",
-      "expectHuman": "surroundContents throws / paintRange returns null; no mark. The <code> is only partially contained.",
+      "expectHuman": "wrap paints; 2 <mark> pieces cover “un npm”.",
       "repro": "1. Load the snippet. 2. Drag from “un” through “npm”. 3. paintRange returns null.",
-      "why_breaks": "Range starts in preceding text and ends inside <code>.",
+      "why_breaks": "Was a surroundContents reject (partial boundary). Wrap now paints the intersecting text nodes.",
       "html": "<p>run <code>npm test</code> now</p>",
       "load": "container-innerHTML",
       "selection": {
@@ -463,26 +478,29 @@
         "paint"
       ],
       "expect": {
-        "paint": "null",
-        "exceptionName": "InvalidStateError",
-        "markCount": 0,
+        "paint": "first-mark",
+        "exceptionName": null,
+        "markCount": 2,
         "toolbar": null,
         "restore": null,
         "wrongSpan": false,
         "ghostRecord": false,
-        "notes": "Range.surroundContents throws; paintRange catches and returns null."
+        "notes": "paintRange wrap returns the first mark; 2 <mark> pieces in one paint group cover “un npm”."
       },
       "oracle": {
-        "kind": "surroundContents-throws",
-        "via": "paintRange-returns-null",
+        "kind": "wrap-paints",
+        "via": "paintRange-returns-first-mark",
         "checks": [
           {
             "query": "mark",
-            "count": 0
+            "count": 2
           },
           {
             "fn": "paintRange",
-            "returns": null
+            "returns": "first-mark"
+          },
+          {
+            "joinedMarkText": "un npm"
           }
         ]
       },
@@ -499,9 +517,9 @@
       "story": "The page already has a highlight on “quick brown”. The user starts before that mark and ends inside it.",
       "selectHow": "from the last two letters of “The” into the first letters of the existing <mark>",
       "selectionAnnotated": "T⟦he <mark>qui⟧ck brown</mark> fox",
-      "expectHuman": "surroundContents throws / paintRange returns null; the existing mark stays, no second wrap.",
+      "expectHuman": "wrap paints; new marks cover “he quick”, nested inside the existing <mark>.",
       "repro": "1. Load the snippet (mark already present). 2. Drag from “he” through “qui”. 3. paintRange returns null; still one <mark>.",
-      "why_breaks": "Start before an existing highlight, end inside it. The live <mark> is partially contained so a second paint cannot wrap.",
+      "why_breaks": "Was a surroundContents reject (partial existing <mark>). Wrap now paints, including a nested mark inside the existing highlight.",
       "html": "<p>The <mark>quick brown</mark> fox</p>",
       "load": "container-innerHTML",
       "selection": {
@@ -531,26 +549,33 @@
         "paint"
       ],
       "expect": {
-        "paint": "null",
-        "exceptionName": "InvalidStateError",
-        "markCount": 0,
+        "paint": "first-mark",
+        "exceptionName": null,
+        "markCount": 3,
         "toolbar": null,
         "restore": null,
         "wrongSpan": false,
         "ghostRecord": false,
-        "notes": "Range.surroundContents throws; paintRange catches and returns null."
+        "notes": "Was surroundContents reject. Wrap paints, including a new mark inside the existing highlight (nested marks). Total mark count includes the pre-existing mark."
       },
       "oracle": {
-        "kind": "surroundContents-throws",
-        "via": "paintRange-returns-null",
+        "kind": "wrap-paints",
+        "via": "paintRange-returns-first-mark",
         "checks": [
           {
             "query": "mark",
-            "count": 0
+            "count": 3
           },
           {
             "fn": "paintRange",
-            "returns": null
+            "returns": "first-mark"
+          },
+          {
+            "joinedMarkText": "he quick"
+          },
+          {
+            "query": "mark mark",
+            "minCount": 1
           }
         ]
       },
@@ -567,9 +592,9 @@
       "story": "Same already-highlighted “quick brown”. The user starts inside the mark and ends in the following word.",
       "selectHow": "from the last syllable of the existing mark into the following plain “fox”",
       "selectionAnnotated": "The <mark>quick br⟦own</mark> fox⟧",
-      "expectHuman": "surroundContents throws / paintRange returns null; the existing mark is only partially selected.",
+      "expectHuman": "wrap paints; new marks cover “own fox”, nested inside the existing <mark>.",
       "repro": "1. Load the snippet. 2. Drag from “own” through “fox”. 3. paintRange returns null.",
-      "why_breaks": "Inverse of A07: the already-painted mark is only partially selected.",
+      "why_breaks": "Was a surroundContents reject (partial existing <mark>). Wrap now paints, including a nested mark inside the existing highlight.",
       "html": "<p>The <mark>quick brown</mark> fox</p>",
       "load": "container-innerHTML",
       "selection": {
@@ -599,26 +624,33 @@
         "paint"
       ],
       "expect": {
-        "paint": "null",
-        "exceptionName": "InvalidStateError",
-        "markCount": 0,
+        "paint": "first-mark",
+        "exceptionName": null,
+        "markCount": 3,
         "toolbar": null,
         "restore": null,
         "wrongSpan": false,
         "ghostRecord": false,
-        "notes": "Range.surroundContents throws; paintRange catches and returns null."
+        "notes": "Was surroundContents reject. Wrap paints, including a new mark inside the existing highlight (nested marks). Total mark count includes the pre-existing mark."
       },
       "oracle": {
-        "kind": "surroundContents-throws",
-        "via": "paintRange-returns-null",
+        "kind": "wrap-paints",
+        "via": "paintRange-returns-first-mark",
         "checks": [
           {
             "query": "mark",
-            "count": 0
+            "count": 3
           },
           {
             "fn": "paintRange",
-            "returns": null
+            "returns": "first-mark"
+          },
+          {
+            "joinedMarkText": "own fox"
+          },
+          {
+            "query": "mark mark",
+            "minCount": 1
           }
         ]
       },
@@ -635,9 +667,9 @@
       "story": "An existing mark sits in the middle of a sentence. The user selects the whole sentence so the old mark is fully inside the new range.",
       "selectHow": "from the start of “The” through the end of “fox”, swallowing the existing <mark>",
       "selectionAnnotated": "⟦The <mark>quick brown</mark> fox⟧",
-      "expectHuman": "either nested <mark><mark> or paintRange returns null — not a single merged highlight.",
+      "expectHuman": "wrap paints the quote as three new <mark> pieces; the existing <mark> stays, so marks nest — not a single merged highlight.",
       "repro": "1. Load the snippet. 2. Select the whole sentence. 3. paintRange either nests a mark or returns null.",
-      "why_breaks": "Start in text before the mark, end in text after. The <mark> is fully contained, so surroundContents may wrap it in a second mark. Nested marks (or a reject) are both phase-1 breaks versus a single merged highlight.",
+      "why_breaks": "Was surroundContents nested-or-reject. Wrap paints every intersecting text node; the existing <mark> is not merged, so a new mark nests inside it.",
       "html": "<p>The <mark>quick brown</mark> fox</p>",
       "load": "container-innerHTML",
       "selection": {
@@ -666,29 +698,33 @@
         "paint"
       ],
       "expect": {
-        "paint": "nested-or-null",
+        "paint": "first-mark",
         "exceptionName": null,
-        "markCount": null,
+        "markCount": 4,
         "toolbar": null,
         "restore": null,
         "wrongSpan": false,
         "ghostRecord": false,
-        "notes": "If surroundContents succeeds, a <mark> wraps an existing <mark>. Either reject or nested marks — both are phase-1 breaks versus a single merged highlight."
+        "notes": "Wrap paints the full quote as three new mark pieces in one paint group. The existing <mark> stays, so marks nest — not a single merged highlight."
       },
       "oracle": {
-        "kind": "nested-mark-or-reject",
+        "kind": "wrap-paints",
+        "via": "paintRange-returns-first-mark",
         "checks": [
           {
-            "any": [
-              {
-                "fn": "paintRange",
-                "returns": null
-              },
-              {
-                "query": "mark mark",
-                "minCount": 1
-              }
-            ]
+            "query": "mark",
+            "count": 4
+          },
+          {
+            "fn": "paintRange",
+            "returns": "first-mark"
+          },
+          {
+            "joinedMarkText": "The quick brown fox"
+          },
+          {
+            "query": "mark mark",
+            "minCount": 1
           }
         ]
       },
@@ -705,9 +741,9 @@
       "story": "A highlight was painted twice, so an inner <mark>inner</mark> sits inside an outer mark. The user drags from the outer text into the inner mark.",
       "selectHow": "from the last syllable of outer “outer” into the first three letters of inner “inner”",
       "selectionAnnotated": "<mark>ou⟦ter <mark>inn⟧er</mark> tail</mark>",
-      "expectHuman": "surroundContents throws / paintRange returns null; the inner <mark> is only partially contained.",
+      "expectHuman": "wrap paints “ter inn”; new marks nest inside the already-nested marks.",
       "repro": "1. Load the double-mark snippet. 2. Drag from “ter” through “inn”. 3. paintRange returns null.",
-      "why_breaks": "Double-painted DOM. Selecting from outer mark text into the inner mark partially contains the inner <mark>.",
+      "why_breaks": "Was a surroundContents reject (partial inner <mark>). Wrap now paints the slice and nests new marks inside the existing nested marks.",
       "html": "<p><mark>outer <mark>inner</mark> tail</mark></p>",
       "load": "container-innerHTML",
       "selection": {
@@ -739,26 +775,33 @@
         "paint"
       ],
       "expect": {
-        "paint": "null",
-        "exceptionName": "InvalidStateError",
-        "markCount": 0,
+        "paint": "first-mark",
+        "exceptionName": null,
+        "markCount": 4,
         "toolbar": null,
         "restore": null,
         "wrongSpan": false,
         "ghostRecord": false,
-        "notes": "Range.surroundContents throws; paintRange catches and returns null."
+        "notes": "Was surroundContents reject. Wrap paints the selected slice; new marks nest inside the already-nested marks. Total mark count includes the pre-existing marks."
       },
       "oracle": {
-        "kind": "surroundContents-throws",
-        "via": "paintRange-returns-null",
+        "kind": "wrap-paints",
+        "via": "paintRange-returns-first-mark",
         "checks": [
           {
             "query": "mark",
-            "count": 0
+            "count": 4
           },
           {
             "fn": "paintRange",
-            "returns": null
+            "returns": "first-mark"
+          },
+          {
+            "joinedMarkText": "ter inn"
+          },
+          {
+            "query": "mark mark",
+            "minCount": 1
           }
         ]
       },
@@ -775,9 +818,9 @@
       "story": "A line-break sits inside a <span> (“one” / “two”). The user starts in the text before the span and ends after the <br>, still inside the span.",
       "selectHow": "from the last syllable of “line” through “one”, across the <br>, into “tw”",
       "selectionAnnotated": "li⟦ne <span>one<br>tw⟧o</span> end",
-      "expectHuman": "surroundContents throws / paintRange returns null; the <span> that owns the <br> is only partially contained.",
+      "expectHuman": "wrap paints three <mark> pieces around the <br> covering “ne onetw” (jsdom has no newline for <br>).",
       "repro": "1. Load the snippet. 2. Drag from “ne” through “one” and into “tw”. 3. paintRange returns null.",
-      "why_breaks": "Void <br> alone between sibling texts of the same parent can wrap; crossing into a <span> that contains the <br> partially contains the span.",
+      "why_breaks": "Was a surroundContents reject (partial <span> around <br>). Wrap now paints each intersecting text node.",
       "html": "<p>line <span>one<br>two</span> end</p>",
       "load": "container-innerHTML",
       "selection": {
@@ -807,26 +850,29 @@
         "paint"
       ],
       "expect": {
-        "paint": "null",
-        "exceptionName": "InvalidStateError",
-        "markCount": 0,
+        "paint": "first-mark",
+        "exceptionName": null,
+        "markCount": 3,
         "toolbar": null,
         "restore": null,
         "wrongSpan": false,
         "ghostRecord": false,
-        "notes": "Range.surroundContents throws; paintRange catches and returns null."
+        "notes": "Was surroundContents reject. Wrap paints three text pieces around the <br>. jsdom range.toString() does not insert a newline for <br>."
       },
       "oracle": {
-        "kind": "surroundContents-throws",
-        "via": "paintRange-returns-null",
+        "kind": "wrap-paints",
+        "via": "paintRange-returns-first-mark",
         "checks": [
           {
             "query": "mark",
-            "count": 0
+            "count": 3
           },
           {
             "fn": "paintRange",
-            "returns": null
+            "returns": "first-mark"
+          },
+          {
+            "joinedMarkText": "ne onetw"
           }
         ]
       },
@@ -845,9 +891,9 @@
       "story": "An image sits inside a <span> between “cat” and “dog”. The user starts before the span and stops inside “cat”, still inside that span.",
       "selectHow": "from the last two letters of “see” into the first word of the <span>",
       "selectionAnnotated": "s⟦ee <span>cat⟧ <img alt=\"c\" src=\"about:blank\"> dog</span> there",
-      "expectHuman": "surroundContents throws / paintRange returns null; the <span> that wraps the <img> is only partially contained.",
+      "expectHuman": "wrap paints; 2 <mark> pieces cover “ee cat”.",
       "repro": "1. Load the snippet. 2. Drag from “ee” through “cat”. 3. paintRange returns null.",
-      "why_breaks": "Same shape as A11: the interesting reject is the partial <span>, not the void itself. A wrap that swallowed an <img> would also be a break.",
+      "why_breaks": "Was a surroundContents reject (partial boundary). Wrap now paints the intersecting text nodes.",
       "html": "<p>see <span>cat <img alt=\"c\" src=\"about:blank\"> dog</span> there</p>",
       "load": "container-innerHTML",
       "selection": {
@@ -877,26 +923,29 @@
         "paint"
       ],
       "expect": {
-        "paint": "null",
-        "exceptionName": "InvalidStateError",
-        "markCount": 0,
+        "paint": "first-mark",
+        "exceptionName": null,
+        "markCount": 2,
         "toolbar": null,
         "restore": null,
         "wrongSpan": false,
         "ghostRecord": false,
-        "notes": "Range.surroundContents throws; paintRange catches and returns null."
+        "notes": "paintRange wrap returns the first mark; 2 <mark> pieces in one paint group cover “ee cat”."
       },
       "oracle": {
-        "kind": "surroundContents-throws",
-        "via": "paintRange-returns-null",
+        "kind": "wrap-paints",
+        "via": "paintRange-returns-first-mark",
         "checks": [
           {
             "query": "mark",
-            "count": 0
+            "count": 2
           },
           {
             "fn": "paintRange",
-            "returns": null
+            "returns": "first-mark"
+          },
+          {
+            "joinedMarkText": "ee cat"
           }
         ]
       },
@@ -914,9 +963,9 @@
       "story": "A word is split with <wbr> inside a span (“super” / “cali”). The user starts before the span and ends after the <wbr>.",
       "selectHow": "from the last two letters of “pre” through “super”, across the <wbr>, into “cal”",
       "selectionAnnotated": "p⟦re <span>super<wbr>cal⟧i</span> post",
-      "expectHuman": "surroundContents throws / paintRange returns null; the <span> is only partially contained.",
+      "expectHuman": "wrap paints three <mark> pieces around the <wbr> covering “re superca”.",
       "repro": "1. Load the snippet. 2. Drag from “re” through “supercal”. 3. paintRange returns null.",
-      "why_breaks": "<wbr> between texts of one parent may wrap; start before the span and end after the <wbr> so the span is partial.",
+      "why_breaks": "Was a surroundContents reject (partial <span> around <wbr>). Wrap now paints each intersecting text node.",
       "html": "<p>pre <span>super<wbr>cali</span> post</p>",
       "load": "container-innerHTML",
       "selection": {
@@ -946,26 +995,29 @@
         "paint"
       ],
       "expect": {
-        "paint": "null",
-        "exceptionName": "InvalidStateError",
-        "markCount": 0,
+        "paint": "first-mark",
+        "exceptionName": null,
+        "markCount": 3,
         "toolbar": null,
         "restore": null,
         "wrongSpan": false,
         "ghostRecord": false,
-        "notes": "Range.surroundContents throws; paintRange catches and returns null."
+        "notes": "Was surroundContents reject. Wrap paints three text pieces around the <wbr> (“re superca”); authored selection.quote assumed a longer end offset."
       },
       "oracle": {
-        "kind": "surroundContents-throws",
-        "via": "paintRange-returns-null",
+        "kind": "wrap-paints",
+        "via": "paintRange-returns-first-mark",
         "checks": [
           {
             "query": "mark",
-            "count": 0
+            "count": 3
           },
           {
             "fn": "paintRange",
-            "returns": null
+            "returns": "first-mark"
+          },
+          {
+            "joinedMarkText": "re superca"
           }
         ]
       },
@@ -983,9 +1035,9 @@
       "story": "Two compact paragraphs sit back-to-back. The user tries to highlight from the end of the first into the start of the second.",
       "selectHow": "from “ends.” at the close of the first <p> into “Second” of the next <p>",
       "selectionAnnotated": "<p>First para ⟦ends.</p><p>Second⟧ starts here.</p>",
-      "expectHuman": "surroundContents throws / paintRange returns null; each <p> is only partially contained.",
+      "expectHuman": "wrap paints; 2 <mark> pieces cover “ends.Second”.",
       "repro": "1. Load the two paragraphs (no extra whitespace between them). 2. Drag from “ends.” into “Second”. 3. paintRange returns null.",
-      "why_breaks": "Each <p> is partially contained. Compact HTML so no interstitial whitespace text nodes.",
+      "why_breaks": "Was a surroundContents reject (partial boundary). Wrap now paints the intersecting text nodes.",
       "html": "<p>First para ends.</p><p>Second starts here.</p>",
       "load": "container-innerHTML",
       "selection": {
@@ -1014,26 +1066,29 @@
         "paint"
       ],
       "expect": {
-        "paint": "null",
-        "exceptionName": "InvalidStateError",
-        "markCount": 0,
+        "paint": "first-mark",
+        "exceptionName": null,
+        "markCount": 2,
         "toolbar": null,
         "restore": null,
         "wrongSpan": false,
         "ghostRecord": false,
-        "notes": "Range.surroundContents throws; paintRange catches and returns null."
+        "notes": "paintRange wrap returns the first mark; 2 <mark> pieces in one paint group cover “ends.Second”."
       },
       "oracle": {
-        "kind": "surroundContents-throws",
-        "via": "paintRange-returns-null",
+        "kind": "wrap-paints",
+        "via": "paintRange-returns-first-mark",
         "checks": [
           {
             "query": "mark",
-            "count": 0
+            "count": 2
           },
           {
             "fn": "paintRange",
-            "returns": null
+            "returns": "first-mark"
+          },
+          {
+            "joinedMarkText": "ends.Second"
           }
         ]
       },
@@ -1050,9 +1105,9 @@
       "story": "A heading is followed immediately by a body paragraph. The user highlights from the last word of the heading into the first word of the body.",
       "selectHow": "from “words” in the <h2> into “Body” in the following <p>",
       "selectionAnnotated": "<h2>Title ⟦words</h2><p>Body⟧ words</p>",
-      "expectHuman": "surroundContents throws / paintRange returns null; heading and paragraph are each partially contained.",
+      "expectHuman": "wrap paints; 2 <mark> pieces cover “wordsBody”.",
       "repro": "1. Load heading + paragraph. 2. Drag from “words” into “Body”. 3. paintRange returns null.",
-      "why_breaks": "Heading and paragraph are each partially contained.",
+      "why_breaks": "Was a surroundContents reject (partial boundary). Wrap now paints the intersecting text nodes.",
       "html": "<h2>Title words</h2><p>Body words</p>",
       "load": "container-innerHTML",
       "selection": {
@@ -1081,26 +1136,29 @@
         "paint"
       ],
       "expect": {
-        "paint": "null",
-        "exceptionName": "InvalidStateError",
-        "markCount": 0,
+        "paint": "first-mark",
+        "exceptionName": null,
+        "markCount": 2,
         "toolbar": null,
         "restore": null,
         "wrongSpan": false,
         "ghostRecord": false,
-        "notes": "Range.surroundContents throws; paintRange catches and returns null."
+        "notes": "paintRange wrap returns the first mark; 2 <mark> pieces in one paint group cover “wordsBody”."
       },
       "oracle": {
-        "kind": "surroundContents-throws",
-        "via": "paintRange-returns-null",
+        "kind": "wrap-paints",
+        "via": "paintRange-returns-first-mark",
         "checks": [
           {
             "query": "mark",
-            "count": 0
+            "count": 2
           },
           {
             "fn": "paintRange",
-            "returns": null
+            "returns": "first-mark"
+          },
+          {
+            "joinedMarkText": "wordsBody"
           }
         ]
       },
@@ -1117,9 +1175,9 @@
       "story": "An unordered list has two items. The user drags from the end of “Apple pie” into the start of “Berry tart”.",
       "selectHow": "from “pie” in the first <li> into “Berry” in the next <li>",
       "selectionAnnotated": "<li>Apple ⟦pie</li><li>Berry⟧ tart</li>",
-      "expectHuman": "surroundContents throws / paintRange returns null; list items are blocks and each is only partially contained.",
+      "expectHuman": "wrap paints; 2 <mark> pieces cover “pieBerry”.",
       "repro": "1. Load the <ul>. 2. Drag from “pie” into “Berry”. 3. paintRange returns null.",
-      "why_breaks": "List items are blocks. surroundContents cannot wrap a range that ends in a sibling <li>.",
+      "why_breaks": "Was a surroundContents reject (partial boundary). Wrap now paints the intersecting text nodes.",
       "html": "<ul><li>Apple pie</li><li>Berry tart</li></ul>",
       "load": "container-innerHTML",
       "selection": {
@@ -1150,26 +1208,29 @@
         "paint"
       ],
       "expect": {
-        "paint": "null",
-        "exceptionName": "InvalidStateError",
-        "markCount": 0,
+        "paint": "first-mark",
+        "exceptionName": null,
+        "markCount": 2,
         "toolbar": null,
         "restore": null,
         "wrongSpan": false,
         "ghostRecord": false,
-        "notes": "Range.surroundContents throws; paintRange catches and returns null."
+        "notes": "paintRange wrap returns the first mark; 2 <mark> pieces in one paint group cover “pieBerry”."
       },
       "oracle": {
-        "kind": "surroundContents-throws",
-        "via": "paintRange-returns-null",
+        "kind": "wrap-paints",
+        "via": "paintRange-returns-first-mark",
         "checks": [
           {
             "query": "mark",
-            "count": 0
+            "count": 2
           },
           {
             "fn": "paintRange",
-            "returns": null
+            "returns": "first-mark"
+          },
+          {
+            "joinedMarkText": "pieBerry"
           }
         ]
       },
@@ -1187,9 +1248,9 @@
       "story": "An ordered list has two items. Same cross-item drag as the unordered list.",
       "selectHow": "from “item” in the first <li> into “Two” in the next <li>",
       "selectionAnnotated": "<li>One ⟦item</li><li>Two⟧ item</li>",
-      "expectHuman": "surroundContents throws / paintRange returns null; sibling <li>s cannot share one surroundContents wrap.",
+      "expectHuman": "wrap paints; 2 <mark> pieces cover “itemTwo”.",
       "repro": "1. Load the <ol>. 2. Drag from “item” into “Two”. 3. paintRange returns null.",
-      "why_breaks": "Same partial-boundary reject as A16 on an ordered list.",
+      "why_breaks": "Was a surroundContents reject (partial boundary). Wrap now paints the intersecting text nodes.",
       "html": "<ol><li>One item</li><li>Two item</li></ol>",
       "load": "container-innerHTML",
       "selection": {
@@ -1220,26 +1281,29 @@
         "paint"
       ],
       "expect": {
-        "paint": "null",
-        "exceptionName": "InvalidStateError",
-        "markCount": 0,
+        "paint": "first-mark",
+        "exceptionName": null,
+        "markCount": 2,
         "toolbar": null,
         "restore": null,
         "wrongSpan": false,
         "ghostRecord": false,
-        "notes": "Range.surroundContents throws; paintRange catches and returns null."
+        "notes": "paintRange wrap returns the first mark; 2 <mark> pieces in one paint group cover “itemTwo”."
       },
       "oracle": {
-        "kind": "surroundContents-throws",
-        "via": "paintRange-returns-null",
+        "kind": "wrap-paints",
+        "via": "paintRange-returns-first-mark",
         "checks": [
           {
             "query": "mark",
-            "count": 0
+            "count": 2
           },
           {
             "fn": "paintRange",
-            "returns": null
+            "returns": "first-mark"
+          },
+          {
+            "joinedMarkText": "itemTwo"
           }
         ]
       },
@@ -1257,9 +1321,9 @@
       "story": "A definition list pairs a term with a definition. The user highlights from the end of the <dt> into the start of the <dd>.",
       "selectHow": "from “here” in the <dt> into “Definition” in the <dd>",
       "selectionAnnotated": "<dt>Term ⟦here</dt><dd>Definition⟧ text</dd>",
-      "expectHuman": "surroundContents throws / paintRange returns null. Mouseup would also miss p|li|h* on a <dt>/<dd>.",
+      "expectHuman": "wrap paints; 2 <mark> pieces cover “hereDefinition”.",
       "repro": "1. Load the <dl>. 2. Drag from “here” into “Definition”. 3. paintRange returns null.",
-      "why_breaks": "Definition lists are not p|li|h*, so the product mouseup also refuses. Paint still rejects if driven directly.",
+      "why_breaks": "Was a surroundContents reject (partial boundary). Wrap now paints the intersecting text nodes.",
       "html": "<dl><dt>Term here</dt><dd>Definition text</dd></dl>",
       "load": "container-innerHTML",
       "selection": {
@@ -1290,26 +1354,29 @@
         "paint"
       ],
       "expect": {
-        "paint": "null",
-        "exceptionName": "InvalidStateError",
-        "markCount": 0,
+        "paint": "first-mark",
+        "exceptionName": null,
+        "markCount": 2,
         "toolbar": null,
         "restore": null,
         "wrongSpan": false,
         "ghostRecord": false,
-        "notes": "Range.surroundContents throws; paintRange catches and returns null."
+        "notes": "paintRange wrap returns the first mark; 2 <mark> pieces in one paint group cover “hereDefinition”."
       },
       "oracle": {
-        "kind": "surroundContents-throws",
-        "via": "paintRange-returns-null",
+        "kind": "wrap-paints",
+        "via": "paintRange-returns-first-mark",
         "checks": [
           {
             "query": "mark",
-            "count": 0
+            "count": 2
           },
           {
             "fn": "paintRange",
-            "returns": null
+            "returns": "first-mark"
+          },
+          {
+            "joinedMarkText": "hereDefinition"
           }
         ]
       },
@@ -1327,9 +1394,9 @@
       "story": "One table row has two cells. The user tries to highlight from the end of the left cell into the start of the right cell.",
       "selectHow": "from “cell” in the first <td> into “right” in the sibling <td>",
       "selectionAnnotated": "<td>left ⟦cell</td><td>right⟧ cell</td>",
-      "expectHuman": "surroundContents throws / paintRange returns null; each <td> is only partially contained.",
+      "expectHuman": "wrap paints; 2 <mark> pieces cover “cellright”.",
       "repro": "1. Load the two-cell row. 2. Drag from “cell” into “right”. 3. paintRange returns null.",
-      "why_breaks": "Explicit <tbody> so child-node paths stay stable. Each <td> is partially contained.",
+      "why_breaks": "Was a surroundContents reject (partial boundary). Wrap now paints the intersecting text nodes.",
       "html": "<table><tbody><tr><td>left cell</td><td>right cell</td></tr></tbody></table>",
       "load": "container-innerHTML",
       "selection": {
@@ -1364,26 +1431,29 @@
         "paint"
       ],
       "expect": {
-        "paint": "null",
-        "exceptionName": "InvalidStateError",
-        "markCount": 0,
+        "paint": "first-mark",
+        "exceptionName": null,
+        "markCount": 2,
         "toolbar": null,
         "restore": null,
         "wrongSpan": false,
         "ghostRecord": false,
-        "notes": "Range.surroundContents throws; paintRange catches and returns null."
+        "notes": "paintRange wrap returns the first mark; 2 <mark> pieces in one paint group cover “cellright”."
       },
       "oracle": {
-        "kind": "surroundContents-throws",
-        "via": "paintRange-returns-null",
+        "kind": "wrap-paints",
+        "via": "paintRange-returns-first-mark",
         "checks": [
           {
             "query": "mark",
-            "count": 0
+            "count": 2
           },
           {
             "fn": "paintRange",
-            "returns": null
+            "returns": "first-mark"
+          },
+          {
+            "joinedMarkText": "cellright"
           }
         ]
       },
@@ -1401,9 +1471,9 @@
       "story": "A two-row table. The user highlights from the first row’s cell into the second row’s cell.",
       "selectHow": "from the last two characters of “r1c1” into the first two of “r2c1”",
       "selectionAnnotated": "<tr><td>r1⟦c1</td></tr><tr><td>r2⟧c1</td></tr>",
-      "expectHuman": "surroundContents throws / paintRange returns null; rows and cells are partially contained.",
+      "expectHuman": "wrap paints; 2 <mark> pieces cover “c1r2”.",
       "repro": "1. Load the two-row table. 2. Drag from “c1” in row 1 into “r2” in row 2. 3. paintRange returns null.",
-      "why_breaks": "Range starts in r1 and ends in r2. Rows and cells are partially contained.",
+      "why_breaks": "Was a surroundContents reject (partial boundary). Wrap now paints the intersecting text nodes.",
       "html": "<table><tbody><tr><td>r1c1</td></tr><tr><td>r2c1</td></tr></tbody></table>",
       "load": "container-innerHTML",
       "selection": {
@@ -1438,26 +1508,29 @@
         "paint"
       ],
       "expect": {
-        "paint": "null",
-        "exceptionName": "InvalidStateError",
-        "markCount": 0,
+        "paint": "first-mark",
+        "exceptionName": null,
+        "markCount": 2,
         "toolbar": null,
         "restore": null,
         "wrongSpan": false,
         "ghostRecord": false,
-        "notes": "Range.surroundContents throws; paintRange catches and returns null."
+        "notes": "paintRange wrap returns the first mark; 2 <mark> pieces in one paint group cover “c1r2”."
       },
       "oracle": {
-        "kind": "surroundContents-throws",
-        "via": "paintRange-returns-null",
+        "kind": "wrap-paints",
+        "via": "paintRange-returns-first-mark",
         "checks": [
           {
             "query": "mark",
-            "count": 0
+            "count": 2
           },
           {
             "fn": "paintRange",
-            "returns": null
+            "returns": "first-mark"
+          },
+          {
+            "joinedMarkText": "c1r2"
           }
         ]
       },
@@ -1475,9 +1548,9 @@
       "story": "A header cell sits beside a data cell in the same row. The user drags from inside the <th> into the <td>.",
       "selectHow": "from the last two letters of “Head” into the first two of “Data”",
       "selectionAnnotated": "<th>He⟦ad</th><td>Da⟧ta</td>",
-      "expectHuman": "surroundContents throws / paintRange returns null; <th> and <td> are each partially contained.",
+      "expectHuman": "wrap paints; 2 <mark> pieces cover “adDa”.",
       "repro": "1. Load the header+data row. 2. Drag from “ad” into “Da”. 3. paintRange returns null.",
-      "why_breaks": "Header cell to data cell — still a partial-boundary reject.",
+      "why_breaks": "Was a surroundContents reject (partial boundary). Wrap now paints the intersecting text nodes.",
       "html": "<table><tbody><tr><th>Head</th><td>Data</td></tr></tbody></table>",
       "load": "container-innerHTML",
       "selection": {
@@ -1512,26 +1585,29 @@
         "paint"
       ],
       "expect": {
-        "paint": "null",
-        "exceptionName": "InvalidStateError",
-        "markCount": 0,
+        "paint": "first-mark",
+        "exceptionName": null,
+        "markCount": 2,
         "toolbar": null,
         "restore": null,
         "wrongSpan": false,
         "ghostRecord": false,
-        "notes": "Range.surroundContents throws; paintRange catches and returns null."
+        "notes": "paintRange wrap returns the first mark; 2 <mark> pieces in one paint group cover “adDa”."
       },
       "oracle": {
-        "kind": "surroundContents-throws",
-        "via": "paintRange-returns-null",
+        "kind": "wrap-paints",
+        "via": "paintRange-returns-first-mark",
         "checks": [
           {
             "query": "mark",
-            "count": 0
+            "count": 2
           },
           {
             "fn": "paintRange",
-            "returns": null
+            "returns": "first-mark"
+          },
+          {
+            "joinedMarkText": "adDa"
           }
         ]
       },
@@ -1549,9 +1625,9 @@
       "story": "A table has a caption and a body cell. The user highlights from the end of the caption into the start of the cell.",
       "selectHow": "from “text” in <caption> into “Body” in the first <td>",
       "selectionAnnotated": "<caption>Cap ⟦text</caption> … <td>Body⟧ cell</td>",
-      "expectHuman": "surroundContents throws / paintRange returns null; caption and cell live in different table sections.",
+      "expectHuman": "wrap paints; 2 <mark> pieces cover “textBody”.",
       "repro": "1. Load caption + tbody. 2. Drag from “text” into “Body”. 3. paintRange returns null.",
-      "why_breaks": "<caption> and <td> live in different table sections; the range partially contains both.",
+      "why_breaks": "Was a surroundContents reject (partial boundary). Wrap now paints the intersecting text nodes.",
       "html": "<table><caption>Cap text</caption><tbody><tr><td>Body cell</td></tr></tbody></table>",
       "load": "container-innerHTML",
       "selection": {
@@ -1584,26 +1660,29 @@
         "paint"
       ],
       "expect": {
-        "paint": "null",
-        "exceptionName": "InvalidStateError",
-        "markCount": 0,
+        "paint": "first-mark",
+        "exceptionName": null,
+        "markCount": 2,
         "toolbar": null,
         "restore": null,
         "wrongSpan": false,
         "ghostRecord": false,
-        "notes": "Range.surroundContents throws; paintRange catches and returns null."
+        "notes": "paintRange wrap returns the first mark; 2 <mark> pieces in one paint group cover “textBody”."
       },
       "oracle": {
-        "kind": "surroundContents-throws",
-        "via": "paintRange-returns-null",
+        "kind": "wrap-paints",
+        "via": "paintRange-returns-first-mark",
         "checks": [
           {
             "query": "mark",
-            "count": 0
+            "count": 2
           },
           {
             "fn": "paintRange",
-            "returns": null
+            "returns": "first-mark"
+          },
+          {
+            "joinedMarkText": "textBody"
           }
         ]
       },
@@ -1620,9 +1699,9 @@
       "story": "A blockquote is followed by a reply paragraph. The user highlights from the end of the quote into the start of the reply.",
       "selectHow": "from “line” in the <blockquote> into “Reply” in the following <p>",
       "selectionAnnotated": "<blockquote>Quoted ⟦line</blockquote><p>Reply⟧ line</p>",
-      "expectHuman": "surroundContents throws / paintRange returns null. Mouseup on the quote side also misses p|li|h*.",
+      "expectHuman": "wrap paints; 2 <mark> pieces cover “lineReply”.",
       "repro": "1. Load quote + paragraph. 2. Drag from “line” into “Reply”. 3. paintRange returns null.",
-      "why_breaks": "Cross-block. Mouseup on the blockquote side also misses p|li|h* if the range's closest() is the quote.",
+      "why_breaks": "Was a surroundContents reject (partial boundary). Wrap now paints the intersecting text nodes.",
       "html": "<blockquote>Quoted line</blockquote><p>Reply line</p>",
       "load": "container-innerHTML",
       "selection": {
@@ -1651,26 +1730,29 @@
         "paint"
       ],
       "expect": {
-        "paint": "null",
-        "exceptionName": "InvalidStateError",
-        "markCount": 0,
+        "paint": "first-mark",
+        "exceptionName": null,
+        "markCount": 2,
         "toolbar": null,
         "restore": null,
         "wrongSpan": false,
         "ghostRecord": false,
-        "notes": "Range.surroundContents throws; paintRange catches and returns null."
+        "notes": "paintRange wrap returns the first mark; 2 <mark> pieces in one paint group cover “lineReply”."
       },
       "oracle": {
-        "kind": "surroundContents-throws",
-        "via": "paintRange-returns-null",
+        "kind": "wrap-paints",
+        "via": "paintRange-returns-first-mark",
         "checks": [
           {
             "query": "mark",
-            "count": 0
+            "count": 2
           },
           {
             "fn": "paintRange",
-            "returns": null
+            "returns": "first-mark"
+          },
+          {
+            "joinedMarkText": "lineReply"
           }
         ]
       },
@@ -1687,9 +1769,9 @@
       "story": "A <pre> has a <span> in the middle of a code-like line. A same-node pre selection would paint; crossing the span is the reject.",
       "selectHow": "from the last letter of “foo” into the first two letters of spanned “bar”",
       "selectionAnnotated": "fo⟦o <span>ba⟧r</span> baz",
-      "expectHuman": "surroundContents throws / paintRange returns null; the inner <span> is only partially contained.",
+      "expectHuman": "wrap paints; 2 <mark> pieces cover “o ba”.",
       "repro": "1. Load the <pre>. 2. Drag from “o” through “ba”. 3. paintRange returns null.",
-      "why_breaks": "A single text node in <pre> would paint. Crossing the <span> is the reject.",
+      "why_breaks": "Was a surroundContents reject (partial boundary). Wrap now paints the intersecting text nodes.",
       "html": "<pre>foo <span>bar</span> baz</pre>",
       "load": "container-innerHTML",
       "selection": {
@@ -1719,26 +1801,29 @@
         "paint"
       ],
       "expect": {
-        "paint": "null",
-        "exceptionName": "InvalidStateError",
-        "markCount": 0,
+        "paint": "first-mark",
+        "exceptionName": null,
+        "markCount": 2,
         "toolbar": null,
         "restore": null,
         "wrongSpan": false,
         "ghostRecord": false,
-        "notes": "Range.surroundContents throws; paintRange catches and returns null."
+        "notes": "paintRange wrap returns the first mark; 2 <mark> pieces in one paint group cover “o ba”."
       },
       "oracle": {
-        "kind": "surroundContents-throws",
-        "via": "paintRange-returns-null",
+        "kind": "wrap-paints",
+        "via": "paintRange-returns-first-mark",
         "checks": [
           {
             "query": "mark",
-            "count": 0
+            "count": 2
           },
           {
             "fn": "paintRange",
-            "returns": null
+            "returns": "first-mark"
+          },
+          {
+            "joinedMarkText": "o ba"
           }
         ]
       },
@@ -1755,9 +1840,9 @@
       "story": "Ruby annotation: base “東京” with reading “Tōkyō”. The user starts in the base character and ends inside the <rt>.",
       "selectHow": "from the second kanji of the ruby base into the first three letters of the <rt>",
       "selectionAnnotated": "<ruby>東⟦京<rt>Tōk⟧yō</rt></ruby> city",
-      "expectHuman": "surroundContents throws / paintRange returns null; <rt> (and often <ruby>) is only partially contained.",
+      "expectHuman": "wrap paints; 2 <mark> pieces cover “京Tōk”.",
       "repro": "1. Load the ruby snippet. 2. Drag from “京” through “Tōk”. 3. paintRange returns null.",
-      "why_breaks": "Start in the ruby base text conceptually, end in <rt>. After parse, paths are ruby > #text + rt > #text. The <rt> is partially contained if we stop inside it; starting before <ruby> also partially contains <ruby>.",
+      "why_breaks": "Was a surroundContents reject (partial boundary). Wrap now paints the intersecting text nodes.",
       "html": "<p><ruby>東京<rt>Tōkyō</rt></ruby> city</p>",
       "load": "container-innerHTML",
       "selection": {
@@ -1789,26 +1874,29 @@
         "paint"
       ],
       "expect": {
-        "paint": "null",
-        "exceptionName": "InvalidStateError",
-        "markCount": 0,
+        "paint": "first-mark",
+        "exceptionName": null,
+        "markCount": 2,
         "toolbar": null,
         "restore": null,
         "wrongSpan": false,
         "ghostRecord": false,
-        "notes": "Range.surroundContents throws; paintRange catches and returns null."
+        "notes": "paintRange wrap returns the first mark; 2 <mark> pieces in one paint group cover “京Tōk”."
       },
       "oracle": {
-        "kind": "surroundContents-throws",
-        "via": "paintRange-returns-null",
+        "kind": "wrap-paints",
+        "via": "paintRange-returns-first-mark",
         "checks": [
           {
             "query": "mark",
-            "count": 0
+            "count": 2
           },
           {
             "fn": "paintRange",
-            "returns": null
+            "returns": "first-mark"
+          },
+          {
+            "joinedMarkText": "京Tōk"
           }
         ]
       },
@@ -1825,9 +1913,9 @@
       "story": "A formula uses a superscript “2”. The user starts in “mc” and ends inside the <sup>.",
       "selectHow": "from “mc” in the preceding text through the superscript “2”",
       "selectionAnnotated": "E = ⟦mc<sup>2⟧</sup> energy",
-      "expectHuman": "surroundContents throws / paintRange returns null; the <sup> is only partially contained.",
+      "expectHuman": "wrap paints two <mark> pieces covering “c2” (path offset 5 on “E = mc”).",
       "repro": "1. Load the snippet. 2. Drag from “mc” through “2”. 3. paintRange returns null.",
-      "why_breaks": "Range starts in preceding text and ends inside the superscript.",
+      "why_breaks": "Was a surroundContents reject (partial <sup>). Wrap now paints the intersecting text nodes.",
       "html": "<p>E = mc<sup>2</sup> energy</p>",
       "load": "container-innerHTML",
       "selection": {
@@ -1857,26 +1945,29 @@
         "paint"
       ],
       "expect": {
-        "paint": "null",
-        "exceptionName": "InvalidStateError",
-        "markCount": 0,
+        "paint": "first-mark",
+        "exceptionName": null,
+        "markCount": 2,
         "toolbar": null,
         "restore": null,
         "wrongSpan": false,
         "ghostRecord": false,
-        "notes": "Range.surroundContents throws; paintRange catches and returns null."
+        "notes": "Was surroundContents reject. Wrap paints the path/offset range (“c2”); authored selection.quote “mc2” is one unit earlier on the leading text."
       },
       "oracle": {
-        "kind": "surroundContents-throws",
-        "via": "paintRange-returns-null",
+        "kind": "wrap-paints",
+        "via": "paintRange-returns-first-mark",
         "checks": [
           {
             "query": "mark",
-            "count": 0
+            "count": 2
           },
           {
             "fn": "paintRange",
-            "returns": null
+            "returns": "first-mark"
+          },
+          {
+            "joinedMarkText": "c2"
           }
         ]
       },
@@ -1893,9 +1984,9 @@
       "story": "A button labeled “Save now” sits in a sentence. The user starts inside the button label and ends in the following “please”.",
       "selectHow": "from the last syllable of the button label into the following plain text",
       "selectionAnnotated": "click <button>Save ⟦now</button> ple⟧ase",
-      "expectHuman": "surroundContents throws / paintRange returns null; the <button> is only partially contained.",
+      "expectHuman": "wrap paints; 2 <mark> pieces cover “now ple”.",
       "repro": "1. Load the snippet. 2. Drag from “now” through “ple”. 3. paintRange returns null.",
-      "why_breaks": "Start inside button label, end in following text. <button> is partially contained. Nested interactive content is also illegal HTML in other fixtures.",
+      "why_breaks": "Was a surroundContents reject (partial boundary). Wrap now paints the intersecting text nodes.",
       "html": "<p>click <button>Save now</button> please</p>",
       "load": "container-innerHTML",
       "selection": {
@@ -1925,26 +2016,29 @@
         "paint"
       ],
       "expect": {
-        "paint": "null",
-        "exceptionName": "InvalidStateError",
-        "markCount": 0,
+        "paint": "first-mark",
+        "exceptionName": null,
+        "markCount": 2,
         "toolbar": null,
         "restore": null,
         "wrongSpan": false,
         "ghostRecord": false,
-        "notes": "Range.surroundContents throws; paintRange catches and returns null."
+        "notes": "paintRange wrap returns the first mark; 2 <mark> pieces in one paint group cover “now ple”."
       },
       "oracle": {
-        "kind": "surroundContents-throws",
-        "via": "paintRange-returns-null",
+        "kind": "wrap-paints",
+        "via": "paintRange-returns-first-mark",
         "checks": [
           {
             "query": "mark",
-            "count": 0
+            "count": 2
           },
           {
             "fn": "paintRange",
-            "returns": null
+            "returns": "first-mark"
+          },
+          {
+            "joinedMarkText": "now ple"
           }
         ]
       },
@@ -1962,9 +2056,9 @@
       "story": "A label wraps a letter, an <input>, and another letter. The user starts in “name” and stops on the “x” inside the label, before the input.",
       "selectHow": "from the last two letters of “name” into the first text node of the <label>",
       "selectionAnnotated": "na⟦me <label>x⟧<input type=\"text\" value=\"Ada\">y</label> here",
-      "expectHuman": "surroundContents throws / paintRange returns null; the <label> that owns the input is only partially contained.",
+      "expectHuman": "wrap paints; 2 <mark> pieces cover “me x”.",
       "repro": "1. Load the label+input snippet. 2. Drag from “me” through “x”. 3. paintRange returns null.",
-      "why_breaks": "Void form control. Crossing into the <label> rejects; wrapping a range that only covers the input's sibling texts would swallow the control.",
+      "why_breaks": "Was a surroundContents reject (partial boundary). Wrap now paints the intersecting text nodes.",
       "html": "<p>name <label>x<input type=\"text\" value=\"Ada\">y</label> here</p>",
       "load": "container-innerHTML",
       "selection": {
@@ -1994,26 +2088,29 @@
         "paint"
       ],
       "expect": {
-        "paint": "null",
-        "exceptionName": "InvalidStateError",
-        "markCount": 0,
+        "paint": "first-mark",
+        "exceptionName": null,
+        "markCount": 2,
         "toolbar": null,
         "restore": null,
         "wrongSpan": false,
         "ghostRecord": false,
-        "notes": "Range.surroundContents throws; paintRange catches and returns null."
+        "notes": "paintRange wrap returns the first mark; 2 <mark> pieces in one paint group cover “me x”."
       },
       "oracle": {
-        "kind": "surroundContents-throws",
-        "via": "paintRange-returns-null",
+        "kind": "wrap-paints",
+        "via": "paintRange-returns-first-mark",
         "checks": [
           {
             "query": "mark",
-            "count": 0
+            "count": 2
           },
           {
             "fn": "paintRange",
-            "returns": null
+            "returns": "first-mark"
+          },
+          {
+            "joinedMarkText": "me x"
           }
         ]
       },
@@ -2031,9 +2128,9 @@
       "story": "A textarea sits between “note” and italic “after”. The user cannot usefully end inside textarea rawtext, so they start in “note” and end inside the following <em>.",
       "selectHow": "from the last two letters of “note”, across the <textarea>, into italic “aft”",
       "selectionAnnotated": "no⟦te <textarea>hello</textarea> <em>aft⟧er</em>",
-      "expectHuman": "surroundContents throws / paintRange returns null (range skips textarea value and partially contains <em>). Wrapping the textarea itself would also be a product break.",
+      "expectHuman": "wrap paints, including a <mark> around the textarea value; joined wrap text is “te hello aft”.",
       "repro": "1. Load the snippet. 2. Drag from “te” through “aft”. 3. paintRange returns null.",
-      "why_breaks": "Textarea's value is not a child text node of the paragraph flatten in the same way as visible siblings. Range from preceding text to following text fully contains the <textarea> and partially contains the <p>. If the harness sets start/end on the sibling texts, surroundContents may wrap including the textarea (product break) or throw. Prefer end inside a following <em> so the reject is unambiguous.",
+      "why_breaks": "Was a surroundContents reject (range across <textarea> into following <em>). Wrap now paints intersecting text, including the textarea value.",
       "html": "<p>note <textarea>hello</textarea> <em>after</em></p>",
       "load": "container-innerHTML",
       "selection": {
@@ -2063,26 +2160,29 @@
         "paint"
       ],
       "expect": {
-        "paint": "null",
-        "exceptionName": "InvalidStateError",
-        "markCount": 0,
+        "paint": "first-mark",
+        "exceptionName": null,
+        "markCount": 4,
         "toolbar": null,
         "restore": null,
         "wrongSpan": false,
         "ghostRecord": false,
-        "notes": "Range.surroundContents throws; paintRange catches and returns null."
+        "notes": "Was surroundContents reject. Wrap paints four pieces, including the textarea's text node (“hello”). Joined wrap text is “te hello aft”."
       },
       "oracle": {
-        "kind": "surroundContents-throws",
-        "via": "paintRange-returns-null",
+        "kind": "wrap-paints",
+        "via": "paintRange-returns-first-mark",
         "checks": [
           {
             "query": "mark",
-            "count": 0
+            "count": 4
           },
           {
             "fn": "paintRange",
-            "returns": null
+            "returns": "first-mark"
+          },
+          {
+            "joinedMarkText": "te hello aft"
           }
         ]
       },
@@ -2100,9 +2200,9 @@
       "story": "A <select> with options sits in a sentence. The user starts in “pick” and tries to end inside the first option’s text.",
       "selectHow": "from the last two letters of “pick” into the first two letters of option “One”",
       "selectionAnnotated": "pi⟦ck <select><option>On⟧e</option>…</select> ok",
-      "expectHuman": "surroundContents throws / paintRange returns null; the <select> is only partially contained. If the UA hides option text, ending after the select and wrapping it is also a break.",
+      "expectHuman": "wrap paints; 2 <mark> pieces cover “ck On”.",
       "repro": "1. Load the snippet. 2. Drag from “ck” toward “On” (or through the select). 3. paintRange returns null or would swallow the control.",
-      "why_breaks": "Start in preceding text, end inside the first option's text if the UA exposes it; otherwise end in following text and treat wrapping the <select> as a break. Path assumes option text is [0,1,0,0] after parse (select > option > #text).",
+      "why_breaks": "Was a surroundContents reject (partial boundary). Wrap now paints the intersecting text nodes.",
       "html": "<p>pick <select><option>One</option><option>Two</option></select> ok</p>",
       "load": "container-innerHTML",
       "selection": {
@@ -2133,26 +2233,29 @@
         "paint"
       ],
       "expect": {
-        "paint": "null",
-        "exceptionName": "InvalidStateError",
-        "markCount": 0,
+        "paint": "first-mark",
+        "exceptionName": null,
+        "markCount": 2,
         "toolbar": null,
         "restore": null,
         "wrongSpan": false,
         "ghostRecord": false,
-        "notes": "Range.surroundContents throws; paintRange catches and returns null."
+        "notes": "paintRange wrap returns the first mark; 2 <mark> pieces in one paint group cover “ck On”."
       },
       "oracle": {
-        "kind": "surroundContents-throws",
-        "via": "paintRange-returns-null",
+        "kind": "wrap-paints",
+        "via": "paintRange-returns-first-mark",
         "checks": [
           {
             "query": "mark",
-            "count": 0
+            "count": 2
           },
           {
             "fn": "paintRange",
-            "returns": null
+            "returns": "first-mark"
+          },
+          {
+            "joinedMarkText": "ck On"
           }
         ]
       },
@@ -2309,9 +2412,9 @@
       "story": "Two visible paragraphs have a <script> between them. The user highlights from the end of “visible” into the start of “after”.",
       "selectHow": "from “ible” in the first <p>, across the <script>, into “aft” of the second <p>",
       "selectionAnnotated": "<p>vis⟦ible</p><script>…</script><p>aft⟧er</p>",
-      "expectHuman": "surroundContents throws / paintRange returns null; each <p> is partially contained. flattenText skips SCRIPT, so a later restore of “visibleafter” would be a concat false-positive.",
+      "expectHuman": "wrap paints the visible slices “ibleaft” and skips the <script> text node.",
       "repro": "1. Load the two paragraphs + script. 2. Drag from “ible” into “aft”. 3. paintRange returns null.",
-      "why_breaks": "flattenText skips SCRIPT. A live range from first <p> to second still partially contains each <p> (and fully contains the script element). Paint rejects. Restore of quote 'visibleafter' would be a flatten concatenation false-positive if someone joined without a boundary.",
+      "why_breaks": "Was a surroundContents reject (cross-<p> through <script>). Wrap now paints the visible text nodes and skips SCRIPT.",
       "html": "<p>visible</p><script>var hidden = \"no\";</script><p>after</p>",
       "load": "container-innerHTML",
       "selection": {
@@ -2340,26 +2443,29 @@
         "paint"
       ],
       "expect": {
-        "paint": "null",
-        "exceptionName": "InvalidStateError",
-        "markCount": 0,
+        "paint": "first-mark",
+        "exceptionName": null,
+        "markCount": 2,
         "toolbar": null,
         "restore": null,
         "wrongSpan": false,
         "ghostRecord": false,
-        "notes": "Range.surroundContents throws; paintRange catches and returns null."
+        "notes": "Was surroundContents reject. Wrap skips SCRIPT text; joined mark text is the visible selected slices (“ibleaft”), not range.toString() and not flatten concat."
       },
       "oracle": {
-        "kind": "surroundContents-throws",
-        "via": "paintRange-returns-null",
+        "kind": "wrap-paints",
+        "via": "paintRange-returns-first-mark",
         "checks": [
           {
             "query": "mark",
-            "count": 0
+            "count": 2
           },
           {
             "fn": "paintRange",
-            "returns": null
+            "returns": "first-mark"
+          },
+          {
+            "joinedMarkText": "ibleaft"
           }
         ]
       },
@@ -2376,9 +2482,9 @@
       "story": "Same shape as the script row, but a <style> block sits between two paragraphs.",
       "selectHow": "from “ore” in “before”, across the <style>, into “aft” of the next <p>",
       "selectionAnnotated": "<p>bef⟦ore</p><style>…</style><p>aft⟧er</p>",
-      "expectHuman": "surroundContents throws / paintRange returns null; the paint reject is the cross-<p> range (style text is already excluded from flatten).",
+      "expectHuman": "wrap paints the visible slices “oreaft” and skips the <style> text node.",
       "repro": "1. Load the two paragraphs + style. 2. Drag from “ore” into “aft”. 3. paintRange returns null.",
-      "why_breaks": "Same as A33 for STYLE. flattenText already excludes style text; the paint reject is the cross-<p> range.",
+      "why_breaks": "Was a surroundContents reject (cross-<p> through <style>). Wrap now paints the visible text nodes and skips STYLE.",
       "html": "<p>before</p><style>.x{color:red}</style><p>after</p>",
       "load": "container-innerHTML",
       "selection": {
@@ -2407,26 +2513,29 @@
         "paint"
       ],
       "expect": {
-        "paint": "null",
-        "exceptionName": "InvalidStateError",
-        "markCount": 0,
+        "paint": "first-mark",
+        "exceptionName": null,
+        "markCount": 2,
         "toolbar": null,
         "restore": null,
         "wrongSpan": false,
         "ghostRecord": false,
-        "notes": "Range.surroundContents throws; paintRange catches and returns null."
+        "notes": "Was surroundContents reject. Wrap skips STYLE text; joined mark text is the visible selected slices (“oreaft”)."
       },
       "oracle": {
-        "kind": "surroundContents-throws",
-        "via": "paintRange-returns-null",
+        "kind": "wrap-paints",
+        "via": "paintRange-returns-first-mark",
         "checks": [
           {
             "query": "mark",
-            "count": 0
+            "count": 2
           },
           {
             "fn": "paintRange",
-            "returns": null
+            "returns": "first-mark"
+          },
+          {
+            "joinedMarkText": "oreaft"
           }
         ]
       },
@@ -2579,9 +2688,9 @@
       "story": "A family-emoji ZWJ cluster sits inside <em>. The user starts in “family” and ends at a mid-cluster UTF-16 offset inside the emoji (after the first person glyph).",
       "selectHow": "from the last syllable of “family” into the middle of the ZWJ emoji (offset 2, after 👨)",
       "selectionAnnotated": "fami⟦ly <em>👨⟧‍👩‍👧‍👦</em> photo",
-      "expectHuman": "surroundContents throws / paintRange returns null; the <em> is only partially contained. Do not assert an exact quote — UAs differ on ZWJ toString(). A successful mid-cluster wrap would also split the grapheme.",
+      "expectHuman": "wrap paints the UTF-16 slice “ly 👨” and splits the ZWJ grapheme; no surroundContents reject.",
       "repro": "1. Load the snippet. 2. Set a range from “ly” to UTF-16 offset 2 inside the emoji. 3. paintRange returns null; no <mark> splits the cluster.",
-      "why_breaks": "👨‍👩‍👧‍👦 is multiple UTF-16 units joined by ZWJ. Start in preceding text, end at a mid-cluster offset inside <em>. Partial <em> rejects; a same-node mid-ZWJ split would also produce a broken grapheme if paint ever succeeded.",
+      "why_breaks": "Was a surroundContents reject (partial <em> around a ZWJ cluster). Wrap now paints; the remaining issue is a mid-cluster grapheme split.",
       "html": "<p>family <em>👨‍👩‍👧‍👦</em> photo</p>",
       "load": "container-innerHTML",
       "selection": {
@@ -2611,26 +2720,29 @@
         "paint"
       ],
       "expect": {
-        "paint": "null",
-        "exceptionName": "InvalidStateError",
-        "markCount": 0,
+        "paint": "first-mark",
+        "exceptionName": null,
+        "markCount": 2,
         "toolbar": null,
         "restore": null,
         "wrongSpan": false,
         "ghostRecord": false,
-        "notes": "Range.surroundContents throws; paintRange catches and returns null."
+        "notes": "Was surroundContents reject. Wrap paints the selected UTF-16 slice and splits the ZWJ emoji cluster at the mid-cluster offset."
       },
       "oracle": {
-        "kind": "surroundContents-throws",
-        "via": "paintRange-returns-null",
+        "kind": "wrap-paints",
+        "via": "paintRange-returns-first-mark",
         "checks": [
           {
             "query": "mark",
-            "count": 0
+            "count": 2
           },
           {
             "fn": "paintRange",
-            "returns": null
+            "returns": "first-mark"
+          },
+          {
+            "joinedMarkText": "ly 👨"
           }
         ]
       },
