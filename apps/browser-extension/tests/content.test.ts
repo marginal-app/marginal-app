@@ -136,6 +136,91 @@ describe('resolveAndPaint', () => {
     expect(document.querySelectorAll('mark')).toHaveLength(2);
   });
 
+  it('collapses extra spaces and NBSP when matching a stored quote', () => {
+    document.body.innerHTML = '<p>hello  world again</p>';
+    {
+      const { text, spans } = flattenText(document.body);
+      const mark = resolveAndPaint(
+        makeRecord({ quote: 'hello world', prefix: '', suffix: 'again' }),
+        spans,
+        text,
+      );
+      expect(mark).not.toBeNull();
+      expect(mark?.textContent).toBe('hello  world');
+    }
+
+    document.body.innerHTML = '<p>hello&nbsp;world again</p>';
+    const { text, spans } = flattenText(document.body);
+    const mark = resolveAndPaint(
+      makeRecord({ quote: 'hello world', prefix: '', suffix: 'again' }),
+      spans,
+      text,
+    );
+    expect(mark).not.toBeNull();
+    expect(mark?.textContent).toBe('hello\u00a0world');
+  });
+
+  it('prefers a word-bounded quote over an earlier substring hit', () => {
+    document.body.innerHTML = '<p>caterpillar and a cat sat</p>';
+    const { text, spans } = flattenText(document.body);
+    const mark = resolveAndPaint(
+      makeRecord({ quote: 'cat', prefix: 'GONE', suffix: 'GONE' }),
+      spans,
+      text,
+    );
+    expect(mark).not.toBeNull();
+    expect(mark?.textContent).toBe('cat');
+    expect(mark?.parentElement?.textContent).toBe('caterpillar and a cat sat');
+    expect(mark?.previousSibling?.textContent).toContain('and a ');
+  });
+
+  it('returns null for empty quotes, missing quotes, and ambiguous duplicates', () => {
+    document.body.innerHTML = '<p>Some visible text.</p>';
+    {
+      const { text, spans } = flattenText(document.body);
+      expect(
+        resolveAndPaint(
+          makeRecord({ quote: '', prefix: 'Some', suffix: 'text' }),
+          spans,
+          text,
+        ),
+      ).toBeNull();
+    }
+
+    document.body.innerHTML = '<p>shift left then shift right</p>';
+    {
+      const { text, spans } = flattenText(document.body);
+      expect(
+        resolveAndPaint(
+          makeRecord({ quote: 'shift', prefix: 'GONE', suffix: 'AWAY' }),
+          spans,
+          text,
+        ),
+      ).toBeNull();
+      expect(document.querySelectorAll('mark')).toHaveLength(0);
+    }
+
+    document.body.innerHTML = '<p>un</p><p>ion</p>';
+    const { text, spans } = flattenText(document.body);
+    expect(text).toBe('union');
+    expect(
+      resolveAndPaint(makeRecord({ quote: 'union' }), spans, text),
+    ).toBeNull();
+    expect(document.querySelectorAll('mark')).toHaveLength(0);
+  });
+
+  it('ignores soft hyphens when matching a stored quote', () => {
+    document.body.innerHTML = '<p>look af&shy;ter that</p>';
+    const { text, spans } = flattenText(document.body);
+    const mark = resolveAndPaint(
+      makeRecord({ quote: 'after', prefix: 'look', suffix: 'that' }),
+      spans,
+      text,
+    );
+    expect(mark).not.toBeNull();
+    expect(mark?.textContent?.replace(/\u00ad/g, '')).toBe('after');
+  });
+
   it('restores a cross-inline quote via wrap after flatten is recomputed', () => {
     document.body.innerHTML = '<p>See <strong>bold text</strong> now later</p>';
 
