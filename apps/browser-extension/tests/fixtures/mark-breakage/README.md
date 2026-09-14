@@ -2,7 +2,7 @@
 
 Phase 1 is **break-only counterexamples** (`schemaVersion` 2).
 
-Every row in `phase1-break-fixtures.json` is a case the current content script is expected to lose: `Range.surroundContents` reject, stale flatten after a live split, HTML-parser recovery that moves nodes, restore that returns null or paints the wrong span, or a mouseup path that never reaches `paintRange`.
+Every row in `phase1-break-fixtures.json` started as a case the content script was expected to lose. Steps 2–4 run A (wrap paint), D (scored restore), B (live product path), C (recovered-tree paint), and E (toolbar + persist guard). `schemaVersion` stays 2.
 
 Happy paths (single text node inside `p | li | h*`, unique `prefix+quote+suffix` restore, fresh `flattenText` per record) are **deferred**. Do not add them here.
 

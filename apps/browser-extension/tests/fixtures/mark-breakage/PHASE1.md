@@ -1,6 +1,12 @@
 # Phase 1 — mark-breakage fixtures (break-only)
 
-`phase1-break-fixtures.json` is the committed source of truth (`schemaVersion` 2). This note is the reading guide. It does not implement a harness.
+`phase1-break-fixtures.json` is the committed source of truth (`schemaVersion` 2). This note is the reading guide.
+
+**Step 2:** `tests/mark-breakage-a-reject-paint.test.ts` executes every jsdom-capable `A_reject` row against current wrap `paintRange`. A-family `expect` / `oracle` / `expectHuman` / `why_breaks` are live for those rows. `browserOnly` and unsupported `load` values are skipped (no Playwright in this step). Schema smoke in `mark-breakage-fixtures.test.ts` is unchanged.
+
+**Step 3:** `tests/mark-breakage-d-restore.test.ts` executes all 10 `D_restore_orphan` rows against `resolveAndPaint` (fresh flatten per record). Restore matching folds whitespace/NBSP/soft hyphen, scores prefix/suffix + word-boundary, refuses cross-block flatten concats and ambiguous duplicates. D `expect` / `oracle` fields are live.
+
+**Step 4:** B / C / E harnesses on the product path. B uses fresh flatten (the live content-script loop). C paints the recovered jsdom tree and does not invent authored paths. E expands toolbar blocks and refuses `SAVE_HIGHLIGHT` when paint returns null.
 
 ## Human fields (read these first)
 
@@ -11,7 +17,7 @@ Machine paths (`selection.start.path`, UTF-16 offsets) are not a founder-readabl
 | `story` | 2–3 sentences: what is on the page, and what the user (or a restore) tries to do. |
 | `selectHow` | Plain language of the drag (“from the last syllable of the bold run into the following plain text”). Restore-only rows start with `no mouse; restore looks for …`. |
 | `selectionAnnotated` | A **short** HTML or text snippet of the relevant region with visible markers (below). |
-| `expectHuman` | Plain-language failure (“surroundContents throws / paintRange returns null; no mark”). |
+| `expectHuman` | Plain-language outcome (wrap paint, or a remaining reject). |
 | `repro` | Three short steps to reproduce in DevTools or mentally. |
 
 ### `⟦` `⟧` and `‹` `›` convention
@@ -34,27 +40,27 @@ A row that has a `selection` must show a clear `⟦`…`⟧` pair. A restore-onl
 
 ## Policy
 
-Phase 1 **maximizes counterexamples**. A fixture belongs here only if today's implementation loses:
+Phase 1 **maximizes counterexamples**. Rows were added because today's implementation lost on:
 
-- `paintRange` uses `range.surroundContents(mark)` and returns `null` on `InvalidStateError`
+- `paintRange` used `range.surroundContents(mark)` and returned `null` on `InvalidStateError` (A; Step 2 now records wrap outcomes instead of deleting the rows)
 - `flattenText` / `resolveOffset` go stale after a paint splits text nodes
-- `resolveAndPaint` uses `indexOf` (first match, then quote-only fallback)
+- `resolveAndPaint` used first `indexOf` (D; Step 3 now scores occurrences instead of deleting the rows)
 - mouseup requires `closest('p, li, h1, h2, h3, h4, h5, h6')`
 - `savePendingHighlight` still sends `SAVE_HIGHLIGHT` when paint returned `null`
 
-Happy-path coverage is a later pack. Do not mix “this should paint” rows into this JSON.
+Happy-path coverage is a later pack. Do not add fresh single-text-node-in-`p` rows here.
 
-Product `paintRange` now wraps intersecting text nodes (`splitText` + one `<mark>` per segment, grouped by `data-paint-group`) and does not use `surroundContents` for success. This pack remains a counterexample catalog for the **old surroundContents** failure modes, restore orphans, and product sequences — not a live regression suite against current paint. Do not delete fixtures or rewrite `expect` rows to “pass.”
+Product `paintRange` wraps intersecting text nodes (`splitText` + one `<mark>` per segment, grouped by `data-paint-group`) and does not use `surroundContents` on the success path. Steps 2–4 refreshed **A / D / B / C / E** `expect` / `oracle` against that wrap, scored restore, and the small mouseup/SAVE guards. Do not delete fixtures.
 
 ## Families
 
 | Family | Count | What it attacks |
 | --- | --- | --- |
-| `A_reject` | 38 | `surroundContents` rejection / partial boundaries (cross-inline, blocks, lists, headings, tables, existing marks, voids, svg/math, form controls, script/style, unicode/ZWJ/bidi, iframe, contenteditable, shadow) |
-| `B_live_split` | 14 | Live DOM after a successful mark: stale flatten, overlaps, innerHTML roundtrip, double restore, `normalize`, mutations |
-| `C_parser_x` | 22 | Dirty HTML. Parser recovery (adoption agency, foster parenting, nested `a`/`button`/`form`, `p` closed by `div`/`ul`) so authored paths and flatten intersections are wrong |
-| `D_restore_orphan` | 10 | `resolveAndPaint` returns `null` or paints the wrong span (missing quote, duplicates, flatten concatenation, NBSP, substring, script-only, empty quote, soft hyphen) |
-| `E_sequence` | 5 | Product-path divergences: mouseup without `p\|li\|h*`, and toolbar-shown + ghost `SAVE_HIGHLIGHT` |
+| `A_reject` | 38 | Partial-boundary selections that used to reject `surroundContents`. After wrap, jsdom-capable rows paint; `expect` records mark count + joined wrap text. `browserOnly` rows stay skipped. |
+| `B_live_split` | 14 | Live DOM after a mark. Step 4 product path: **14 ok / 0 fail / 0 skip** (fresh flatten, idempotent restore, occurrence-aware extractContext). |
+| `C_parser_x` | 22 | Dirty HTML on the recovered tree. Step 4: **13 paint/restore-ok, 1 correct-null (C07), 5 path-unusable skip, 3 browserOnly**. |
+| `D_restore_orphan` | 10 | Restore via quote/prefix/suffix. Step 3: 5 paint the intended span (D04–D06, D08, D10); 5 stay correct-null (true orphan, ambiguous duplicate, cross-block concat, script-only, empty quote). No wrong-span rows. |
+| `E_sequence` | 5 | Toolbar + persist. Step 4: **5 toolbar-shown + paint; 0 ghost SAVE**. Blocks include div/td/blockquote/figcaption; SAVE only if a mark exists. |
 
 Total: **89**. Counts also live on `meta.families`.
 
@@ -109,28 +115,36 @@ Optional sibling fields (not required by the schema smoke test): `parserRecovery
 - Tables in `A_*` include an explicit `<tbody>`. `C_*` foster cases do **not** — re-read `innerHTML` / `childNodes` before applying paths (`parserRecovery.typical` is a hint, not a golden).
 - `quote` is the expected `range.toString()` when it is stable. Some unicode / `<br>` / form-control rows tell you not to assert it (`quoteNotes`).
 
-### `ops` (vocabulary for a future harness)
+### `ops` (vocabulary)
 
-`load`, `select`, `paint`, `flatten`, `flattenOnce`, `restore`, `restoreStale`, `restore-again`, `mouseup`, `color-pick`, `save`, `normalize`, `innerHTML-roundtrip`, `unwrapMark`, plus the `restore:quote` / `select-overlap` aliases used in B/D/E rows.
+A Step 2: `load`, `select`, `paint`. D Step 3: `load`, `flatten`, `restore`. B/C/E Step 4 execute the remaining ops on the **product path** (fresh flatten, recovered-tree range, `findToolbarBlock` + persist guard). Stale-span ops are not how the live content script runs.
 
 ## Mapping onto `content.ts`
 
 ```
-paintRange        → surroundContents; catch → null
+paintRange        → wrap intersecting text nodes (splitText + <mark> per segment, data-paint-group); null only when nothing paintable
 flattenText       → TreeWalker SHOW_TEXT; reject SCRIPT / STYLE / NOSCRIPT
 resolveOffset     → first span with start <= offset < end (or last.end)
-resolveAndPaint   → indexOf(prefix+quote+suffix) else indexOf(quote)
-mouseup           → closest('p, li, h1…h6') or hide toolbar
-savePendingHighlight → SAVE_HIGHLIGHT even when mark is null (E05)
+resolveAndPaint   → scored quote match (normalize whitespace/NBSP/shy; prefix/suffix + word-boundary; refuse cross-block concat and tied duplicates)
+mouseup           → findToolbarBlock (p|li|h*|div|td|th|blockquote|figcaption|dt|dd|pre|caption)
+savePendingHighlight → SAVE_HIGHLIGHT only when paintRange returned a mark
 ```
 
-`paintRange` already swallows the DOMException. A harness that calls `surroundContents` directly should see `InvalidStateError`. A harness that calls `paintRange` should see `null` and `markCount === 0`. Oracles list both (`kind: surroundContents-throws`, `via: paintRange-returns-null`).
+The Step 2 A harness calls `paintRange` (not `surroundContents`). Live A oracles use `kind: wrap-paints` / `via: paintRange-returns-first-mark` and `joinedMarkText` (new `mark[data-paint-group]` textContent joined). The Step 3 D harness calls `resolveAndPaint` with a fresh flatten per record. Step 4 adds B / C / E harnesses on that same product path.
 
-## Harness hints (not implemented here)
+## Harness hints
 
 ### jsdom (Vitest, already on this package)
 
-Can execute most of A (HTML `Range` exists), B (stale `Text` + `IndexSizeError`), D (`resolveAndPaint`), and C (parse5 recovery).
+**Implemented for A_reject:** `tests/mark-breakage-a-reject-paint.test.ts` — `container-innerHTML` + `selection` → Range → `paintRange`. Skip `browserOnly: true` and unsupported `load` values.
+
+**Implemented for D_restore_orphan:** `tests/mark-breakage-d-restore.test.ts` — `container-innerHTML` + record(s) → `flattenText` + `resolveAndPaint`. All 10 rows are jsdom-capable.
+
+**Implemented for B_live_split:** `tests/mark-breakage-b-live-split.test.ts` — product path (fresh flatten / wrap / scored restore / occurrence-aware extractContext).
+
+**Implemented for C_parser_x:** `tests/mark-breakage-c-parser.test.ts` — recovered-tree `paintRange` / `resolveAndPaint`. Soft-skip when jsdom paths do not match authored/afterParse paths (C05, C10, C13, C16, C17).
+
+**Implemented for E_sequence:** `tests/mark-breakage-e-sequence.test.ts` — `findToolbarBlock` + `shouldPersistHighlight`.
 
 Skip `browserOnly: true`: SVG/MathML range endpoints (A31, A32, C14, C15), iframe (A35), contenteditable caret (A36), open shadow (A38), noscript scripting split (C21), and any real `getSelection` / mouseup hit-test.
 
@@ -142,15 +156,15 @@ Do **not** load the unpacked extension and do **not** boot WXT to consume this p
 
 ### Fuzzy / repair harness
 
-Deferred. This pack is the counterexample catalog only.
+Step 3 is a light in-tree matcher (no diff-match-patch dependency): fold whitespace/NBSP/soft hyphen, score prefix/suffix and word boundaries, refuse cross-block flatten concats and tied duplicates. Heavier fuzzy repair stays deferred.
 
 ## What “break” means per family
 
-- **A** — after `select` + `paint`, no single well-formed `<mark>` around the intended quote (`null`, throw, or nested `<mark><mark>`).
-- **B** — a second step on the live DOM (stale spans, overlap, roundtrip, unwrap) fails or corrupts offsets.
-- **C** — authored HTML is not the tree you get; paths / flatten intersections do not match the author’s crossing.
-- **D** — `resolveAndPaint` is `null` or the painted text is the wrong occurrence.
-- **E** — the product sequence diverges from “user selected text → mark appears”: toolbar hidden, or toolbar shown + persisted record + no mark.
+- **A** — Step 2: after `select` + wrap `paint`, assert `expect.paint` / `markCount` / joined wrap text. Most jsdom rows paint. Remaining caveats (nested existing marks, textarea text, mid-ZWJ split) are recorded on the row, not dropped.
+- **B** — Step 4: product-path second steps (fresh flatten, overlap wrap, idempotent restore) are live. Stale-span hazards are not the live loop.
+- **C** — Step 4: recovered-tree wrap/restore. Authored paths that do not exist in jsdom are skipped, not rewritten.
+- **D** — Step 3: after `flatten` + `resolveAndPaint`, assert `expect.restore` (`ok` vs `null`) / `markCount` / painted text. Intended-span restores and correct-null rows are live; remaining orphans stay documented.
+- **E** — Step 4: toolbar shows on div/td/blockquote/figcaption; SAVE is skipped when paint returns null.
 
 ## Adding a row
 

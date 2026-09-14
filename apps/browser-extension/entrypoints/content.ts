@@ -11,9 +11,25 @@ import type {
 import { pageCatalogFromDocument } from '@/utils/page-catalog';
 import { pageKeyFromLocation } from '@/utils/page-key';
 
-export function extractContext(blockEl: Element, quote: string, wordCount = 6) {
+export function extractContext(
+  blockEl: Element,
+  quote: string,
+  wordCount = 6,
+  quoteIndex = -1,
+) {
   const text = blockEl.textContent ?? '';
-  const idx = text.indexOf(quote);
+  let idx = -1;
+  if (
+    quoteIndex >= 0 &&
+    quote.length > 0 &&
+    text.slice(quoteIndex, quoteIndex + quote.length) === quote
+  ) {
+    idx = quoteIndex;
+  } else if (quoteIndex >= 0) {
+    idx = text.indexOf(quote, quoteIndex);
+  } else {
+    idx = text.indexOf(quote);
+  }
   if (idx === -1) return { prefix: '', suffix: '' };
 
   const before = text.slice(0, idx);
@@ -208,32 +224,243 @@ export function resolveOffset(
   return null;
 }
 
+const RESTORE_BLOCK_SELECTOR =
+  'p, li, h1, h2, h3, h4, h5, h6, td, th, dt, dd, blockquote, pre, div, tr, section, article, header, footer, main, figcaption, caption';
+
+function enclosingBlock(node: Node): Element | null {
+  const el =
+    node.nodeType === Node.TEXT_NODE
+      ? (node as Text).parentElement
+      : (node as Element);
+  return el?.closest(RESTORE_BLOCK_SELECTOR) ?? el;
+}
+
+function rangeCrossesBlock(
+  spans: TextSpan[],
+  start: number,
+  end: number,
+): boolean {
+  const from = resolveOffset(spans, start);
+  const to = resolveOffset(spans, end);
+  if (!from || !to) return true;
+  if (from.node === to.node) return false;
+  return enclosingBlock(from.node) !== enclosingBlock(to.node);
+}
+
+function isWordChar(ch: string | undefined): boolean {
+  return !!ch && /\p{L}|\p{N}/u.test(ch);
+}
+
+function isWordBounded(text: string, start: number, end: number): boolean {
+  return !isWordChar(text[start - 1]) && !isWordChar(text[end]);
+}
+
+function normalizeForRestore(text: string): {
+  normalized: string;
+  toOriginal: number[];
+} {
+  const chars: string[] = [];
+  const toOriginal: number[] = [];
+  let lastWasSpace = false;
+  for (let i = 0; i < text.length; i++) {
+    const ch = text[i];
+    if (ch === '\u00ad') continue;
+    const space =
+      ch === '\u00a0' ||
+      ch === ' ' ||
+      ch === '\t' ||
+      ch === '\n' ||
+      ch === '\r' ||
+      ch === '\f';
+    if (space) {
+      if (lastWasSpace) continue;
+      chars.push(' ');
+      toOriginal.push(i);
+      lastWasSpace = true;
+      continue;
+    }
+    chars.push(ch);
+    toOriginal.push(i);
+    lastWasSpace = false;
+  }
+  return { normalized: chars.join(''), toOriginal };
+}
+
+function allIndices(haystack: string, needle: string): number[] {
+  const hits: number[] = [];
+  if (!needle) return hits;
+  let from = 0;
+  while (from <= haystack.length - needle.length) {
+    const idx = haystack.indexOf(needle, from);
+    if (idx === -1) break;
+    hits.push(idx);
+    from = idx + 1;
+  }
+  return hits;
+}
+
+function hasTrailingContext(
+  before: string,
+  prefix: string,
+): 'exact' | 'contains' | null {
+  if (!prefix) return null;
+  const normBefore = normalizeForRestore(before).normalized.replace(/ +$/, '');
+  const normPrefix = normalizeForRestore(prefix).normalized.replace(/ +$/, '');
+  if (!normPrefix) return null;
+  if (normBefore.endsWith(normPrefix)) return 'exact';
+  if (normBefore.includes(normPrefix)) return 'contains';
+  return null;
+}
+
+function hasLeadingContext(
+  after: string,
+  suffix: string,
+): 'exact' | 'contains' | null {
+  if (!suffix) return null;
+  const normAfter = normalizeForRestore(after).normalized.replace(/^ +/, '');
+  const normSuffix = normalizeForRestore(suffix).normalized.replace(/^ +/, '');
+  if (!normSuffix) return null;
+  if (normAfter.startsWith(normSuffix)) return 'exact';
+  if (normAfter.includes(normSuffix)) return 'contains';
+  return null;
+}
+
+function insideExistingMark(spans: TextSpan[], offset: number): boolean {
+  const resolved = resolveOffset(spans, offset);
+  return Boolean(resolved?.node.parentElement?.closest('mark'));
+}
+
+function scoreCandidate(
+  record: HighlightRecord,
+  text: string,
+  spans: TextSpan[],
+  start: number,
+  end: number,
+): number {
+  let score = 0;
+  const prefixHit = hasTrailingContext(text.slice(0, start), record.prefix);
+  if (prefixHit === 'exact') score += 10;
+  else if (prefixHit === 'contains') score += 3;
+  const suffixHit = hasLeadingContext(text.slice(end), record.suffix);
+  if (suffixHit === 'exact') score += 10;
+  else if (suffixHit === 'contains') score += 3;
+  if (isWordBounded(text, start, end)) score += 3;
+  if (insideExistingMark(spans, start)) score -= 5;
+  return score;
+}
+
+function resolveQuoteOffsets(
+  record: HighlightRecord,
+  spans: TextSpan[],
+  text: string,
+): { start: number; end: number } | null {
+  if (!record.quote.trim()) return null;
+
+  const glued = record.prefix + record.quote + record.suffix;
+  if (record.prefix || record.suffix) {
+    const gluedAt = text.indexOf(glued);
+    if (gluedAt !== -1) {
+      const start = gluedAt + record.prefix.length;
+      const end = start + record.quote.length;
+      if (!rangeCrossesBlock(spans, start, end)) {
+        return { start, end };
+      }
+    }
+  }
+
+  const folded = normalizeForRestore(text);
+  const normQuote = normalizeForRestore(record.quote).normalized;
+  if (!normQuote) return null;
+
+  const candidates: { start: number; end: number; score: number }[] = [];
+  for (const nStart of allIndices(folded.normalized, normQuote)) {
+    const nEnd = nStart + normQuote.length;
+    const start = folded.toOriginal[nStart];
+    const last = folded.toOriginal[nEnd - 1];
+    if (start == null || last == null) continue;
+    const end = last + 1;
+    if (rangeCrossesBlock(spans, start, end)) continue;
+    candidates.push({
+      start,
+      end,
+      score: scoreCandidate(record, text, spans, start, end),
+    });
+  }
+
+  if (candidates.length === 0) return null;
+  if (candidates.length === 1) return candidates[0];
+  candidates.sort((a, b) => b.score - a.score);
+  if (candidates[0].score > candidates[1].score) return candidates[0];
+  return null;
+}
+
+function alreadyPaintedMark(
+  spans: TextSpan[],
+  start: number,
+  end: number,
+): HTMLElement | null {
+  const from = resolveOffset(spans, start);
+  const to = resolveOffset(spans, end > start ? end - 1 : end);
+  if (!from || !to) return null;
+  const startMark = from.node.parentElement?.closest('mark');
+  const endMark = to.node.parentElement?.closest('mark');
+  if (
+    startMark instanceof HTMLElement &&
+    startMark === endMark &&
+    startMark.contains(from.node) &&
+    startMark.contains(to.node)
+  ) {
+    return startMark;
+  }
+  return null;
+}
+
 export function resolveAndPaint(
   record: HighlightRecord,
   spans: TextSpan[],
   text: string,
 ): HTMLElement | null {
-  const target = record.prefix + record.quote + record.suffix;
-  let idx = text.indexOf(target);
-  let quoteStart: number;
+  const resolved = resolveQuoteOffsets(record, spans, text);
+  if (!resolved) return null;
 
-  if (idx !== -1) {
-    quoteStart = idx + record.prefix.length;
-  } else {
-    idx = text.indexOf(record.quote);
-    if (idx === -1) return null;
-    quoteStart = idx;
-  }
+  const existing = alreadyPaintedMark(spans, resolved.start, resolved.end);
+  if (existing) return existing;
 
-  const quoteEnd = quoteStart + record.quote.length;
-  const start = resolveOffset(spans, quoteStart);
-  const end = resolveOffset(spans, quoteEnd);
+  const start = resolveOffset(spans, resolved.start);
+  const end = resolveOffset(spans, resolved.end);
   if (!start || !end) return null;
 
   const range = document.createRange();
   range.setStart(start.node, start.offset);
   range.setEnd(end.node, end.offset);
   return paintRange(range, record.color);
+}
+
+export const TOOLBAR_BLOCK_SELECTOR =
+  'p, li, h1, h2, h3, h4, h5, h6, div, td, th, blockquote, figcaption, dt, dd, pre, caption';
+
+export function findToolbarBlock(range: Range): Element | null {
+  const startNode = range.commonAncestorContainer;
+  const containerEl =
+    startNode.nodeType === Node.TEXT_NODE
+      ? startNode.parentElement
+      : (startNode as Element);
+  return containerEl?.closest(TOOLBAR_BLOCK_SELECTOR) ?? null;
+}
+
+export function quoteOffsetInBlock(blockEl: Element, range: Range): number {
+  const pre = document.createRange();
+  pre.selectNodeContents(blockEl);
+  try {
+    pre.setEnd(range.startContainer, range.startOffset);
+    return pre.toString().length;
+  } catch {
+    return -1;
+  }
+}
+
+export function shouldPersistHighlight(mark: HTMLElement | null): boolean {
+  return mark != null;
 }
 
 export default defineContentScript({
@@ -285,6 +512,11 @@ export default defineContentScript({
       if (!pending) return;
       const { range, quote, prefix, suffix } = pending;
       const mark = paintRange(range, color);
+      if (!mark || !shouldPersistHighlight(mark)) {
+        hideToolbar();
+        window.getSelection()?.removeAllRanges();
+        return;
+      }
 
       const message: SaveHighlightMessage = {
         type: 'SAVE_HIGHLIGHT',
@@ -300,7 +532,6 @@ export default defineContentScript({
       browser.runtime
         .sendMessage(message)
         .then((record: HighlightRecord) => {
-          if (!mark) return;
           attachCommentHandler(mark, record.id, '');
           if (openComment) openCommentBox(mark, record.id);
         })
@@ -387,18 +618,18 @@ export default defineContentScript({
         return;
       }
 
-      const startNode = range.commonAncestorContainer;
-      const containerEl =
-        startNode.nodeType === Node.TEXT_NODE
-          ? startNode.parentElement
-          : (startNode as Element);
-      const blockEl = containerEl?.closest('p, li, h1, h2, h3, h4, h5, h6');
+      const blockEl = findToolbarBlock(range);
       if (!blockEl) {
         hideToolbar();
         return;
       }
 
-      const { prefix, suffix } = extractContext(blockEl, quote);
+      const { prefix, suffix } = extractContext(
+        blockEl,
+        quote,
+        6,
+        quoteOffsetInBlock(blockEl, range),
+      );
       pending = { range: range.cloneRange(), quote, prefix, suffix };
 
       hideCommentBox();
