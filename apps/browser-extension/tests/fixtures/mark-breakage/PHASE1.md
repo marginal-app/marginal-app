@@ -1,6 +1,36 @@
 # Phase 1 — mark-breakage fixtures (break-only)
 
-`phase1-break-fixtures.json` is the committed source of truth. This note is the reading guide. It does not implement a harness.
+`phase1-break-fixtures.json` is the committed source of truth (`schemaVersion` 2). This note is the reading guide. It does not implement a harness.
+
+## Human fields (read these first)
+
+Machine paths (`selection.start.path`, UTF-16 offsets) are not a founder-readable way to see a mouse drag. Every row also has five documentation fields. They do not change harness behavior.
+
+| Field | What to write |
+| --- | --- |
+| `story` | 2–3 sentences: what is on the page, and what the user (or a restore) tries to do. |
+| `selectHow` | Plain language of the drag (“from the last syllable of the bold run into the following plain text”). Restore-only rows start with `no mouse; restore looks for …`. |
+| `selectionAnnotated` | A **short** HTML or text snippet of the relevant region with visible markers (below). |
+| `expectHuman` | Plain-language failure (“surroundContents throws / paintRange returns null; no mark”). |
+| `repro` | Three short steps to reproduce in DevTools or mentally. |
+
+### `⟦` `⟧` and `‹` `›` convention
+
+These characters are documentation only. **Never** put them in the harness `html` field (or in `shadow.innerHTML`).
+
+| Marker | Meaning |
+| --- | --- |
+| `⟦` | Selection start (mouse down). |
+| `⟧` | Selection end (mouse up). |
+| `‹quote›` | On restore-only rows (`selection` is `null`): the quote occurrence restore would target. Say `no mouse` in `selectHow` / the snippet. |
+
+Example (A02): the user starts inside bold “text” and ends in the following “now”:
+
+```text
+See <strong>bold ⟦text</strong> now⟧
+```
+
+A row that has a `selection` must show a clear `⟦`…`⟧` pair. A restore-only row annotates the quote (or explains that restore looks for a string that is not on the page). Hybrid rows (restore, then a later drag) may use both.
 
 ## Policy
 
@@ -35,8 +65,9 @@ Every fixture has these fields:
 | `id` | Stable id (`A01`…`E05`, plus `A38`) |
 | `family` | One of the five families above |
 | `title` | Short name |
+| `story` / `selectHow` / `selectionAnnotated` / `expectHuman` / `repro` | Founder-facing; see [Human fields](#human-fields-read-these-first) |
 | `why_breaks` | Why this loses against the current content script |
-| `html` | Compact snippet (no interstitial whitespace between blocks) |
+| `html` | Compact snippet (no interstitial whitespace between blocks). No `⟦⟧` / `‹›` |
 | `load` | How to mount it (see below) |
 | `selection` | `null` for restore-only rows; otherwise a range spec |
 | `record` | `null`, or `{id,quote,prefix,suffix,color}` (`#FFF3B0`). Multi-restore rows use `extra.records` |
@@ -124,5 +155,6 @@ Deferred. This pack is the counterexample catalog only.
 1. Keep it a counterexample. If `paintRange` would succeed on a single text node in a `<p>`, it does not belong in phase 1.
 2. Use the next id in that family (`A39`, `B15`, …).
 3. Keep `html` compact. Put parser guesses in `extra.parserRecovery`, not in `html`.
-4. Update `meta.count` and `meta.families`.
-5. Leave happy paths for a later `phase2-happy-fixtures.json`.
+4. Add the five human fields. If the row has a `selection`, `selectionAnnotated` must show `⟦`…`⟧`. If `selection` is `null`, mark the restore quote with `‹›` or say `no mouse`. Do not put those markers in `html`.
+5. Update `meta.count` and `meta.families`. Bump `meta.schemaVersion` if you change the fixture schema.
+6. Leave happy paths for a later `phase2-happy-fixtures.json`.

@@ -24,7 +24,13 @@
       "oracle": "{kind, checks[]} — how to assert without a fuzzy matcher.",
       "browserOnly": "true → skip jsdom; run under Playwright Chromium.",
       "tags": "Searchable facets.",
-      "extra": "Optional parserRecovery, records, mutation, harnessNotes, quoteNotes."
+      "extra": "Optional parserRecovery, records, mutation, harnessNotes, quoteNotes.",
+      "schemaVersion": "2 = machine fields plus founder-facing story / selectHow / selectionAnnotated / expectHuman / repro.",
+      "story": "2–3 sentences: what is on the page and what the user (or restore) tries to do.",
+      "selectHow": "Plain language of the drag, or “no mouse; restore looks for …” on restore-only rows.",
+      "selectionAnnotated": "Short HTML/text snippet of the relevant region. ⟦ = mouse-down (selection start), ⟧ = mouse-up (selection end). Restore-only rows mark the targeted quote with ‹ › and say “no mouse”. Markers are documentation only — never put them in html.",
+      "expectHuman": "Plain-language expected failure (e.g. surroundContents throws / paintRange returns null; no mark).",
+      "repro": "Three short steps to reproduce in DevTools or mentally."
     },
     "harness_hints": {
       "jsdom": {
@@ -65,13 +71,19 @@
         "mouseup": "closest('p, li, h1, h2, h3, h4, h5, h6'); otherwise hide toolbar",
         "savePendingHighlight": "sends SAVE_HIGHLIGHT even when paintRange returns null (E05)"
       }
-    }
+    },
+    "schemaVersion": 2
   },
   "fixtures": [
     {
       "id": "A01",
       "family": "A_reject",
       "title": "Partial <em> start — range begins in preceding text",
+      "story": "A paragraph reads “Hello world today”, with world in italics. The user tries to highlight a run that starts in the plain “Hello” and finishes inside the italic word.",
+      "selectHow": "from the last syllable of “Hello” into the first three letters of italic “world”",
+      "selectionAnnotated": "Hel⟦lo <em>wor⟧ld</em> today",
+      "expectHuman": "surroundContents throws / paintRange returns null; no mark. The <em> is only partially contained.",
+      "repro": "1. Load the snippet. 2. Drag from ⟦ through italic “wor”. 3. paintRange returns null; querySelectorAll('mark') is empty.",
       "why_breaks": "surroundContents rejects a range that starts in a text node and ends inside a sibling <em>; the <em> is partially contained.",
       "html": "<p>Hello <em>world</em> today</p>",
       "load": "container-innerHTML",
@@ -79,11 +91,18 @@
         "api": "range",
         "pathFrom": "container",
         "start": {
-          "path": [0, 0],
+          "path": [
+            0,
+            0
+          ],
           "offset": 3
         },
         "end": {
-          "path": [0, 1, 0],
+          "path": [
+            0,
+            1,
+            0
+          ],
           "offset": 3
         },
         "quote": "lo wor"
@@ -129,6 +148,11 @@
       "id": "A02",
       "family": "A_reject",
       "title": "Partial <strong> end — range exits the bold",
+      "story": "A paragraph has a bold run (“bold text”) followed by plain “now”. The user tries to highlight from inside the bold out into the following text.",
+      "selectHow": "from the last syllable of the bold run into the following plain text",
+      "selectionAnnotated": "See <strong>bold ⟦text</strong> now⟧",
+      "expectHuman": "surroundContents throws / paintRange returns null; no mark. The <strong> is only partially contained.",
+      "repro": "1. Load the snippet. 2. Drag from bold “text” through “now”. 3. paintRange returns null; no <mark>.",
       "why_breaks": "Start inside <strong>, end in the following text node. The <strong> is partially contained.",
       "html": "<p>See <strong>bold text</strong> now</p>",
       "load": "container-innerHTML",
@@ -136,11 +160,18 @@
         "api": "range",
         "pathFrom": "container",
         "start": {
-          "path": [0, 1, 0],
+          "path": [
+            0,
+            1,
+            0
+          ],
           "offset": 5
         },
         "end": {
-          "path": [0, 2],
+          "path": [
+            0,
+            2
+          ],
           "offset": 4
         },
         "quote": "text now"
@@ -186,6 +217,11 @@
       "id": "A03",
       "family": "A_reject",
       "title": "Nested <em> inside <strong>, range stops inside the inner italic",
+      "story": "Bold “aabbcc” wraps an inner italic “bb”. The user starts in the bold letters before the italic and stops inside the italic.",
+      "selectHow": "from the second letter of bold “aa” through the whole nested italic “bb”",
+      "selectionAnnotated": "x <strong>a⟦a<em>bb⟧</em>cc</strong> y",
+      "expectHuman": "surroundContents throws / paintRange returns null; no mark. Both the <strong> and the inner <em> are partially contained.",
+      "repro": "1. Load the snippet. 2. Drag from the second “a” through italic “bb”. 3. paintRange returns null.",
       "why_breaks": "Start in the strong's leading text, end inside nested <em>. Both formatting nodes are partially contained.",
       "html": "<p>x <strong>aa<em>bb</em>cc</strong> y</p>",
       "load": "container-innerHTML",
@@ -193,11 +229,20 @@
         "api": "range",
         "pathFrom": "container",
         "start": {
-          "path": [0, 1, 0],
+          "path": [
+            0,
+            1,
+            0
+          ],
           "offset": 1
         },
         "end": {
-          "path": [0, 1, 1, 0],
+          "path": [
+            0,
+            1,
+            1,
+            0
+          ],
           "offset": 2
         },
         "quote": "abb"
@@ -244,6 +289,11 @@
       "id": "A04",
       "family": "A_reject",
       "title": "Two sibling <span>s, selection crosses the boundary",
+      "story": "Two sibling spans sit in one paragraph: Latin “alpha” then RTL “שלום”. The user drags across the span boundary.",
+      "selectHow": "from the last syllable of “alpha” into the first two letters of the RTL span",
+      "selectionAnnotated": "<span>alp⟦ha</span><span dir=\"rtl\">של⟧ום</span>",
+      "expectHuman": "surroundContents throws / paintRange returns null; no mark. Each <span> is only partially contained.",
+      "repro": "1. Load the snippet. 2. Drag from “pha” into “של”. 3. paintRange returns null.",
       "why_breaks": "Start in first span text, end in second. Each span is partially contained.",
       "html": "<p><span>alpha</span><span dir=\"rtl\">שלום</span></p>",
       "load": "container-innerHTML",
@@ -251,11 +301,19 @@
         "api": "range",
         "pathFrom": "container",
         "start": {
-          "path": [0, 0, 0],
+          "path": [
+            0,
+            0,
+            0
+          ],
           "offset": 3
         },
         "end": {
-          "path": [0, 1, 0],
+          "path": [
+            0,
+            1,
+            0
+          ],
           "offset": 2
         },
         "quote": "phaשל"
@@ -302,6 +360,11 @@
       "id": "A05",
       "family": "A_reject",
       "title": "Partial <a href> — start before the link, end inside it",
+      "story": "A sentence contains a link (“the site”). The user starts in the word before the link and ends inside the link text.",
+      "selectHow": "from the last two letters of “visit” into the middle of the <a> text",
+      "selectionAnnotated": "vis⟦it <a href=\"/x\">the si⟧te</a> today",
+      "expectHuman": "surroundContents throws / paintRange returns null; no mark. The <a> is only partially contained.",
+      "repro": "1. Load the snippet. 2. Drag from “it” through “the si”. 3. paintRange returns null.",
       "why_breaks": "The <a> is partially contained. Product also later fails restore of any ghost quote that spans the link.",
       "html": "<p>visit <a href=\"/x\">the site</a> today</p>",
       "load": "container-innerHTML",
@@ -309,11 +372,18 @@
         "api": "range",
         "pathFrom": "container",
         "start": {
-          "path": [0, 0],
+          "path": [
+            0,
+            0
+          ],
           "offset": 3
         },
         "end": {
-          "path": [0, 1, 0],
+          "path": [
+            0,
+            1,
+            0
+          ],
           "offset": 7
         },
         "quote": "it the si"
@@ -358,6 +428,11 @@
       "id": "A06",
       "family": "A_reject",
       "title": "Partial <code> boundary",
+      "story": "A sentence wraps a <code> run (“npm test”). The user starts in “run” and stops inside the code.",
+      "selectHow": "from the last two letters of “run” into the first token of the <code>",
+      "selectionAnnotated": "r⟦un <code>npm⟧ test</code> now",
+      "expectHuman": "surroundContents throws / paintRange returns null; no mark. The <code> is only partially contained.",
+      "repro": "1. Load the snippet. 2. Drag from “un” through “npm”. 3. paintRange returns null.",
       "why_breaks": "Range starts in preceding text and ends inside <code>.",
       "html": "<p>run <code>npm test</code> now</p>",
       "load": "container-innerHTML",
@@ -365,11 +440,18 @@
         "api": "range",
         "pathFrom": "container",
         "start": {
-          "path": [0, 0],
+          "path": [
+            0,
+            0
+          ],
           "offset": 1
         },
         "end": {
-          "path": [0, 1, 0],
+          "path": [
+            0,
+            1,
+            0
+          ],
           "offset": 3
         },
         "quote": "un npm"
@@ -414,6 +496,11 @@
       "id": "A07",
       "family": "A_reject",
       "title": "Existing <mark> — start before, end inside",
+      "story": "The page already has a highlight on “quick brown”. The user starts before that mark and ends inside it.",
+      "selectHow": "from the last two letters of “The” into the first letters of the existing <mark>",
+      "selectionAnnotated": "T⟦he <mark>qui⟧ck brown</mark> fox",
+      "expectHuman": "surroundContents throws / paintRange returns null; the existing mark stays, no second wrap.",
+      "repro": "1. Load the snippet (mark already present). 2. Drag from “he” through “qui”. 3. paintRange returns null; still one <mark>.",
       "why_breaks": "Start before an existing highlight, end inside it. The live <mark> is partially contained so a second paint cannot wrap.",
       "html": "<p>The <mark>quick brown</mark> fox</p>",
       "load": "container-innerHTML",
@@ -421,11 +508,18 @@
         "api": "range",
         "pathFrom": "container",
         "start": {
-          "path": [0, 0],
+          "path": [
+            0,
+            0
+          ],
           "offset": 1
         },
         "end": {
-          "path": [0, 1, 0],
+          "path": [
+            0,
+            1,
+            0
+          ],
           "offset": 5
         },
         "quote": "he qui"
@@ -470,6 +564,11 @@
       "id": "A08",
       "family": "A_reject",
       "title": "Existing <mark> — start inside, end after",
+      "story": "Same already-highlighted “quick brown”. The user starts inside the mark and ends in the following word.",
+      "selectHow": "from the last syllable of the existing mark into the following plain “fox”",
+      "selectionAnnotated": "The <mark>quick br⟦own</mark> fox⟧",
+      "expectHuman": "surroundContents throws / paintRange returns null; the existing mark is only partially selected.",
+      "repro": "1. Load the snippet. 2. Drag from “own” through “fox”. 3. paintRange returns null.",
       "why_breaks": "Inverse of A07: the already-painted mark is only partially selected.",
       "html": "<p>The <mark>quick brown</mark> fox</p>",
       "load": "container-innerHTML",
@@ -477,11 +576,18 @@
         "api": "range",
         "pathFrom": "container",
         "start": {
-          "path": [0, 1, 0],
+          "path": [
+            0,
+            1,
+            0
+          ],
           "offset": 8
         },
         "end": {
-          "path": [0, 2],
+          "path": [
+            0,
+            2
+          ],
           "offset": 4
         },
         "quote": "own fox"
@@ -526,6 +632,11 @@
       "id": "A09",
       "family": "A_reject",
       "title": "Existing <mark> fully inside the range — nested wrap",
+      "story": "An existing mark sits in the middle of a sentence. The user selects the whole sentence so the old mark is fully inside the new range.",
+      "selectHow": "from the start of “The” through the end of “fox”, swallowing the existing <mark>",
+      "selectionAnnotated": "⟦The <mark>quick brown</mark> fox⟧",
+      "expectHuman": "either nested <mark><mark> or paintRange returns null — not a single merged highlight.",
+      "repro": "1. Load the snippet. 2. Select the whole sentence. 3. paintRange either nests a mark or returns null.",
       "why_breaks": "Start in text before the mark, end in text after. The <mark> is fully contained, so surroundContents may wrap it in a second mark. Nested marks (or a reject) are both phase-1 breaks versus a single merged highlight.",
       "html": "<p>The <mark>quick brown</mark> fox</p>",
       "load": "container-innerHTML",
@@ -533,11 +644,17 @@
         "api": "range",
         "pathFrom": "container",
         "start": {
-          "path": [0, 0],
+          "path": [
+            0,
+            0
+          ],
           "offset": 0
         },
         "end": {
-          "path": [0, 2],
+          "path": [
+            0,
+            2
+          ],
           "offset": 4
         },
         "quote": "The quick brown fox"
@@ -585,6 +702,11 @@
       "id": "A10",
       "family": "A_reject",
       "title": "Nested marks — range from outer text into inner mark",
+      "story": "A highlight was painted twice, so an inner <mark>inner</mark> sits inside an outer mark. The user drags from the outer text into the inner mark.",
+      "selectHow": "from the last syllable of outer “outer” into the first three letters of inner “inner”",
+      "selectionAnnotated": "<mark>ou⟦ter <mark>inn⟧er</mark> tail</mark>",
+      "expectHuman": "surroundContents throws / paintRange returns null; the inner <mark> is only partially contained.",
+      "repro": "1. Load the double-mark snippet. 2. Drag from “ter” through “inn”. 3. paintRange returns null.",
       "why_breaks": "Double-painted DOM. Selecting from outer mark text into the inner mark partially contains the inner <mark>.",
       "html": "<p><mark>outer <mark>inner</mark> tail</mark></p>",
       "load": "container-innerHTML",
@@ -592,11 +714,20 @@
         "api": "range",
         "pathFrom": "container",
         "start": {
-          "path": [0, 0, 0],
+          "path": [
+            0,
+            0,
+            0
+          ],
           "offset": 2
         },
         "end": {
-          "path": [0, 0, 1, 0],
+          "path": [
+            0,
+            0,
+            1,
+            0
+          ],
           "offset": 3
         },
         "quote": "ter inn"
@@ -641,6 +772,11 @@
       "id": "A11",
       "family": "A_reject",
       "title": "<br> inside a partially selected <span>",
+      "story": "A line-break sits inside a <span> (“one” / “two”). The user starts in the text before the span and ends after the <br>, still inside the span.",
+      "selectHow": "from the last syllable of “line” through “one”, across the <br>, into “tw”",
+      "selectionAnnotated": "li⟦ne <span>one<br>tw⟧o</span> end",
+      "expectHuman": "surroundContents throws / paintRange returns null; the <span> that owns the <br> is only partially contained.",
+      "repro": "1. Load the snippet. 2. Drag from “ne” through “one” and into “tw”. 3. paintRange returns null.",
       "why_breaks": "Void <br> alone between sibling texts of the same parent can wrap; crossing into a <span> that contains the <br> partially contains the span.",
       "html": "<p>line <span>one<br>two</span> end</p>",
       "load": "container-innerHTML",
@@ -648,11 +784,18 @@
         "api": "range",
         "pathFrom": "container",
         "start": {
-          "path": [0, 0],
+          "path": [
+            0,
+            0
+          ],
           "offset": 2
         },
         "end": {
-          "path": [0, 1, 2],
+          "path": [
+            0,
+            1,
+            2
+          ],
           "offset": 2
         },
         "quote": "ne one\ntw"
@@ -699,6 +842,11 @@
       "id": "A12",
       "family": "A_reject",
       "title": "<img> inside a partially selected <span>",
+      "story": "An image sits inside a <span> between “cat” and “dog”. The user starts before the span and stops inside “cat”, still inside that span.",
+      "selectHow": "from the last two letters of “see” into the first word of the <span>",
+      "selectionAnnotated": "s⟦ee <span>cat⟧ <img alt=\"c\" src=\"about:blank\"> dog</span> there",
+      "expectHuman": "surroundContents throws / paintRange returns null; the <span> that wraps the <img> is only partially contained.",
+      "repro": "1. Load the snippet. 2. Drag from “ee” through “cat”. 3. paintRange returns null.",
       "why_breaks": "Same shape as A11: the interesting reject is the partial <span>, not the void itself. A wrap that swallowed an <img> would also be a break.",
       "html": "<p>see <span>cat <img alt=\"c\" src=\"about:blank\"> dog</span> there</p>",
       "load": "container-innerHTML",
@@ -706,11 +854,18 @@
         "api": "range",
         "pathFrom": "container",
         "start": {
-          "path": [0, 0],
+          "path": [
+            0,
+            0
+          ],
           "offset": 1
         },
         "end": {
-          "path": [0, 1, 0],
+          "path": [
+            0,
+            1,
+            0
+          ],
           "offset": 3
         },
         "quote": "ee cat"
@@ -756,6 +911,11 @@
       "id": "A13",
       "family": "A_reject",
       "title": "<wbr> plus partial <span>",
+      "story": "A word is split with <wbr> inside a span (“super” / “cali”). The user starts before the span and ends after the <wbr>.",
+      "selectHow": "from the last two letters of “pre” through “super”, across the <wbr>, into “cal”",
+      "selectionAnnotated": "p⟦re <span>super<wbr>cal⟧i</span> post",
+      "expectHuman": "surroundContents throws / paintRange returns null; the <span> is only partially contained.",
+      "repro": "1. Load the snippet. 2. Drag from “re” through “supercal”. 3. paintRange returns null.",
       "why_breaks": "<wbr> between texts of one parent may wrap; start before the span and end after the <wbr> so the span is partial.",
       "html": "<p>pre <span>super<wbr>cali</span> post</p>",
       "load": "container-innerHTML",
@@ -763,11 +923,18 @@
         "api": "range",
         "pathFrom": "container",
         "start": {
-          "path": [0, 0],
+          "path": [
+            0,
+            0
+          ],
           "offset": 1
         },
         "end": {
-          "path": [0, 1, 2],
+          "path": [
+            0,
+            1,
+            2
+          ],
           "offset": 2
         },
         "quote": "re supercal"
@@ -813,6 +980,11 @@
       "id": "A14",
       "family": "A_reject",
       "title": "Cross <p> to <p>",
+      "story": "Two compact paragraphs sit back-to-back. The user tries to highlight from the end of the first into the start of the second.",
+      "selectHow": "from “ends.” at the close of the first <p> into “Second” of the next <p>",
+      "selectionAnnotated": "<p>First para ⟦ends.</p><p>Second⟧ starts here.</p>",
+      "expectHuman": "surroundContents throws / paintRange returns null; each <p> is only partially contained.",
+      "repro": "1. Load the two paragraphs (no extra whitespace between them). 2. Drag from “ends.” into “Second”. 3. paintRange returns null.",
       "why_breaks": "Each <p> is partially contained. Compact HTML so no interstitial whitespace text nodes.",
       "html": "<p>First para ends.</p><p>Second starts here.</p>",
       "load": "container-innerHTML",
@@ -820,11 +992,17 @@
         "api": "range",
         "pathFrom": "container",
         "start": {
-          "path": [0, 0],
+          "path": [
+            0,
+            0
+          ],
           "offset": 11
         },
         "end": {
-          "path": [1, 0],
+          "path": [
+            1,
+            0
+          ],
           "offset": 6
         },
         "quote": "ends.Second"
@@ -869,6 +1047,11 @@
       "id": "A15",
       "family": "A_reject",
       "title": "Cross <h2> into following <p>",
+      "story": "A heading is followed immediately by a body paragraph. The user highlights from the last word of the heading into the first word of the body.",
+      "selectHow": "from “words” in the <h2> into “Body” in the following <p>",
+      "selectionAnnotated": "<h2>Title ⟦words</h2><p>Body⟧ words</p>",
+      "expectHuman": "surroundContents throws / paintRange returns null; heading and paragraph are each partially contained.",
+      "repro": "1. Load heading + paragraph. 2. Drag from “words” into “Body”. 3. paintRange returns null.",
       "why_breaks": "Heading and paragraph are each partially contained.",
       "html": "<h2>Title words</h2><p>Body words</p>",
       "load": "container-innerHTML",
@@ -876,11 +1059,17 @@
         "api": "range",
         "pathFrom": "container",
         "start": {
-          "path": [0, 0],
+          "path": [
+            0,
+            0
+          ],
           "offset": 6
         },
         "end": {
-          "path": [1, 0],
+          "path": [
+            1,
+            0
+          ],
           "offset": 4
         },
         "quote": "wordsBody"
@@ -925,6 +1114,11 @@
       "id": "A16",
       "family": "A_reject",
       "title": "Cross <li> to <li> in a <ul>",
+      "story": "An unordered list has two items. The user drags from the end of “Apple pie” into the start of “Berry tart”.",
+      "selectHow": "from “pie” in the first <li> into “Berry” in the next <li>",
+      "selectionAnnotated": "<li>Apple ⟦pie</li><li>Berry⟧ tart</li>",
+      "expectHuman": "surroundContents throws / paintRange returns null; list items are blocks and each is only partially contained.",
+      "repro": "1. Load the <ul>. 2. Drag from “pie” into “Berry”. 3. paintRange returns null.",
       "why_breaks": "List items are blocks. surroundContents cannot wrap a range that ends in a sibling <li>.",
       "html": "<ul><li>Apple pie</li><li>Berry tart</li></ul>",
       "load": "container-innerHTML",
@@ -932,11 +1126,19 @@
         "api": "range",
         "pathFrom": "container",
         "start": {
-          "path": [0, 0, 0],
+          "path": [
+            0,
+            0,
+            0
+          ],
           "offset": 6
         },
         "end": {
-          "path": [0, 1, 0],
+          "path": [
+            0,
+            1,
+            0
+          ],
           "offset": 5
         },
         "quote": "pieBerry"
@@ -982,6 +1184,11 @@
       "id": "A17",
       "family": "A_reject",
       "title": "Cross <li> to <li> in an <ol>",
+      "story": "An ordered list has two items. Same cross-item drag as the unordered list.",
+      "selectHow": "from “item” in the first <li> into “Two” in the next <li>",
+      "selectionAnnotated": "<li>One ⟦item</li><li>Two⟧ item</li>",
+      "expectHuman": "surroundContents throws / paintRange returns null; sibling <li>s cannot share one surroundContents wrap.",
+      "repro": "1. Load the <ol>. 2. Drag from “item” into “Two”. 3. paintRange returns null.",
       "why_breaks": "Same partial-boundary reject as A16 on an ordered list.",
       "html": "<ol><li>One item</li><li>Two item</li></ol>",
       "load": "container-innerHTML",
@@ -989,11 +1196,19 @@
         "api": "range",
         "pathFrom": "container",
         "start": {
-          "path": [0, 0, 0],
+          "path": [
+            0,
+            0,
+            0
+          ],
           "offset": 4
         },
         "end": {
-          "path": [0, 1, 0],
+          "path": [
+            0,
+            1,
+            0
+          ],
           "offset": 3
         },
         "quote": "itemTwo"
@@ -1039,6 +1254,11 @@
       "id": "A18",
       "family": "A_reject",
       "title": "Cross <dt> to <dd>",
+      "story": "A definition list pairs a term with a definition. The user highlights from the end of the <dt> into the start of the <dd>.",
+      "selectHow": "from “here” in the <dt> into “Definition” in the <dd>",
+      "selectionAnnotated": "<dt>Term ⟦here</dt><dd>Definition⟧ text</dd>",
+      "expectHuman": "surroundContents throws / paintRange returns null. Mouseup would also miss p|li|h* on a <dt>/<dd>.",
+      "repro": "1. Load the <dl>. 2. Drag from “here” into “Definition”. 3. paintRange returns null.",
       "why_breaks": "Definition lists are not p|li|h*, so the product mouseup also refuses. Paint still rejects if driven directly.",
       "html": "<dl><dt>Term here</dt><dd>Definition text</dd></dl>",
       "load": "container-innerHTML",
@@ -1046,11 +1266,19 @@
         "api": "range",
         "pathFrom": "container",
         "start": {
-          "path": [0, 0, 0],
+          "path": [
+            0,
+            0,
+            0
+          ],
           "offset": 5
         },
         "end": {
-          "path": [0, 1, 0],
+          "path": [
+            0,
+            1,
+            0
+          ],
           "offset": 10
         },
         "quote": "hereDefinition"
@@ -1096,6 +1324,11 @@
       "id": "A19",
       "family": "A_reject",
       "title": "Table cell to sibling cell",
+      "story": "One table row has two cells. The user tries to highlight from the end of the left cell into the start of the right cell.",
+      "selectHow": "from “cell” in the first <td> into “right” in the sibling <td>",
+      "selectionAnnotated": "<td>left ⟦cell</td><td>right⟧ cell</td>",
+      "expectHuman": "surroundContents throws / paintRange returns null; each <td> is only partially contained.",
+      "repro": "1. Load the two-cell row. 2. Drag from “cell” into “right”. 3. paintRange returns null.",
       "why_breaks": "Explicit <tbody> so child-node paths stay stable. Each <td> is partially contained.",
       "html": "<table><tbody><tr><td>left cell</td><td>right cell</td></tr></tbody></table>",
       "load": "container-innerHTML",
@@ -1103,11 +1336,23 @@
         "api": "range",
         "pathFrom": "container",
         "start": {
-          "path": [0, 0, 0, 0, 0],
+          "path": [
+            0,
+            0,
+            0,
+            0,
+            0
+          ],
           "offset": 5
         },
         "end": {
-          "path": [0, 0, 0, 1, 0],
+          "path": [
+            0,
+            0,
+            0,
+            1,
+            0
+          ],
           "offset": 5
         },
         "quote": "cellright"
@@ -1153,6 +1398,11 @@
       "id": "A20",
       "family": "A_reject",
       "title": "Table row to next row",
+      "story": "A two-row table. The user highlights from the first row’s cell into the second row’s cell.",
+      "selectHow": "from the last two characters of “r1c1” into the first two of “r2c1”",
+      "selectionAnnotated": "<tr><td>r1⟦c1</td></tr><tr><td>r2⟧c1</td></tr>",
+      "expectHuman": "surroundContents throws / paintRange returns null; rows and cells are partially contained.",
+      "repro": "1. Load the two-row table. 2. Drag from “c1” in row 1 into “r2” in row 2. 3. paintRange returns null.",
       "why_breaks": "Range starts in r1 and ends in r2. Rows and cells are partially contained.",
       "html": "<table><tbody><tr><td>r1c1</td></tr><tr><td>r2c1</td></tr></tbody></table>",
       "load": "container-innerHTML",
@@ -1160,11 +1410,23 @@
         "api": "range",
         "pathFrom": "container",
         "start": {
-          "path": [0, 0, 0, 0, 0],
+          "path": [
+            0,
+            0,
+            0,
+            0,
+            0
+          ],
           "offset": 2
         },
         "end": {
-          "path": [0, 0, 1, 0, 0],
+          "path": [
+            0,
+            0,
+            1,
+            0,
+            0
+          ],
           "offset": 2
         },
         "quote": "c1r2"
@@ -1210,6 +1472,11 @@
       "id": "A21",
       "family": "A_reject",
       "title": "<th> to <td> in the same row",
+      "story": "A header cell sits beside a data cell in the same row. The user drags from inside the <th> into the <td>.",
+      "selectHow": "from the last two letters of “Head” into the first two of “Data”",
+      "selectionAnnotated": "<th>He⟦ad</th><td>Da⟧ta</td>",
+      "expectHuman": "surroundContents throws / paintRange returns null; <th> and <td> are each partially contained.",
+      "repro": "1. Load the header+data row. 2. Drag from “ad” into “Da”. 3. paintRange returns null.",
       "why_breaks": "Header cell to data cell — still a partial-boundary reject.",
       "html": "<table><tbody><tr><th>Head</th><td>Data</td></tr></tbody></table>",
       "load": "container-innerHTML",
@@ -1217,11 +1484,23 @@
         "api": "range",
         "pathFrom": "container",
         "start": {
-          "path": [0, 0, 0, 0, 0],
+          "path": [
+            0,
+            0,
+            0,
+            0,
+            0
+          ],
           "offset": 2
         },
         "end": {
-          "path": [0, 0, 0, 1, 0],
+          "path": [
+            0,
+            0,
+            0,
+            1,
+            0
+          ],
           "offset": 2
         },
         "quote": "adDa"
@@ -1267,6 +1546,11 @@
       "id": "A22",
       "family": "A_reject",
       "title": "Caption to first cell",
+      "story": "A table has a caption and a body cell. The user highlights from the end of the caption into the start of the cell.",
+      "selectHow": "from “text” in <caption> into “Body” in the first <td>",
+      "selectionAnnotated": "<caption>Cap ⟦text</caption> … <td>Body⟧ cell</td>",
+      "expectHuman": "surroundContents throws / paintRange returns null; caption and cell live in different table sections.",
+      "repro": "1. Load caption + tbody. 2. Drag from “text” into “Body”. 3. paintRange returns null.",
       "why_breaks": "<caption> and <td> live in different table sections; the range partially contains both.",
       "html": "<table><caption>Cap text</caption><tbody><tr><td>Body cell</td></tr></tbody></table>",
       "load": "container-innerHTML",
@@ -1274,11 +1558,21 @@
         "api": "range",
         "pathFrom": "container",
         "start": {
-          "path": [0, 0, 0],
+          "path": [
+            0,
+            0,
+            0
+          ],
           "offset": 4
         },
         "end": {
-          "path": [0, 1, 0, 0, 0],
+          "path": [
+            0,
+            1,
+            0,
+            0,
+            0
+          ],
           "offset": 4
         },
         "quote": "textBody"
@@ -1323,6 +1617,11 @@
       "id": "A23",
       "family": "A_reject",
       "title": "<blockquote> to following <p>",
+      "story": "A blockquote is followed by a reply paragraph. The user highlights from the end of the quote into the start of the reply.",
+      "selectHow": "from “line” in the <blockquote> into “Reply” in the following <p>",
+      "selectionAnnotated": "<blockquote>Quoted ⟦line</blockquote><p>Reply⟧ line</p>",
+      "expectHuman": "surroundContents throws / paintRange returns null. Mouseup on the quote side also misses p|li|h*.",
+      "repro": "1. Load quote + paragraph. 2. Drag from “line” into “Reply”. 3. paintRange returns null.",
       "why_breaks": "Cross-block. Mouseup on the blockquote side also misses p|li|h* if the range's closest() is the quote.",
       "html": "<blockquote>Quoted line</blockquote><p>Reply line</p>",
       "load": "container-innerHTML",
@@ -1330,11 +1629,17 @@
         "api": "range",
         "pathFrom": "container",
         "start": {
-          "path": [0, 0],
+          "path": [
+            0,
+            0
+          ],
           "offset": 7
         },
         "end": {
-          "path": [1, 0],
+          "path": [
+            1,
+            0
+          ],
           "offset": 5
         },
         "quote": "lineReply"
@@ -1379,6 +1684,11 @@
       "id": "A24",
       "family": "A_reject",
       "title": "<pre> with an inner <span>",
+      "story": "A <pre> has a <span> in the middle of a code-like line. A same-node pre selection would paint; crossing the span is the reject.",
+      "selectHow": "from the last letter of “foo” into the first two letters of spanned “bar”",
+      "selectionAnnotated": "fo⟦o <span>ba⟧r</span> baz",
+      "expectHuman": "surroundContents throws / paintRange returns null; the inner <span> is only partially contained.",
+      "repro": "1. Load the <pre>. 2. Drag from “o” through “ba”. 3. paintRange returns null.",
       "why_breaks": "A single text node in <pre> would paint. Crossing the <span> is the reject.",
       "html": "<pre>foo <span>bar</span> baz</pre>",
       "load": "container-innerHTML",
@@ -1386,11 +1696,18 @@
         "api": "range",
         "pathFrom": "container",
         "start": {
-          "path": [0, 0],
+          "path": [
+            0,
+            0
+          ],
           "offset": 2
         },
         "end": {
-          "path": [0, 1, 0],
+          "path": [
+            0,
+            1,
+            0
+          ],
           "offset": 2
         },
         "quote": "o ba"
@@ -1435,6 +1752,11 @@
       "id": "A25",
       "family": "A_reject",
       "title": "<ruby> / <rt> partial",
+      "story": "Ruby annotation: base “東京” with reading “Tōkyō”. The user starts in the base character and ends inside the <rt>.",
+      "selectHow": "from the second kanji of the ruby base into the first three letters of the <rt>",
+      "selectionAnnotated": "<ruby>東⟦京<rt>Tōk⟧yō</rt></ruby> city",
+      "expectHuman": "surroundContents throws / paintRange returns null; <rt> (and often <ruby>) is only partially contained.",
+      "repro": "1. Load the ruby snippet. 2. Drag from “京” through “Tōk”. 3. paintRange returns null.",
       "why_breaks": "Start in the ruby base text conceptually, end in <rt>. After parse, paths are ruby > #text + rt > #text. The <rt> is partially contained if we stop inside it; starting before <ruby> also partially contains <ruby>.",
       "html": "<p><ruby>東京<rt>Tōkyō</rt></ruby> city</p>",
       "load": "container-innerHTML",
@@ -1442,11 +1764,20 @@
         "api": "range",
         "pathFrom": "container",
         "start": {
-          "path": [0, 0, 0],
+          "path": [
+            0,
+            0,
+            0
+          ],
           "offset": 1
         },
         "end": {
-          "path": [0, 0, 1, 0],
+          "path": [
+            0,
+            0,
+            1,
+            0
+          ],
           "offset": 3
         },
         "quote": "京Tōk"
@@ -1491,6 +1822,11 @@
       "id": "A26",
       "family": "A_reject",
       "title": "<sup> boundary",
+      "story": "A formula uses a superscript “2”. The user starts in “mc” and ends inside the <sup>.",
+      "selectHow": "from “mc” in the preceding text through the superscript “2”",
+      "selectionAnnotated": "E = ⟦mc<sup>2⟧</sup> energy",
+      "expectHuman": "surroundContents throws / paintRange returns null; the <sup> is only partially contained.",
+      "repro": "1. Load the snippet. 2. Drag from “mc” through “2”. 3. paintRange returns null.",
       "why_breaks": "Range starts in preceding text and ends inside the superscript.",
       "html": "<p>E = mc<sup>2</sup> energy</p>",
       "load": "container-innerHTML",
@@ -1498,11 +1834,18 @@
         "api": "range",
         "pathFrom": "container",
         "start": {
-          "path": [0, 0],
+          "path": [
+            0,
+            0
+          ],
           "offset": 5
         },
         "end": {
-          "path": [0, 1, 0],
+          "path": [
+            0,
+            1,
+            0
+          ],
           "offset": 1
         },
         "quote": "mc2"
@@ -1547,6 +1890,11 @@
       "id": "A27",
       "family": "A_reject",
       "title": "Cross out of a <button>",
+      "story": "A button labeled “Save now” sits in a sentence. The user starts inside the button label and ends in the following “please”.",
+      "selectHow": "from the last syllable of the button label into the following plain text",
+      "selectionAnnotated": "click <button>Save ⟦now</button> ple⟧ase",
+      "expectHuman": "surroundContents throws / paintRange returns null; the <button> is only partially contained.",
+      "repro": "1. Load the snippet. 2. Drag from “now” through “ple”. 3. paintRange returns null.",
       "why_breaks": "Start inside button label, end in following text. <button> is partially contained. Nested interactive content is also illegal HTML in other fixtures.",
       "html": "<p>click <button>Save now</button> please</p>",
       "load": "container-innerHTML",
@@ -1554,11 +1902,18 @@
         "api": "range",
         "pathFrom": "container",
         "start": {
-          "path": [0, 1, 0],
+          "path": [
+            0,
+            1,
+            0
+          ],
           "offset": 5
         },
         "end": {
-          "path": [0, 2],
+          "path": [
+            0,
+            2
+          ],
           "offset": 4
         },
         "quote": "now ple"
@@ -1604,6 +1959,11 @@
       "id": "A28",
       "family": "A_reject",
       "title": "<input> inside a partially selected <label>",
+      "story": "A label wraps a letter, an <input>, and another letter. The user starts in “name” and stops on the “x” inside the label, before the input.",
+      "selectHow": "from the last two letters of “name” into the first text node of the <label>",
+      "selectionAnnotated": "na⟦me <label>x⟧<input type=\"text\" value=\"Ada\">y</label> here",
+      "expectHuman": "surroundContents throws / paintRange returns null; the <label> that owns the input is only partially contained.",
+      "repro": "1. Load the label+input snippet. 2. Drag from “me” through “x”. 3. paintRange returns null.",
       "why_breaks": "Void form control. Crossing into the <label> rejects; wrapping a range that only covers the input's sibling texts would swallow the control.",
       "html": "<p>name <label>x<input type=\"text\" value=\"Ada\">y</label> here</p>",
       "load": "container-innerHTML",
@@ -1611,11 +1971,18 @@
         "api": "range",
         "pathFrom": "container",
         "start": {
-          "path": [0, 0],
+          "path": [
+            0,
+            0
+          ],
           "offset": 2
         },
         "end": {
-          "path": [0, 1, 0],
+          "path": [
+            0,
+            1,
+            0
+          ],
           "offset": 1
         },
         "quote": "me x"
@@ -1661,6 +2028,11 @@
       "id": "A29",
       "family": "A_reject",
       "title": "<textarea> boundary — start before, end cannot enter rawtext usefully",
+      "story": "A textarea sits between “note” and italic “after”. The user cannot usefully end inside textarea rawtext, so they start in “note” and end inside the following <em>.",
+      "selectHow": "from the last two letters of “note”, across the <textarea>, into italic “aft”",
+      "selectionAnnotated": "no⟦te <textarea>hello</textarea> <em>aft⟧er</em>",
+      "expectHuman": "surroundContents throws / paintRange returns null (range skips textarea value and partially contains <em>). Wrapping the textarea itself would also be a product break.",
+      "repro": "1. Load the snippet. 2. Drag from “te” through “aft”. 3. paintRange returns null.",
       "why_breaks": "Textarea's value is not a child text node of the paragraph flatten in the same way as visible siblings. Range from preceding text to following text fully contains the <textarea> and partially contains the <p>. If the harness sets start/end on the sibling texts, surroundContents may wrap including the textarea (product break) or throw. Prefer end inside a following <em> so the reject is unambiguous.",
       "html": "<p>note <textarea>hello</textarea> <em>after</em></p>",
       "load": "container-innerHTML",
@@ -1668,11 +2040,18 @@
         "api": "range",
         "pathFrom": "container",
         "start": {
-          "path": [0, 0],
+          "path": [
+            0,
+            0
+          ],
           "offset": 2
         },
         "end": {
-          "path": [0, 3, 0],
+          "path": [
+            0,
+            3,
+            0
+          ],
           "offset": 3
         },
         "quote": "te after"
@@ -1718,6 +2097,11 @@
       "id": "A30",
       "family": "A_reject",
       "title": "<select> / <option> adjacent to painted text",
+      "story": "A <select> with options sits in a sentence. The user starts in “pick” and tries to end inside the first option’s text.",
+      "selectHow": "from the last two letters of “pick” into the first two letters of option “One”",
+      "selectionAnnotated": "pi⟦ck <select><option>On⟧e</option>…</select> ok",
+      "expectHuman": "surroundContents throws / paintRange returns null; the <select> is only partially contained. If the UA hides option text, ending after the select and wrapping it is also a break.",
+      "repro": "1. Load the snippet. 2. Drag from “ck” toward “On” (or through the select). 3. paintRange returns null or would swallow the control.",
       "why_breaks": "Start in preceding text, end inside the first option's text if the UA exposes it; otherwise end in following text and treat wrapping the <select> as a break. Path assumes option text is [0,1,0,0] after parse (select > option > #text).",
       "html": "<p>pick <select><option>One</option><option>Two</option></select> ok</p>",
       "load": "container-innerHTML",
@@ -1725,11 +2109,19 @@
         "api": "range",
         "pathFrom": "container",
         "start": {
-          "path": [0, 0],
+          "path": [
+            0,
+            0
+          ],
           "offset": 2
         },
         "end": {
-          "path": [0, 1, 0, 0],
+          "path": [
+            0,
+            1,
+            0,
+            0
+          ],
           "offset": 2
         },
         "quote": "ck On"
@@ -1775,6 +2167,11 @@
       "id": "A31",
       "family": "A_reject",
       "title": "HTML text into <svg><text>",
+      "story": "An SVG <text> node sits in an HTML paragraph. The user starts in the HTML “see” and ends inside the SVG letters.",
+      "selectHow": "from the last two letters of HTML “see” into the first two letters of SVG “SVG”",
+      "selectionAnnotated": "s⟦ee <svg>…<text>SV⟧G</text></svg> end",
+      "expectHuman": "surroundContents throws / paintRange returns null; <svg>/<text> is foreign content and only partially contained. Prefer Chromium.",
+      "repro": "1. Load in Chromium. 2. Drag from “ee” into SVG “SV”. 3. paintRange returns null.",
       "why_breaks": "Foreign content. Range from HTML text into SVG text partially contains <svg> / <text>. jsdom SVG support is incomplete — prefer Chromium.",
       "html": "<p>see <svg width=\"40\" height=\"20\"><text x=\"0\" y=\"15\">SVG</text></svg> end</p>",
       "load": "container-innerHTML",
@@ -1782,11 +2179,19 @@
         "api": "range",
         "pathFrom": "container",
         "start": {
-          "path": [0, 0],
+          "path": [
+            0,
+            0
+          ],
           "offset": 1
         },
         "end": {
-          "path": [0, 1, 0, 0],
+          "path": [
+            0,
+            1,
+            0,
+            0
+          ],
           "offset": 2
         },
         "quote": "ee SV"
@@ -1832,6 +2237,11 @@
       "id": "A32",
       "family": "A_reject",
       "title": "HTML text into <math>",
+      "story": "A MathML expression sits in a paragraph. The user starts in HTML “eq” and ends inside the first <mi>.",
+      "selectHow": "from the last letter of “eq” into the MathML identifier “x”",
+      "selectionAnnotated": "e⟦q <math><mi>x⟧</mi>+<mi>y</mi></math> done",
+      "expectHuman": "surroundContents throws / paintRange returns null; the <math> subtree is foreign content and only partially contained.",
+      "repro": "1. Load in Chromium. 2. Drag from “q” into <mi>x</mi>. 3. paintRange returns null.",
       "why_breaks": "Same foreign-content reject as A31 for MathML tokens.",
       "html": "<p>eq <math><mi>x</mi><mo>+</mo><mi>y</mi></math> done</p>",
       "load": "container-innerHTML",
@@ -1839,11 +2249,19 @@
         "api": "range",
         "pathFrom": "container",
         "start": {
-          "path": [0, 0],
+          "path": [
+            0,
+            0
+          ],
           "offset": 1
         },
         "end": {
-          "path": [0, 1, 0, 0],
+          "path": [
+            0,
+            1,
+            0,
+            0
+          ],
           "offset": 1
         },
         "quote": "q x"
@@ -1888,6 +2306,11 @@
       "id": "A33",
       "family": "A_reject",
       "title": "Visible paragraphs with <script> between them",
+      "story": "Two visible paragraphs have a <script> between them. The user highlights from the end of “visible” into the start of “after”.",
+      "selectHow": "from “ible” in the first <p>, across the <script>, into “aft” of the second <p>",
+      "selectionAnnotated": "<p>vis⟦ible</p><script>…</script><p>aft⟧er</p>",
+      "expectHuman": "surroundContents throws / paintRange returns null; each <p> is partially contained. flattenText skips SCRIPT, so a later restore of “visibleafter” would be a concat false-positive.",
+      "repro": "1. Load the two paragraphs + script. 2. Drag from “ible” into “aft”. 3. paintRange returns null.",
       "why_breaks": "flattenText skips SCRIPT. A live range from first <p> to second still partially contains each <p> (and fully contains the script element). Paint rejects. Restore of quote 'visibleafter' would be a flatten concatenation false-positive if someone joined without a boundary.",
       "html": "<p>visible</p><script>var hidden = \"no\";</script><p>after</p>",
       "load": "container-innerHTML",
@@ -1895,11 +2318,17 @@
         "api": "range",
         "pathFrom": "container",
         "start": {
-          "path": [0, 0],
+          "path": [
+            0,
+            0
+          ],
           "offset": 3
         },
         "end": {
-          "path": [2, 0],
+          "path": [
+            2,
+            0
+          ],
           "offset": 3
         },
         "quote": "ibleafter"
@@ -1944,6 +2373,11 @@
       "id": "A34",
       "family": "A_reject",
       "title": "Visible paragraphs with <style> between them",
+      "story": "Same shape as the script row, but a <style> block sits between two paragraphs.",
+      "selectHow": "from “ore” in “before”, across the <style>, into “aft” of the next <p>",
+      "selectionAnnotated": "<p>bef⟦ore</p><style>…</style><p>aft⟧er</p>",
+      "expectHuman": "surroundContents throws / paintRange returns null; the paint reject is the cross-<p> range (style text is already excluded from flatten).",
+      "repro": "1. Load the two paragraphs + style. 2. Drag from “ore” into “aft”. 3. paintRange returns null.",
       "why_breaks": "Same as A33 for STYLE. flattenText already excludes style text; the paint reject is the cross-<p> range.",
       "html": "<p>before</p><style>.x{color:red}</style><p>after</p>",
       "load": "container-innerHTML",
@@ -1951,11 +2385,17 @@
         "api": "range",
         "pathFrom": "container",
         "start": {
-          "path": [0, 0],
+          "path": [
+            0,
+            0
+          ],
           "offset": 3
         },
         "end": {
-          "path": [2, 0],
+          "path": [
+            2,
+            0
+          ],
           "offset": 3
         },
         "quote": "oreafter"
@@ -2000,6 +2440,11 @@
       "id": "A35",
       "family": "A_reject",
       "title": "Range from text before <iframe> to text after",
+      "story": "An iframe sits between two parent-document paragraphs. The user cannot select into the iframe document; they drag from “out” to “tail” in the parent.",
+      "selectHow": "from the last two letters of the first parent <p>, across the <iframe>, through “tail”",
+      "selectionAnnotated": "<p>o⟦ut</p><iframe srcdoc=\"…\"></iframe><p>tail⟧</p>",
+      "expectHuman": "surroundContents throws / paintRange returns null; both parent <p>s are partially contained and the iframe is fully contained. Interior “in frame” is a different document.",
+      "repro": "1. Load in Chromium. 2. Drag from “ut” to “tail” in the parent page (not inside the frame). 3. paintRange returns null.",
       "why_breaks": "Cannot select into the iframe document from the parent. A parent range from the first <p> to the last partially contains both paragraphs and fully contains the iframe. Paint rejects. Interior iframe text is a different document (see load iframe-srcdoc notes).",
       "html": "<p>out</p><iframe srcdoc=\"<p>in frame</p>\"></iframe><p>tail</p>",
       "load": "container-innerHTML",
@@ -2007,11 +2452,17 @@
         "api": "range",
         "pathFrom": "container",
         "start": {
-          "path": [0, 0],
+          "path": [
+            0,
+            0
+          ],
           "offset": 1
         },
         "end": {
-          "path": [2, 0],
+          "path": [
+            2,
+            0
+          ],
           "offset": 3
         },
         "quote": "uttail"
@@ -2057,6 +2508,11 @@
       "id": "A36",
       "family": "A_reject",
       "title": "contenteditable with inner <em> partial",
+      "story": "A contenteditable region contains “edit me now” with “me” in italics — the same partial-<em> shape as A01, but caret/selection APIs differ.",
+      "selectHow": "from the last syllable of “edit” into the whole italic “me” (inside contenteditable)",
+      "selectionAnnotated": "<div contenteditable><p>ed⟦it <em>me⟧</em> now</p></div>",
+      "expectHuman": "surroundContents throws / paintRange returns null; the <em> is only partially contained. Run under Chromium, not jsdom.",
+      "repro": "1. Load in Chromium. 2. Drag from “it” through italic “me”. 3. paintRange returns null.",
       "why_breaks": "Same surroundContents reject as A01, but the selection is inside contenteditable. Caret/selection APIs differ in Chromium vs jsdom.",
       "html": "<div contenteditable=\"true\"><p>edit <em>me</em> now</p></div>",
       "load": "container-innerHTML",
@@ -2064,11 +2520,18 @@
         "api": "range",
         "pathFrom": "container",
         "start": {
-          "path": [0, 0],
+          "path": [
+            0,
+            0
+          ],
           "offset": 2
         },
         "end": {
-          "path": [0, 1, 0],
+          "path": [
+            0,
+            1,
+            0
+          ],
           "offset": 2
         },
         "quote": "it me"
@@ -2113,6 +2576,11 @@
       "id": "A37",
       "family": "A_reject",
       "title": "ZWJ emoji inside <em>, range crosses into the cluster",
+      "story": "A family-emoji ZWJ cluster sits inside <em>. The user starts in “family” and ends at a mid-cluster UTF-16 offset inside the emoji (after the first person glyph).",
+      "selectHow": "from the last syllable of “family” into the middle of the ZWJ emoji (offset 2, after 👨)",
+      "selectionAnnotated": "fami⟦ly <em>👨⟧‍👩‍👧‍👦</em> photo",
+      "expectHuman": "surroundContents throws / paintRange returns null; the <em> is only partially contained. Do not assert an exact quote — UAs differ on ZWJ toString(). A successful mid-cluster wrap would also split the grapheme.",
+      "repro": "1. Load the snippet. 2. Set a range from “ly” to UTF-16 offset 2 inside the emoji. 3. paintRange returns null; no <mark> splits the cluster.",
       "why_breaks": "👨‍👩‍👧‍👦 is multiple UTF-16 units joined by ZWJ. Start in preceding text, end at a mid-cluster offset inside <em>. Partial <em> rejects; a same-node mid-ZWJ split would also produce a broken grapheme if paint ever succeeded.",
       "html": "<p>family <em>👨‍👩‍👧‍👦</em> photo</p>",
       "load": "container-innerHTML",
@@ -2120,11 +2588,18 @@
         "api": "range",
         "pathFrom": "container",
         "start": {
-          "path": [0, 0],
+          "path": [
+            0,
+            0
+          ],
           "offset": 4
         },
         "end": {
-          "path": [0, 1, 0],
+          "path": [
+            0,
+            1,
+            0
+          ],
           "offset": 2
         },
         "quote": null
@@ -2171,6 +2646,11 @@
       "id": "A38",
       "family": "A_reject",
       "title": "Open shadow root — page document cannot see the range",
+      "story": "The visible sentence “Hello world today” lives in an open shadow root, not in the page document. The user selects the same partial-<em> range inside the shadow tree.",
+      "selectHow": "from the last syllable of shadow “Hello” into italic “wor” — paths are relative to shadowRoot",
+      "selectionAnnotated": "#host::shadow Hel⟦lo <em>wor⟧ld</em> today  (page flatten cannot see this)",
+      "expectHuman": "page-level paintRange cannot target the shadow range; flattenText(document.body) does not contain “world”; no mark. Closed shadow is the same plus hidden from querySelector.",
+      "repro": "1. Attach an open shadow with the inner HTML. 2. Build the range on shadowRoot (not document). 3. A page-level paint must not create a mark; body flatten excludes “world”.",
       "why_breaks": "flattenText(document.body) does not descend into shadow roots. document mouseup / getSelection() in the content script's document does not yield a range whose containers live in the shadow tree. paintRange on a page-level range cannot wrap shadow text. Closed shadows are the same plus inaccessible from querySelector.",
       "html": "<div id=\"host\"></div>",
       "load": "open-shadow",
@@ -2178,11 +2658,18 @@
         "api": "range",
         "pathFrom": "shadowRoot",
         "start": {
-          "path": [0, 0],
+          "path": [
+            0,
+            0
+          ],
           "offset": 3
         },
         "end": {
-          "path": [0, 1, 0],
+          "path": [
+            0,
+            1,
+            0
+          ],
           "offset": 3
         },
         "quote": "lo wor"
@@ -2233,6 +2720,11 @@
       "id": "B01",
       "family": "B_live_split",
       "title": "Stale flatten reused for a second restore",
+      "story": "One paragraph: “Alpha beta gamma delta epsilon.” There is no mouse drag. Restore paints “beta”, then a second restore of “epsilon” reuses the same flattenText snapshot.",
+      "selectHow": "no mouse; restore looks for ‹beta› first, then stale-restores ‹epsilon› on the old spans",
+      "selectionAnnotated": "Alpha ‹beta› gamma delta ‹epsilon›.  (no mouse; second restore reuses flatten from before the first paint)",
+      "expectHuman": "first restore paints “beta”; stale restore of “epsilon” throws IndexSizeError or returns null. Only one mark remains.",
+      "repro": "1. flattenText once. 2. resolveAndPaint “beta”. 3. resolveAndPaint “epsilon” with the same spans — IndexSizeError or null; mark count stays 1.",
       "why_breaks": "paintRange splits text nodes. Reusing one flattenText() snapshot for a later record makes resolveOffset point at a shortened node; Range.setStart/setEnd throws IndexSizeError (caught by the live content script's try/catch per record, but a naive loop does not recompute).",
       "html": "<p>Alpha beta gamma delta epsilon.</p>",
       "load": "container-innerHTML",
@@ -2301,6 +2793,11 @@
       "id": "B02",
       "family": "B_live_split",
       "title": "Second live selection overlaps an existing mark",
+      "story": "A sentence can paint “quick brown” as a single text node. After that mark exists, the user drags a new range that starts inside the mark and ends after it (“brown fox”).",
+      "selectHow": "first restore paints ‹quick brown›; then drag from the last syllable of that mark into the following “fox”",
+      "selectionAnnotated": "The <mark>quick ⟦brown</mark> fox⟧ jumps.",
+      "expectHuman": "first paint succeeds; the overlapping second paint throws / paintRange returns null. The original mark stays.",
+      "repro": "1. Restore “quick brown”. 2. Re-resolve: start at “brown” inside the mark, end through “fox”. 3. paintRange returns null; still one <mark>.",
       "why_breaks": "After painting 'quick brown', a new range 'brown fox' starts inside the mark and ends after it — A08 on a live DOM.",
       "html": "<p>The quick brown fox jumps.</p>",
       "load": "container-innerHTML",
@@ -2308,11 +2805,17 @@
         "api": "range",
         "pathFrom": "container",
         "start": {
-          "path": [0, 0],
+          "path": [
+            0,
+            0
+          ],
           "offset": 10
         },
         "end": {
-          "path": [0, 0],
+          "path": [
+            0,
+            0
+          ],
           "offset": 19
         },
         "quote": "brown fox"
@@ -2368,6 +2871,11 @@
       "id": "B03",
       "family": "B_live_split",
       "title": "Adjacent second highlight with stale offsets",
+      "story": "A short list of words: “one two three four”. Restore paints “two”, then a stale snapshot is reused to paint adjacent “three”.",
+      "selectHow": "no mouse; restore looks for ‹two›, then stale-restores ‹three› at the original offsets",
+      "selectionAnnotated": "one ‹two› ‹three› four  (no mouse; “three” is adjacent to the split left by painting “two”)",
+      "expectHuman": "stale restore of “three” throws IndexSizeError or returns null; only the “two” mark remains.",
+      "repro": "1. flattenText once. 2. restore “two”. 3. restore “three” with the same spans — throw or null.",
       "why_breaks": "Paint 'two' (single node, succeeds). A stale snapshot still thinks 'three' lives at the original offsets on the original node, which is now split.",
       "html": "<p>one two three four</p>",
       "load": "container-innerHTML",
@@ -2424,6 +2932,11 @@
       "id": "B04",
       "family": "B_live_split",
       "title": "innerHTML roundtrip then restore with numeric offsets",
+      "story": "The user highlights “unique phrase” (a happy first paint). The harness then serializes container.innerHTML and reloads, creating new text nodes, and reapplies the old {path,offset}.",
+      "selectHow": "drag “unique phrase”; after innerHTML roundtrip, re-apply the pre-roundtrip path [0,0] offsets 4–17",
+      "selectionAnnotated": "The ⟦unique phrase⟧ here.",
+      "expectHuman": "after reload, the cached path/offset lands inside the mark or a split sibling — setStart throws or the range is misaligned. No reliable second paint.",
+      "repro": "1. Select and paint “unique phrase”. 2. container.innerHTML = container.innerHTML. 3. setStart/setEnd with the old path — throw or wrong node.",
       "why_breaks": "After paint, serializing container.innerHTML and reloading creates new text nodes. Storing {path,offset} from before the roundtrip points at the wrong node or offset. The product stores quote/prefix/suffix, not offsets — this fixture locks the offset-roundtrip hazard for any harness that caches paths.",
       "html": "<p>The unique phrase here.</p>",
       "load": "container-innerHTML",
@@ -2431,11 +2944,17 @@
         "api": "range",
         "pathFrom": "container",
         "start": {
-          "path": [0, 0],
+          "path": [
+            0,
+            0
+          ],
           "offset": 4
         },
         "end": {
-          "path": [0, 0],
+          "path": [
+            0,
+            0
+          ],
           "offset": 17
         },
         "quote": "unique phrase"
@@ -2483,6 +3002,11 @@
       "id": "B05",
       "family": "B_live_split",
       "title": "Restore the same record twice",
+      "story": "The same stored record (“unique phrase”) is restored twice onto one paragraph. The second pass finds the same quote and tries to wrap a range that now sits inside or across the first mark.",
+      "selectHow": "no mouse; restore looks for ‹unique phrase›, then restore-again on the live marked DOM",
+      "selectionAnnotated": "The ‹unique phrase› here.  (no mouse; second restore targets the same quote now inside <mark>)",
+      "expectHuman": "second restore either nests <mark><mark> or returns null. Idempotent restore is not implemented.",
+      "repro": "1. resolveAndPaint the record. 2. resolveAndPaint the same record again. 3. Either nested marks or null.",
       "why_breaks": "Second resolveAndPaint finds the same quote (flatten text is unchanged) and tries to surroundContents a range that now sits inside or across the first <mark>. Either nested marks or null.",
       "html": "<p>The unique phrase here.</p>",
       "load": "container-innerHTML",
@@ -2536,6 +3060,11 @@
       "id": "B06",
       "family": "B_live_split",
       "title": "Three records, one flatten snapshot",
+      "story": "One paragraph holds three later quotes: beta, delta, zeta. The harness takes one flatten snapshot and tries to restore all three without recomputing spans.",
+      "selectHow": "no mouse; one flatten, then restore ‹beta› / ‹delta› / ‹zeta› against that snapshot",
+      "selectionAnnotated": "Alpha ‹beta› gamma ‹delta› epsilon ‹zeta›.  (no mouse; only the first paint sees valid offsets)",
+      "expectHuman": "after the first paint, later setStart uses an out-of-range offset — IndexSizeError or null. Typically only one mark.",
+      "repro": "1. flattenText once. 2. restoreAllStale in order. 3. First mark appears; later restores throw or return null.",
       "why_breaks": "Generalizes B01. After the first paint, spans[0].node.data is shorter than spans[0] recorded length; later setStart uses an out-of-range offset.",
       "html": "<p>Alpha beta gamma delta epsilon zeta.</p>",
       "load": "container-innerHTML",
@@ -2598,6 +3127,11 @@
       "id": "B07",
       "family": "B_live_split",
       "title": "Duplicate quote — prefix/suffix drifted, fallback paints the first hit",
+      "story": "The paragraph repeats “foo bar foo bar”. After the first “foo” is marked, a second record with a garbage prefix falls back to indexOf(“foo”).",
+      "selectHow": "no mouse; restore first ‹foo› (prefix empty / suffix “bar foo”), then second ‹foo› with prefix WRONG",
+      "selectionAnnotated": "‹foo› bar foo bar  (no mouse; intended target is the second foo: foo bar ‹foo› bar)",
+      "expectHuman": "fallback indexOf(quote) is first-match, so the second restore paints the first occurrence (or the same offsets) — wrong span.",
+      "repro": "1. Restore first “foo”. 2. Restore second “foo” with prefix/suffix that miss. 3. Painted occurrence is 0, not 1.",
       "why_breaks": "Two 'foo' tokens. After the first is marked, a second record with a stale/wrong prefix falls back to text.indexOf('foo') and re-hits the first occurrence (now inside a mark) or the same offsets.",
       "html": "<p>foo bar foo bar</p>",
       "load": "container-innerHTML",
@@ -2654,6 +3188,11 @@
       "id": "B08",
       "family": "B_live_split",
       "title": "normalize() after paint invalidates stale spans",
+      "story": "“one two three” is flattened, “two” is painted, then container.normalize() runs. A stale span still points at the original single text node.",
+      "selectHow": "no mouse; restore ‹two›, normalize(), then stale-restore ‹three›",
+      "selectionAnnotated": "one ‹two› ‹three›  (no mouse; after normalize the original Text is detached)",
+      "expectHuman": "stale span is detached after normalize; second restore throws or returns null.",
+      "repro": "1. flattenOnce and restore “two”. 2. container.normalize(). 3. restore “three” via the stale span — detached / throw / null.",
       "why_breaks": "container.normalize() merges adjacent text nodes that are not separated by elements. After a mark, the unmarked siblings may merge with other unmarked nodes if the harness inserted extras; stale Text references can be detached.",
       "html": "<p>one two three</p>",
       "load": "container-innerHTML",
@@ -2716,6 +3255,11 @@
       "id": "B09",
       "family": "B_live_split",
       "title": "Insert text before a painted mark, then stale restore",
+      "story": "“head tail word” is flattened and “tail” is painted. Then the harness inserts “PREFIX ” at the start of the paragraph and tries a stale restore of “word”.",
+      "selectHow": "no mouse; restore ‹tail›, insert “PREFIX ” at offset 0, then stale-restore ‹word›",
+      "selectionAnnotated": "PREFIX  head ‹tail› ‹word›  (no mouse; insertion shifts every cached offset)",
+      "expectHuman": "cached offsets no longer address “word” — wrong span or null.",
+      "repro": "1. flattenOnce, restore “tail”. 2. Insert “PREFIX ” at the start. 3. stale restore “word” — wrong span or null.",
       "why_breaks": "Live DOM grows a new text node (or lengthens the first). Cached offsets no longer address the intended quote.",
       "html": "<p>head tail word</p>",
       "load": "container-innerHTML",
@@ -2770,7 +3314,10 @@
       ],
       "mutation": {
         "op": "insertText",
-        "path": [0, 0],
+        "path": [
+          0,
+          0
+        ],
         "offset": 0,
         "text": "PREFIX "
       }
@@ -2779,6 +3326,11 @@
       "id": "B10",
       "family": "B_live_split",
       "title": "Detach the text node a stale span still holds",
+      "story": "The harness flattens “keep this quote safe”, then replaces the paragraph via innerHTML (new nodes, same looking text) and tries to restore with the old Text reference.",
+      "selectHow": "no mouse; flatten, replaceInnerHTML with the same markup, then stale-restore ‹quote›",
+      "selectionAnnotated": "keep this ‹quote› safe  (no mouse; after replace the span’s node is detached)",
+      "expectHuman": "stale span.node is detached; setStart throws or no-ops. No mark.",
+      "repro": "1. flattenOnce. 2. container.innerHTML = the same HTML. 3. restoreStale — detached node, throw or null.",
       "why_breaks": "Replace the paragraph after flatten. spans[i].node is detached; setStart throws or no-ops depending on UA.",
       "html": "<p>keep this quote safe</p>",
       "load": "container-innerHTML",
@@ -2828,6 +3380,11 @@
       "id": "B11",
       "family": "B_live_split",
       "title": "After first paint, select across the new mark boundary",
+      "story": "Restore first paints “quick”, splitting the sentence into The <mark>quick</mark> brown…. The user then selects across that new mark boundary (“ck bro”).",
+      "selectHow": "no initial mouse; after ‹quick› is marked, drag from the last two letters of the mark into “bro”",
+      "selectionAnnotated": "no mouse for ‹quick›; then The <mark>qui⟦ck</mark> bro⟧wn fox jumps.",
+      "expectHuman": "surroundContents throws / paintRange returns null; the live <mark> is only partially contained. Original mark stays.",
+      "repro": "1. Restore “quick”. 2. Range start = mark text offset 3, end = following text offset 4. 3. paintRange returns null.",
       "why_breaks": "DOM becomes The <mark>quick</mark> brown fox jumps. Selecting 'ck bro' partially contains the mark.",
       "html": "<p>The quick brown fox jumps.</p>",
       "load": "container-innerHTML",
@@ -2878,6 +3435,11 @@
       "id": "B12",
       "family": "B_live_split",
       "title": "Paint then unwrap the mark, restore with stale spans into a merged node",
+      "story": "“Alpha beta gamma” is painted on “beta”, then the harness unwraps the mark and normalize()s. A stale restore tries to paint the same quote again using the old spans.",
+      "selectHow": "no mouse; restore ‹beta›, unwrapMark + normalize, then stale-restore the same ‹beta›",
+      "selectionAnnotated": "Alpha ‹beta› gamma  (no mouse; after unwrap the mark’s text node is gone or lengths changed)",
+      "expectHuman": "stale spans point at a detached mark child or old lengths — throw or null.",
+      "repro": "1. flattenOnce, restore “beta”. 2. Replace <mark> with its text and normalize(). 3. restoreStale-same — detached or wrong offset.",
       "why_breaks": "Harness paints, then replaces <mark> with its child text and normalize(). Stale spans point at the mark's former text node (possibly detached) or old lengths.",
       "html": "<p>Alpha beta gamma</p>",
       "load": "container-innerHTML",
@@ -2925,6 +3487,11 @@
       "id": "B13",
       "family": "B_live_split",
       "title": "extractContext indexOf hits the first of two identical quotes in one <p>",
+      "story": "One paragraph repeats “red fox”. The user selects the second occurrence. extractContext uses text.indexOf(quote), so prefix/suffix are recorded against the first hit.",
+      "selectHow": "from the start of the second “red fox” through that whole phrase (the first “red fox” is not the drag)",
+      "selectionAnnotated": "‹red fox› jumps and ⟦red fox⟧ sleeps",
+      "expectHuman": "extractContext / resolveAndPaint bind occurrence 0; restore paints the first “red fox”, not the one the user selected.",
+      "repro": "1. Select the second “red fox”. 2. extractContext(block, quote). 3. Restore from that prefix/suffix — mark is on occurrence 0.",
       "why_breaks": "mouseup uses extractContext(blockEl, quote) which is text.indexOf(quote). Two identical phrases: prefix/suffix are recorded against the first hit even if the user selected the second. Restore then paints the wrong span.",
       "html": "<p>red fox jumps and red fox sleeps</p>",
       "load": "container-innerHTML",
@@ -2932,11 +3499,17 @@
         "api": "range",
         "pathFrom": "container",
         "start": {
-          "path": [0, 0],
+          "path": [
+            0,
+            0
+          ],
           "offset": 18
         },
         "end": {
-          "path": [0, 0],
+          "path": [
+            0,
+            0
+          ],
           "offset": 25
         },
         "quote": "red fox"
@@ -2984,6 +3557,11 @@
       "id": "B14",
       "family": "B_live_split",
       "title": "Whitespace drift after paint + serialize",
+      "story": "A record stores “hello world”. A CMS-like rewrite turns the DOM into “hello  world” (two spaces). indexOf no longer finds the quote.",
+      "selectHow": "no mouse; restore looks for ‹hello world› after the DOM is rewritten to two spaces",
+      "selectionAnnotated": "‹hello world› again  → after rewrite: hello  world again  (no mouse; quote is no longer a substring)",
+      "expectHuman": "resolveAndPaint returns null; the record is an orphan after whitespace drift.",
+      "repro": "1. Load “hello world again”. 2. Rewrite innerHTML to two spaces. 3. restore — null, no mark.",
       "why_breaks": "Record stores 'hello world'. After a CMS-like innerHTML rewrite the DOM has two spaces or a newline. indexOf misses; restore returns null (orphan record).",
       "html": "<p>hello world again</p>",
       "load": "container-innerHTML",
@@ -3033,6 +3611,11 @@
       "id": "C01",
       "family": "C_parser_x",
       "title": "Crossed <b>/<i> — adoption agency",
+      "story": "The author wrote crossed tags <b>foo<i>bar</b>baz</i>. The HTML parser runs the adoption agency and rewrites them to <b>foo<i>bar</i></b><i>baz</i>. The user still tries to highlight the author’s crossing.",
+      "selectHow": "from the last two letters of “foo” through recovered “bar” into the first two letters of the split “baz”",
+      "selectionAnnotated": "<b>f⟦oo<i>bar</i></b><i>ba⟧z</i>  (authored was <b>foo<i>bar</b>baz</i>)",
+      "expectHuman": "authored paths do not exist; even on the recovered tree the range partially contains formatting nodes — surroundContents throws / paintRange returns null.",
+      "repro": "1. innerHTML the dirty snippet; read the recovered tree. 2. Drag from “oo” through “ba”. 3. paintRange returns null.",
       "why_breaks": "Authored <b>foo<i>bar</b>baz</i> is recovered to <b>foo<i>bar</i></b><i>baz</i>. Authored paths do not exist. A range that follows the author's crossing still partially contains formatting nodes.",
       "html": "<p><b>foo<i>bar</b>baz</i></p>",
       "load": "container-innerHTML",
@@ -3040,11 +3623,19 @@
         "api": "range",
         "pathFrom": "container",
         "start": {
-          "path": [0, 0, 0],
+          "path": [
+            0,
+            0,
+            0
+          ],
           "offset": 1
         },
         "end": {
-          "path": [0, 1, 0],
+          "path": [
+            0,
+            1,
+            0
+          ],
           "offset": 2
         },
         "quote": "oobarba"
@@ -3089,11 +3680,19 @@
         "typical": "<p><b>foo<i>bar</i></b><i>baz</i></p>",
         "afterParseSelection": {
           "start": {
-            "path": [0, 0, 0],
+            "path": [
+              0,
+              0,
+              0
+            ],
             "offset": 1
           },
           "end": {
-            "path": [0, 1, 0],
+            "path": [
+              0,
+              1,
+              0
+            ],
             "offset": 2
           },
           "quote": "oobarba"
@@ -3104,6 +3703,11 @@
       "id": "C02",
       "family": "C_parser_x",
       "title": "Crossed <mark>/<em>",
+      "story": "Same adoption-agency split, but the outer formatter is an existing <mark>. Authored <mark>aa<em>bb</mark>cc</em> becomes <mark>aa<em>bb</em></mark><em>cc</em>.",
+      "selectHow": "from the second letter of “aa” through “bb” into the first letter of the split “cc”",
+      "selectionAnnotated": "<mark>a⟦a<em>bb</em></mark><em>c⟧c</em>  (authored was <mark>aa<em>bb</mark>cc</em>)",
+      "expectHuman": "surroundContents throws / paintRange returns null; recovered <mark> and <em> are only partially contained.",
+      "repro": "1. Load the dirty mark/em snippet. 2. Drag from the second “a” through “c”. 3. paintRange returns null.",
       "why_breaks": "Same adoption-agency split as C01 but the outer formatter is an existing highlight tag.",
       "html": "<p><mark>aa<em>bb</mark>cc</em></p>",
       "load": "container-innerHTML",
@@ -3111,11 +3715,19 @@
         "api": "range",
         "pathFrom": "container",
         "start": {
-          "path": [0, 0, 0],
+          "path": [
+            0,
+            0,
+            0
+          ],
           "offset": 1
         },
         "end": {
-          "path": [0, 1, 0],
+          "path": [
+            0,
+            1,
+            0
+          ],
           "offset": 1
         },
         "quote": "abbc"
@@ -3160,11 +3772,19 @@
         "typical": "<p><mark>aa<em>bb</em></mark><em>cc</em></p>",
         "afterParseSelection": {
           "start": {
-            "path": [0, 0, 0],
+            "path": [
+              0,
+              0,
+              0
+            ],
             "offset": 1
           },
           "end": {
-            "path": [0, 1, 0],
+            "path": [
+              0,
+              1,
+              0
+            ],
             "offset": 1
           },
           "quote": "abbc"
@@ -3175,6 +3795,11 @@
       "id": "C03",
       "family": "C_parser_x",
       "title": "Adoption agency: <b><p>hello</b>world</p>",
+      "story": "Authored <b><p>hello</b>world</p>. Typical recovery: an empty <b> before the paragraph, then <b>hello</b>world inside the <p>. The “one bold run” the author saw is gone.",
+      "selectHow": "from the middle of recovered bold “hello” into the following plain “wor”",
+      "selectionAnnotated": "<b></b><p><b>he⟦llo</b>wor⟧ld</p>",
+      "expectHuman": "surroundContents throws / paintRange returns null; the recovered <b> is only partially contained.",
+      "repro": "1. Load and confirm innerHTML ≈ empty <b> + <p><b>hello</b>world. 2. Drag from “llo” through “wor”. 3. paintRange returns null.",
       "why_breaks": "The </b> closes/reopens across the <p>. Typical recovery: empty <b> before <p>, plus <b>hello</b>world inside the paragraph. Authored 'hello world' as one bold run is gone; a range across the recovered <b> rejects.",
       "html": "<b><p>hello</b>world</p>",
       "load": "container-innerHTML",
@@ -3182,11 +3807,18 @@
         "api": "range",
         "pathFrom": "container",
         "start": {
-          "path": [1, 0, 0],
+          "path": [
+            1,
+            0,
+            0
+          ],
           "offset": 2
         },
         "end": {
-          "path": [1, 1],
+          "path": [
+            1,
+            1
+          ],
           "offset": 3
         },
         "quote": "llowor"
@@ -3235,6 +3867,11 @@
       "id": "C04",
       "family": "C_parser_x",
       "title": "Nested <p> is illegal — parser closes the first",
+      "story": "Nested <p> is illegal. Authored one element; after parse there are two (or three) paragraphs: outer / inner / tail. A “single block” selection now crosses <p> boundaries.",
+      "selectHow": "from the last three letters of “outer” into the first three of “inner” (now a sibling <p>)",
+      "selectionAnnotated": "<p>ou⟦ter</p><p>inn⟧er</p>  (authored was <p>outer<p>inner</p>tail</p>)",
+      "expectHuman": "surroundContents throws / paintRange returns null; each recovered <p> is only partially contained. closest('p') sees only one of them.",
+      "repro": "1. Load the nested-<p> snippet. 2. Drag from “ter” into “inn”. 3. paintRange returns null.",
       "why_breaks": "Authored one element; after parse there are two (or more) paragraphs. A 'single block' selection now crosses <p> boundaries and rejects. extractContext's closest('p') is only one of them.",
       "html": "<p>outer<p>inner</p>tail</p>",
       "load": "container-innerHTML",
@@ -3242,11 +3879,17 @@
         "api": "range",
         "pathFrom": "container",
         "start": {
-          "path": [0, 0],
+          "path": [
+            0,
+            0
+          ],
           "offset": 2
         },
         "end": {
-          "path": [1, 0],
+          "path": [
+            1,
+            0
+          ],
           "offset": 3
         },
         "quote": "terinn"
@@ -3296,6 +3939,11 @@
       "id": "C05",
       "family": "C_parser_x",
       "title": "Table foster parenting — text before <td>",
+      "story": "Text “fostered” was written inside a table row before a <td>. The parser fosters it out in front of the table. The user still tries to highlight from that text into the cell.",
+      "selectHow": "from the start of fostered “fostered” (now before the table) into the first two letters of “cell”",
+      "selectionAnnotated": "⟦fostered<table>…<td>ce⟧ll</td>",
+      "expectHuman": "surroundContents throws / paintRange returns null; the range crosses the fostered text / table boundary.",
+      "repro": "1. Load the table; confirm “fostered” is outside. 2. Drag from “fostered” into “ce”. 3. paintRange returns null.",
       "why_breaks": "Text 'fostered' is moved out of the table (typically before it). flattenText becomes 'fosteredcell' (plus implicit tbody). A record that thought the quote lived inside the row now points at a node outside the table. Selecting across foster text into the cell is a cross-boundary reject.",
       "html": "<table><tr>fostered<td>cell</td></tr></table>",
       "load": "container-innerHTML",
@@ -3303,11 +3951,19 @@
         "api": "range",
         "pathFrom": "container",
         "start": {
-          "path": [0],
+          "path": [
+            0
+          ],
           "offset": 0
         },
         "end": {
-          "path": [1, 0, 0, 0, 0],
+          "path": [
+            1,
+            0,
+            0,
+            0,
+            0
+          ],
           "offset": 2
         },
         "quote": "fosteredce"
@@ -3352,12 +4008,20 @@
         "typical": "fostered<table><tbody><tr><td>cell</td></tr></tbody></table>",
         "afterParseSelection": {
           "start": {
-            "path": [0],
+            "path": [
+              0
+            ],
             "offset": 0,
             "nodeType": "#text"
           },
           "end": {
-            "path": [1, 0, 0, 0, 0],
+            "path": [
+              1,
+              0,
+              0,
+              0,
+              0
+            ],
             "offset": 2
           },
           "quote": "fosteredce"
@@ -3368,6 +4032,11 @@
       "id": "C06",
       "family": "C_parser_x",
       "title": "Table foster parenting — <div> inside <table>",
+      "story": "A <div> was authored inside a <table>. Foster parenting moves the div out. The user highlights from the fostered “x” into cell “y”.",
+      "selectHow": "from the start of fostered <div>x</div> into the table cell “y”",
+      "selectionAnnotated": "<div>⟦x</div><table>…<td>y⟧</td>",
+      "expectHuman": "surroundContents throws / paintRange returns null; paths that assumed table > div are wrong, and the live range still crosses a boundary.",
+      "repro": "1. Load and re-read innerHTML (div before table). 2. Drag from “x” into “y”. 3. paintRange returns null.",
       "why_breaks": "The <div> is fostered out. Paths that assumed table > div are wrong. Range from fostered div text into a cell rejects.",
       "html": "<table><div>x</div><tr><td>y</td></tr></table>",
       "load": "container-innerHTML",
@@ -3375,11 +4044,20 @@
         "api": "range",
         "pathFrom": "container",
         "start": {
-          "path": [0, 0],
+          "path": [
+            0,
+            0
+          ],
           "offset": 0
         },
         "end": {
-          "path": [1, 0, 0, 0, 0],
+          "path": [
+            1,
+            0,
+            0,
+            0,
+            0
+          ],
           "offset": 1
         },
         "quote": "xy"
@@ -3428,6 +4106,11 @@
       "id": "C07",
       "family": "C_parser_x",
       "title": "Fostered text + intended cell quote concatenation",
+      "story": "Same fostered table as C05, but this row is restore-only. flattenText concatenates “fostered” + “cell”. A stored quote “steredce” looks like it exists as one string.",
+      "selectHow": "no mouse; restore looks for ‹steredce› invented by concatenating fostered text and the cell",
+      "selectionAnnotated": "fo‹steredce›ll  (no mouse; flatten is “fosteredcell” — quote is not one real node)",
+      "expectHuman": "resolveAndPaint builds a cross-node range; paintRange returns null. Orphan restore.",
+      "repro": "1. Load the fostered table. 2. flattenText should look like “fosteredcell”. 3. restore quote “steredce” — null.",
       "why_breaks": "flattenText is 'fosteredcell' or 'x y' without an author boundary. resolveAndPaint('steredce') can build a cross-node range and paintRange returns null — orphan restore.",
       "html": "<table><tr>fostered<td>cell</td></tr></table>",
       "load": "container-innerHTML",
@@ -3474,6 +4157,11 @@
       "id": "C08",
       "family": "C_parser_x",
       "title": "Nested <a> — parser closes the first link",
+      "story": "Nested links are illegal. Authored one <a> wrapping another; the parser closes the first. A selection the author thought was inside one link now crosses two <a>s.",
+      "selectHow": "from the last letter of “one” into the first two letters of “two” (now a sibling link)",
+      "selectionAnnotated": "<a href=\"/a\">on⟦e </a><a href=\"/b\">tw⟧o</a> three",
+      "expectHuman": "surroundContents throws / paintRange returns null; each recovered <a> is only partially contained.",
+      "repro": "1. Load; expect the outer link to close before the inner. 2. Drag from “e” through “tw”. 3. paintRange returns null.",
       "why_breaks": "Inner <a> closes the outer. A selection the author thought was inside one link now crosses two <a> elements.",
       "html": "<p><a href=\"/a\">one <a href=\"/b\">two</a> three</a></p>",
       "load": "container-innerHTML",
@@ -3481,11 +4169,19 @@
         "api": "range",
         "pathFrom": "container",
         "start": {
-          "path": [0, 0, 0],
+          "path": [
+            0,
+            0,
+            0
+          ],
           "offset": 2
         },
         "end": {
-          "path": [0, 1, 0],
+          "path": [
+            0,
+            1,
+            0
+          ],
           "offset": 2
         },
         "quote": "e tw"
@@ -3535,6 +4231,11 @@
       "id": "C09",
       "family": "C_parser_x",
       "title": "Nested <button>",
+      "story": "Nested buttons are forbidden. The parser closes the first button, so authored <button>a<button>b</button>c becomes two buttons plus a trailing “c”.",
+      "selectHow": "from the start of the first button “a” through the whole second button “b”",
+      "selectionAnnotated": "<button>⟦a</button><button>b⟧</button>c",
+      "expectHuman": "surroundContents throws / paintRange returns null; the recovered button boundary is crossed.",
+      "repro": "1. Load the nested-button snippet. 2. Drag from “a” through “b”. 3. paintRange returns null.",
       "why_breaks": "HTML forbids nested buttons; the parser closes the first. Crossing the recovered boundary rejects.",
       "html": "<p><button>a<button>b</button>c</button></p>",
       "load": "container-innerHTML",
@@ -3542,11 +4243,19 @@
         "api": "range",
         "pathFrom": "container",
         "start": {
-          "path": [0, 0, 0],
+          "path": [
+            0,
+            0,
+            0
+          ],
           "offset": 0
         },
         "end": {
-          "path": [0, 1, 0],
+          "path": [
+            0,
+            1,
+            0
+          ],
           "offset": 1
         },
         "quote": "ab"
@@ -3595,6 +4304,11 @@
       "id": "C10",
       "family": "C_parser_x",
       "title": "Nested <form>",
+      "story": "Nested <form> start tags are ignored. Two paragraphs the author thought lived in an inner form now sit as siblings (often still inside one outer form). The user highlights from “inner text” into “outer tail”.",
+      "selectHow": "from the last part of “inner text” into the first word of “outer tail”",
+      "selectionAnnotated": "<p>in⟦ner text</p><p>outer⟧ tail</p>",
+      "expectHuman": "surroundContents throws / paintRange returns null; the range crosses two <p>s after the inner form vanished.",
+      "repro": "1. Load and confirm the inner <form> is gone. 2. Drag from “ner text” into “outer”. 3. paintRange returns null.",
       "why_breaks": "Inner form is ignored or closed. A range the author placed 'inside the inner form' may now cross the outer form's sibling paragraph and a discarded form element.",
       "html": "<form action='/outer'><form action='/inner'><p>inner text</p></form><p>outer tail</p></form>",
       "load": "container-innerHTML",
@@ -3602,11 +4316,17 @@
         "api": "range",
         "pathFrom": "container",
         "start": {
-          "path": [0, 0],
+          "path": [
+            0,
+            0
+          ],
           "offset": 2
         },
         "end": {
-          "path": [1, 0],
+          "path": [
+            1,
+            0
+          ],
           "offset": 5
         },
         "quote": "ner textouter"
@@ -3655,6 +4375,11 @@
       "id": "C11",
       "family": "C_parser_x",
       "title": "<p> closed by a <div>",
+      "story": "A <div> inside a <p> is illegal; the parser closes the paragraph. Authored one <p>; after parse the selection crosses a <p>/<div> boundary.",
+      "selectHow": "from the last two letters of “lead” into the first three of “block”",
+      "selectionAnnotated": "<p>le⟦ad </p><div>blo⟧ck</div>  (authored was <p>lead <div>block</div> after</p>)",
+      "expectHuman": "surroundContents throws / paintRange returns null; recovered <p> and <div> are each partially contained.",
+      "repro": "1. Load; expect <p>lead </p><div>block</div>. 2. Drag from “ad” into “blo”. 3. paintRange returns null.",
       "why_breaks": "Block <div> ends the paragraph. Authored as one <p>; after parse the selection crosses a <p>/<div> boundary.",
       "html": "<p>lead <div>block</div> after</p>",
       "load": "container-innerHTML",
@@ -3662,11 +4387,17 @@
         "api": "range",
         "pathFrom": "container",
         "start": {
-          "path": [0, 0],
+          "path": [
+            0,
+            0
+          ],
           "offset": 2
         },
         "end": {
-          "path": [1, 0],
+          "path": [
+            1,
+            0
+          ],
           "offset": 3
         },
         "quote": "ad blo"
@@ -3715,6 +4446,11 @@
       "id": "C12",
       "family": "C_parser_x",
       "title": "<p> closed by a <ul>",
+      "story": "A <ul> inside a <p> closes the paragraph. The user starts in “lead” and ends inside the list item.",
+      "selectHow": "from the last two letters of “lead” into the first three of “item”",
+      "selectionAnnotated": "<p>le⟦ad </p><ul><li>ite⟧m</li></ul>",
+      "expectHuman": "surroundContents throws / paintRange returns null. Mouseup closest() may be the <li> even though the drag started in the <p>.",
+      "repro": "1. Load; expect the list outside the paragraph. 2. Drag from “ad” into “ite”. 3. paintRange returns null.",
       "why_breaks": "List closes the paragraph. Crossing into the <li> rejects; mouseup closest() may be the li even though the user started in the p.",
       "html": "<p>lead <ul><li>item</li></ul> tail</p>",
       "load": "container-innerHTML",
@@ -3722,11 +4458,18 @@
         "api": "range",
         "pathFrom": "container",
         "start": {
-          "path": [0, 0],
+          "path": [
+            0,
+            0
+          ],
           "offset": 2
         },
         "end": {
-          "path": [1, 0, 0],
+          "path": [
+            1,
+            0,
+            0
+          ],
           "offset": 3
         },
         "quote": "ad ite"
@@ -3775,6 +4518,11 @@
       "id": "C13",
       "family": "C_parser_x",
       "title": "<div> inside <select> is thrown out",
+      "story": "A <div> inside <select> is not a valid child; recovery drops or fosters it. The user starts in “pick” and ends inside option “yes”.",
+      "selectHow": "from the last two letters of “pick” into the first two letters of leftover option “yes”",
+      "selectionAnnotated": "pi⟦ck <select><option>ye⟧s</option></select> ok",
+      "expectHuman": "surroundContents throws / paintRange returns null; the range still crosses into a form control. Re-read innerHTML — the div may be gone.",
+      "repro": "1. Load and inspect where “nope” went. 2. Drag from “ck” into “ye”. 3. paintRange returns null.",
       "why_breaks": "Selects only allow option/optgroup/script. The <div> is not a valid child; recovery drops or fosters it. Paths and flatten change; a range into the leftover option still crosses a form control.",
       "html": "<p>pick <select><div>nope</div><option>yes</option></select> ok</p>",
       "load": "container-innerHTML",
@@ -3782,11 +4530,19 @@
         "api": "range",
         "pathFrom": "container",
         "start": {
-          "path": [0, 0],
+          "path": [
+            0,
+            0
+          ],
           "offset": 2
         },
         "end": {
-          "path": [0, 1, 0, 0],
+          "path": [
+            0,
+            1,
+            0,
+            0
+          ],
           "offset": 2
         },
         "quote": "ck ye"
@@ -3835,6 +4591,11 @@
       "id": "C14",
       "family": "C_parser_x",
       "title": "HTML <div> inside <svg> — foreign content breakout",
+      "story": "An HTML <div> was placed inside <svg>. Foreign-content rules may break the div out of the svg. The user starts on HTML “a” and tries to end in leftover SVG text “S”.",
+      "selectHow": "from HTML “a” into the SVG <text> “S” (after any div breakout)",
+      "selectionAnnotated": "⟦a<svg>…<text>S⟧</text></svg>z",
+      "expectHuman": "surroundContents throws / paintRange returns null; HTML→SVG is a foreign-content reject. Confirm the DOM in Chromium before applying paths.",
+      "repro": "1. Load in Chromium; see whether the <div> broke out. 2. Drag from “a” into “S”. 3. paintRange returns null.",
       "why_breaks": "In SVG, a <div> (HTML namespace) may break out of the svg element. Paths that assumed svg > div are wrong; a range from HTML into leftover SVG text is foreign-content reject.",
       "html": "<p>a<svg width=\"10\" height=\"10\"><div>html in svg</div><text x=\"0\" y=\"8\">S</text></svg>z</p>",
       "load": "container-innerHTML",
@@ -3842,11 +4603,19 @@
         "api": "range",
         "pathFrom": "container",
         "start": {
-          "path": [0, 0],
+          "path": [
+            0,
+            0
+          ],
           "offset": 0
         },
         "end": {
-          "path": [0, 1, 0, 0],
+          "path": [
+            0,
+            1,
+            0,
+            0
+          ],
           "offset": 1
         },
         "quote": "aS"
@@ -3895,6 +4664,11 @@
       "id": "C15",
       "family": "C_parser_x",
       "title": "HTML <div> inside <math>",
+      "story": "Same idea in MathML: an HTML <div> inside <math> may break out. The user starts on “a” and ends in <mi>x</mi>.",
+      "selectHow": "from HTML “a” into the MathML identifier “x”",
+      "selectionAnnotated": "⟦a<math>…<mi>x⟧</mi></math>z",
+      "expectHuman": "surroundContents throws / paintRange returns null; HTML→MathML is a foreign-content reject.",
+      "repro": "1. Load in Chromium. 2. Drag from “a” into <mi>x</mi>. 3. paintRange returns null.",
       "why_breaks": "MathML foreign-content rules differ from SVG. The <div> may break out; selection from paragraph text into <mi> rejects.",
       "html": "<p>a<math><div>html in math</div><mi>x</mi></math>z</p>",
       "load": "container-innerHTML",
@@ -3902,11 +4676,19 @@
         "api": "range",
         "pathFrom": "container",
         "start": {
-          "path": [0, 0],
+          "path": [
+            0,
+            0
+          ],
           "offset": 0
         },
         "end": {
-          "path": [0, 1, 0, 0],
+          "path": [
+            0,
+            1,
+            0,
+            0
+          ],
           "offset": 1
         },
         "quote": "ax"
@@ -3952,6 +4734,11 @@
       "id": "C16",
       "family": "C_parser_x",
       "title": "Unclosed formatting across two <p>s",
+      "story": "</p> does not close <b>/<i>. Unclosed bold/italic is reconstructed on the next paragraph. The user highlights from mid-first-p to mid-second-p; flatten can look like one bold run.",
+      "selectHow": "from the last part of “bold” in the first <p> through reconstructed formatting into “next”",
+      "selectionAnnotated": "<p><b>bo⟦ld <i>both</p><p>next⟧</b> still?</p>",
+      "expectHuman": "surroundContents throws / paintRange returns null; the live range is a cross-block reject even if flatten looks continuous.",
+      "repro": "1. Load; expect reconstructed <b><i> on the second <p>. 2. Drag from “ld” through “next”. 3. paintRange returns null.",
       "why_breaks": "</p> does not close <b>/<i>. Formatting is reconstructed on the next paragraph. A user range from mid-first-p to mid-second-p is a cross-block reject; flatten looks like one bold run.",
       "html": "<p><b>bold <i>both</p><p>next</b> still?</p>",
       "load": "container-innerHTML",
@@ -3959,11 +4746,19 @@
         "api": "range",
         "pathFrom": "container",
         "start": {
-          "path": [0, 0, 0],
+          "path": [
+            0,
+            0,
+            0
+          ],
           "offset": 2
         },
         "end": {
-          "path": [1, 0, 0],
+          "path": [
+            1,
+            0,
+            0
+          ],
           "offset": 3
         },
         "quote": "ld bothnext"
@@ -4012,6 +4807,11 @@
       "id": "C17",
       "family": "C_parser_x",
       "title": "<a> wrapping a <table> with an inner <a>",
+      "story": "An outer link wraps a table that itself contains a cell link. Interactive + table recovery often closes the outer <a> before the table. The user selects the inner cell text “in”.",
+      "selectHow": "drag the whole inner-link word “in” (same text node; the break is recovered ancestors / missing p|li|h*)",
+      "selectionAnnotated": "<td><a href=\"/i\">⟦in⟧</a></td>  (outer <a> may already be closed before the table)",
+      "expectHuman": "if the outer <a> closed before the table, “in” may paint but closest(p|li|h*) is missing so the toolbar hides. If both links remain ancestors, surroundContents may still throw.",
+      "repro": "1. Load and read innerHTML (outer <a> often closes before <table>). 2. Select “in”. 3. paintRange is null or the toolbar has no p|li|h* ancestor.",
       "why_breaks": "Interactive + table recovery. Inner link closes/reopens the outer. Selection from caption-less first text into an inner cell link crosses recovered <a> and table boundaries.",
       "html": "<a href=\"/o\"><table><tbody><tr><td><a href=\"/i\">in</a></td></tr></tbody></table></a>",
       "load": "container-innerHTML",
@@ -4019,11 +4819,25 @@
         "api": "range",
         "pathFrom": "container",
         "start": {
-          "path": [0, 0, 0, 0, 0, 0],
+          "path": [
+            0,
+            0,
+            0,
+            0,
+            0,
+            0
+          ],
           "offset": 0
         },
         "end": {
-          "path": [0, 0, 0, 0, 0, 0],
+          "path": [
+            0,
+            0,
+            0,
+            0,
+            0,
+            0
+          ],
           "offset": 2
         },
         "quote": "in"
@@ -4074,6 +4888,11 @@
       "id": "C18",
       "family": "C_parser_x",
       "title": "Misnested lists — implied </li>",
+      "story": "A second <li> appears without closing the parent item that holds a nested <ul>. Typical recovery implies </li> so “b” and “c” become items in different lists/levels.",
+      "selectHow": "from the start of inner item “b” into sibling item “c”",
+      "selectionAnnotated": "<li>a<ul><li>⟦b</li></ul></li><li>c⟧</li>",
+      "expectHuman": "surroundContents throws / paintRange returns null; crossing from the inner item to the recovered sibling <li> rejects.",
+      "repro": "1. Load; expect implied </li> after the inner <ul>. 2. Drag from “b” into “c”. 3. paintRange returns null.",
       "why_breaks": "A second <li> without closing the inner <ul>'s parent item. After parse, crossing from the inner item to the sibling item rejects.",
       "html": "<ul><li>a<ul><li>b</li></ul><li>c</li></ul>",
       "load": "container-innerHTML",
@@ -4081,11 +4900,21 @@
         "api": "range",
         "pathFrom": "container",
         "start": {
-          "path": [0, 0, 1, 0, 0],
+          "path": [
+            0,
+            0,
+            1,
+            0,
+            0
+          ],
           "offset": 0
         },
         "end": {
-          "path": [0, 1, 0],
+          "path": [
+            0,
+            1,
+            0
+          ],
           "offset": 1
         },
         "quote": "bc"
@@ -4134,6 +4963,11 @@
       "id": "C19",
       "family": "C_parser_x",
       "title": "<title> in body",
+      "story": "A <title> was placed in the body between “x” and “z”. UAs may move it to <head> or leave it as a non-visible element. The user tries to select “xyz” as if “y” were ordinary text.",
+      "selectHow": "from the start of “x” through <title>y</title> to the end of “z”",
+      "selectionAnnotated": "⟦x<title>y</title>z⟧",
+      "expectHuman": "if <title> is relocated, “y” is gone from the container flatten and quote “xyz” cannot paint. If it stays, crossing <title> is a partial-element reject. Either way: no reliable mark.",
+      "repro": "1. Load and see whether <title> is still in the container. 2. Drag x→z. 3. flatten misses “y” or paintRange returns null.",
       "why_breaks": "<title> in body is often moved to <head> or left as an element whose text is not 'visible' consistently. flattenText on the container may drop it; a range that included 'y' disappears.",
       "html": "<p>x<title>y</title>z</p>",
       "load": "container-innerHTML",
@@ -4141,11 +4975,17 @@
         "api": "range",
         "pathFrom": "container",
         "start": {
-          "path": [0, 0],
+          "path": [
+            0,
+            0
+          ],
           "offset": 0
         },
         "end": {
-          "path": [0, 2],
+          "path": [
+            0,
+            2
+          ],
           "offset": 1
         },
         "quote": "xyz"
@@ -4193,6 +5033,11 @@
       "id": "C20",
       "family": "C_parser_x",
       "title": "Rawtext <textarea> swallows a fake </b>",
+      "story": "A textarea’s rawtext contains the characters a</b>b — that is not a real closer. flattenText does not include textarea.value. A stored record still quotes “a</b>b” between visible “x” and “z”.",
+      "selectHow": "no mouse; restore looks for ‹a</b>b› inside the textarea rawtext (not in visible flatten)",
+      "selectionAnnotated": "x<textarea>‹a</b>b›</textarea>z  (no mouse; visible flatten is “xz”)",
+      "expectHuman": "resolveAndPaint returns null; the quote is not a substring of visible DOM text.",
+      "repro": "1. Load the textarea snippet. 2. flattenText should be “xz” (plus maybe spaces). 3. restore “a</b>b” — null.",
       "why_breaks": "Inside textarea, '</b>' is text, not a closer. flattenText does not include textarea.value. A record quote 'a</b>b' will not match visible DOM text 'xz'.",
       "html": "<p>x<textarea>a</b>b</textarea>z</p>",
       "load": "container-innerHTML",
@@ -4239,6 +5084,11 @@
       "id": "C21",
       "family": "C_parser_x",
       "title": "<noscript> in jsdom vs Chromium",
+      "story": "A <noscript><b>y</b></noscript> sits between “x” and “z”. With scripting on, Chromium treats noscript as inert rawtext; jsdom/parse5 may still expose the inner <b>. Paths and flatten disagree across harnesses.",
+      "selectHow": "from the start of “x” to the end of “z”, treating noscript as a hole (quote “xz”)",
+      "selectionAnnotated": "⟦x<noscript><b>y</b></noscript>z⟧",
+      "expectHuman": "there is no one portable DOM. jsdom may include “y” in flatten; Chromium typically does not. A shared path selection is not portable — that disagreement is the phase-1 break.",
+      "repro": "1. Load the same HTML under jsdom and Playwright. 2. Compare flattenText and childNodes. 3. Do not expect one paint outcome.",
       "why_breaks": "With scripting on, Chromium treats <noscript> as inert rawtext; jsdom's parse5 may still expose inner <b> as elements. flattenText / paths diverge across harnesses.",
       "html": "<p>x<noscript><b>y</b></noscript>z</p>",
       "load": "container-innerHTML",
@@ -4246,11 +5096,17 @@
         "api": "range",
         "pathFrom": "container",
         "start": {
-          "path": [0, 0],
+          "path": [
+            0,
+            0
+          ],
           "offset": 0
         },
         "end": {
-          "path": [0, 2],
+          "path": [
+            0,
+            2
+          ],
           "offset": 1
         },
         "quote": "xz"
@@ -4292,6 +5148,11 @@
       "id": "C22",
       "family": "C_parser_x",
       "title": "Comment that looks like a tag, plus a real <em>",
+      "story": "A comment <!-- <em> --> looks like a tag but is not an element. A real <em>cc</em> follows. Counting the comment as an element child makes the end path off by one.",
+      "selectHow": "from the second letter of “aa”, across the comment and “bb”, into the first letter of real <em>cc</em>",
+      "selectionAnnotated": "a⟦a<!-- <em> -->bb<em>c⟧c</em>",
+      "expectHuman": "correct after-parse end path is [0,3,0] (not authored [0,1,0]). Once paths are right this is a normal partial-<em> reject: paintRange returns null.",
+      "repro": "1. Load; childNodes are text, comment, text, em. 2. Drag from the second “a” into “c”. 3. paintRange returns null.",
       "why_breaks": "<!-- <em> --> does not open an element. A path that counted the comment as an element child is off by one. Start in 'aa', end inside the real <em> — once paths are correct this is a normal A_reject; the parser trap is using authored child indices that included the comment as an element.",
       "html": "<p>aa<!-- <em> -->bb<em>cc</em></p>",
       "load": "container-innerHTML",
@@ -4299,11 +5160,18 @@
         "api": "range",
         "pathFrom": "container",
         "start": {
-          "path": [0, 0],
+          "path": [
+            0,
+            0
+          ],
           "offset": 1
         },
         "end": {
-          "path": [0, 3, 0],
+          "path": [
+            0,
+            3,
+            0
+          ],
           "offset": 1
         },
         "quote": "abbc"
@@ -4351,14 +5219,27 @@
           "#text bb",
           "em#cc"
         ],
-        "wrongAuthoredEndPath": [0, 1, 0],
-        "afterParseEndPath": [0, 3, 0]
+        "wrongAuthoredEndPath": [
+          0,
+          1,
+          0
+        ],
+        "afterParseEndPath": [
+          0,
+          3,
+          0
+        ]
       }
     },
     {
       "id": "D01",
       "family": "D_restore_orphan",
       "title": "Quote not present at all",
+      "story": "The paragraph is “Nothing matches here.” A stored highlight record still asks for “brown fox” with prefix “quick” and suffix “jumps” — none of that text exists.",
+      "selectHow": "no mouse; restore looks for ‹brown fox› (prefix quick / suffix jumps) which is not on the page",
+      "selectionAnnotated": "Nothing matches here.  (no mouse; restore looks for ‹brown fox› — quote is absent)",
+      "expectHuman": "resolveAndPaint indexOf misses; returns null. The stored record is an orphan. No mark.",
+      "repro": "1. Load the paragraph. 2. flattenText. 3. resolveAndPaint {quote:'brown fox'} — null.",
       "why_breaks": "resolveAndPaint indexOf misses; returns null. The stored record is an orphan.",
       "html": "<p>Nothing matches here.</p>",
       "load": "container-innerHTML",
@@ -4404,6 +5285,11 @@
       "id": "D02",
       "family": "D_restore_orphan",
       "title": "Duplicate quote, drifted prefix — wrong span",
+      "story": "The sentence has two “shift” tokens (“shift left then shift right”). The record wants the second, but prefix/suffix have drifted to GONE/AWAY.",
+      "selectHow": "no mouse; restore looks for ‹shift› with dead prefix/suffix, so fallback indexOf hits the first",
+      "selectionAnnotated": "‹shift› left then shift right  (no mouse; intended target is the second: shift left then ‹shift› right)",
+      "expectHuman": "prefix+quote+suffix miss; fallback indexOf(“shift”) paints occurrence 0, not 1. Wrong span.",
+      "repro": "1. Load the sentence. 2. Restore with prefix GONE. 3. The first “shift” is marked, not the second.",
       "why_breaks": "prefix+quote+suffix miss; fallback indexOf(quote) paints the first 'shift', not the second.",
       "html": "<p>shift left then shift right</p>",
       "load": "container-innerHTML",
@@ -4451,6 +5337,11 @@
       "id": "D03",
       "family": "D_restore_orphan",
       "title": "Flatten concatenation invents a quote across <p>s",
+      "story": "Two tiny paragraphs: “un” and “ion”. flattenText concatenates them to “union”. A record quotes that invented word.",
+      "selectHow": "no mouse; restore looks for ‹union› which only exists as flatten(“un”)+flatten(“ion”)",
+      "selectionAnnotated": "<p>‹un</p><p>ion›</p>  (no mouse; flatten concatenates across the block boundary)",
+      "expectHuman": "indexOf(“union”) succeeds, but setStart/setEnd span two blocks; paintRange returns null.",
+      "repro": "1. Load the two <p>s. 2. flattenText === “union”. 3. resolveAndPaint “union” — null.",
       "why_breaks": "flattenText is 'union' from <p>un</p><p>ion</p>. indexOf('union') succeeds; setStart/setEnd span two blocks; paintRange returns null.",
       "html": "<p>un</p><p>ion</p>",
       "load": "container-innerHTML",
@@ -4497,6 +5388,11 @@
       "id": "D04",
       "family": "D_restore_orphan",
       "title": "Record has a single space; DOM has two",
+      "story": "The DOM already has two spaces (“hello  world”). The record stores a single space (“hello world”).",
+      "selectHow": "no mouse; restore looks for ‹hello world› but the live text is hello  world",
+      "selectionAnnotated": "hello  world again  (no mouse; restore looks for ‹hello world› — one space vs two)",
+      "expectHuman": "quote is not a substring; resolveAndPaint returns null.",
+      "repro": "1. Load “hello  world again”. 2. Restore quote “hello world”. 3. null, no mark.",
       "why_breaks": "quote 'hello world' is not a substring of 'hello  world'. Restore null.",
       "html": "<p>hello  world again</p>",
       "load": "container-innerHTML",
@@ -4542,6 +5438,11 @@
       "id": "D05",
       "family": "D_restore_orphan",
       "title": "NBSP in the DOM, regular space in the record",
+      "story": "The DOM uses a non-breaking space (hello&nbsp;world). The record uses a regular U+0020 space.",
+      "selectHow": "no mouse; restore looks for ‹hello world› with U+0020; the node holds U+00A0",
+      "selectionAnnotated": "hello&nbsp;world again  (no mouse; restore looks for ‹hello world› — NBSP ≠ space)",
+      "expectHuman": "indexOf fails on the NBSP; resolveAndPaint returns null.",
+      "repro": "1. Load hello&nbsp;world. 2. Confirm node.data contains \\u00a0. 3. restore “hello world” — null.",
       "why_breaks": "textNode.data contains \\u00a0; record.quote uses U+0020. indexOf fails.",
       "html": "<p>hello&nbsp;world again</p>",
       "load": "container-innerHTML",
@@ -4588,6 +5489,11 @@
       "id": "D06",
       "family": "D_restore_orphan",
       "title": "Quote is a prefix of an earlier word",
+      "story": "The page has “caterpillar” and later a standalone “cat”. A record quotes “cat” with dead prefix/suffix, so indexOf hits the prefix of “caterpillar”.",
+      "selectHow": "no mouse; restore looks for ‹cat›; first hit is inside ‹cat›erpillar, not the later word",
+      "selectionAnnotated": "‹cat›erpillar and a cat sat  (no mouse; intended target is the standalone cat)",
+      "expectHuman": "indexOf(“cat”) paints the start of “caterpillar” — wrong span.",
+      "repro": "1. Load the sentence. 2. Restore quote “cat” with GONE prefix. 3. Mark is on “cat” inside “caterpillar”.",
       "why_breaks": "indexOf('cat') hits 'caterpillar', not the later standalone 'cat'.",
       "html": "<p>caterpillar and a cat sat</p>",
       "load": "container-innerHTML",
@@ -4634,6 +5540,11 @@
       "id": "D07",
       "family": "D_restore_orphan",
       "title": "Quote lives only inside <script>",
+      "story": "The only copy of “secret phrase” lives in a <script> string. The visible paragraph just says “visible”. flattenText rejects SCRIPT parents.",
+      "selectHow": "no mouse; restore looks for ‹secret phrase› which exists only inside <script>",
+      "selectionAnnotated": "<p>visible</p><script>…‹secret phrase›…</script>  (no mouse; flatten skips SCRIPT)",
+      "expectHuman": "flatten does not contain the quote; resolveAndPaint returns null.",
+      "repro": "1. Load paragraph + script. 2. flattenText === “visible”. 3. restore “secret phrase” — null.",
       "why_breaks": "flattenText rejects SCRIPT parents, so the only copy of the quote is invisible. Restore null.",
       "html": "<p>visible</p><script>const quote = \"secret phrase\";</script>",
       "load": "container-innerHTML",
@@ -4680,6 +5591,11 @@
       "id": "D08",
       "family": "D_restore_orphan",
       "title": "Second record's quote is a substring of an already restored quote",
+      "story": "“The noteworthy note.” Restore first paints “noteworthy”. A second record quotes “note” with dead prefix/suffix; indexOf hits text already inside the first mark (or the same node).",
+      "selectHow": "no mouse; restore ‹noteworthy›, then restore ‹note› (substring of the first quote)",
+      "selectionAnnotated": "The ‹noteworthy› ‹note›.  (no mouse; second quote is a substring of the first mark)",
+      "expectHuman": "second restore paints the wrong span, nests, or returns null — it does not isolate the trailing “note”.",
+      "repro": "1. Restore “noteworthy”. 2. Restore “note” with GONE prefix. 3. Second paint is inside the first mark or null.",
       "why_breaks": "After painting 'noteworthy', fallback indexOf('note') hits the text inside the first mark (or the same node). Wrong span / nested attempt.",
       "html": "<p>The noteworthy note.</p>",
       "load": "container-innerHTML",
@@ -4736,6 +5652,11 @@
       "id": "D09",
       "family": "D_restore_orphan",
       "title": "Empty / whitespace-only quote",
+      "story": "A stored record has an empty quote (product mouseup would have hidden the toolbar). indexOf('') is 0, so a naive restore would paint at the start of the paragraph.",
+      "selectHow": "no mouse; restore looks for an empty quote ‹› with prefix “Some” / suffix “text”",
+      "selectionAnnotated": "Some visible text.  (no mouse; record.quote is empty — must not paint at offset 0)",
+      "expectHuman": "empty quote must be treated as an orphan. resolveAndPaint must not paint an arbitrary range at index 0.",
+      "repro": "1. Load “Some visible text.” 2. Restore {quote:''}. 3. No mark (do not accept a paint at offset 0).",
       "why_breaks": "Product mouseup trims and hides the toolbar, but a stored record can still have quote ''. indexOf('') is 0; resolveAndPaint would try to paint a zero-length or entire-prefix range and then fail or mark the wrong place.",
       "html": "<p>Some visible text.</p>",
       "load": "container-innerHTML",
@@ -4782,6 +5703,11 @@
       "id": "D10",
       "family": "D_restore_orphan",
       "title": "Soft hyphen in the DOM, absent from the record",
+      "story": "The DOM has a soft hyphen in “af&shy;ter”. The record quotes “after” without U+00AD.",
+      "selectHow": "no mouse; restore looks for ‹after› but flatten may be af\\u00adter",
+      "selectionAnnotated": "look ‹af&shy;ter› that  (no mouse; restore looks for ‹after› without the soft hyphen)",
+      "expectHuman": "if the UA keeps U+00AD, indexOf(“after”) fails (null). If it strips shy, restore may mark a word the user never selected as “after” — still a break.",
+      "repro": "1. Load look af&shy;ter that. 2. Inspect whether flatten contains U+00AD. 3. restore “after” — null, or a mark the user did not draw.",
       "why_breaks": "af&shy;ter flattens to 'af\\u00adter' (or is stripped by some UAs). Record quote 'after' misses.",
       "html": "<p>look af&shy;ter that</p>",
       "load": "container-innerHTML",
@@ -4828,6 +5754,11 @@
       "id": "E01",
       "family": "E_sequence",
       "title": "mouseup in a bare <div> — no p|li|h*",
+      "story": "The only wrapper is a bare <div> (“Bare division text”). The user selects “division” — a single text node that paintRange could wrap — then mouseup runs the product closest() check.",
+      "selectHow": "drag the whole word “division” inside the bare <div>",
+      "selectionAnnotated": "Bare ⟦division⟧ text",
+      "expectHuman": "closest('p, li, h1…h6') is null, so the toolbar stays hidden. Paint is never attempted even though the range is wrappable.",
+      "repro": "1. Load the <div>. 2. Select “division” and fire mouseup. 3. closest() is null; toolbar hidden; mark count 0.",
       "why_breaks": "content.ts closest('p, li, h1, h2, h3, h4, h5, h6') is null, so the toolbar is hidden even though the range is a single text node that paintRange could wrap.",
       "html": "<div>Bare division text</div>",
       "load": "container-innerHTML",
@@ -4835,11 +5766,17 @@
         "api": "range",
         "pathFrom": "container",
         "start": {
-          "path": [0, 0],
+          "path": [
+            0,
+            0
+          ],
           "offset": 5
         },
         "end": {
-          "path": [0, 0],
+          "path": [
+            0,
+            0
+          ],
           "offset": 14
         },
         "quote": "division"
@@ -4887,6 +5824,11 @@
       "id": "E02",
       "family": "E_sequence",
       "title": "mouseup in a <td> — table text never reaches the toolbar",
+      "story": "Table cell text “left cell text” would be a happy single-node paint. Mouseup looks for p|li|h* from the <td> and finds nothing.",
+      "selectHow": "drag the word “cell” inside the only <td>",
+      "selectionAnnotated": "<td>left ⟦cell⟧ text</td>",
+      "expectHuman": "toolbar stays hidden; paint is never attempted. Table text never reaches the color picker.",
+      "repro": "1. Load the one-cell table. 2. Select “cell” and mouseup. 3. closest() is null; toolbar hidden.",
       "why_breaks": "closest(p|li|h*) from a table cell is null. Single-cell text would otherwise be a happy paint.",
       "html": "<table><tbody><tr><td>left cell text</td></tr></tbody></table>",
       "load": "container-innerHTML",
@@ -4894,11 +5836,23 @@
         "api": "range",
         "pathFrom": "container",
         "start": {
-          "path": [0, 0, 0, 0, 0],
+          "path": [
+            0,
+            0,
+            0,
+            0,
+            0
+          ],
           "offset": 5
         },
         "end": {
-          "path": [0, 0, 0, 0, 0],
+          "path": [
+            0,
+            0,
+            0,
+            0,
+            0
+          ],
           "offset": 9
         },
         "quote": "cell"
@@ -4947,6 +5901,11 @@
       "id": "E03",
       "family": "E_sequence",
       "title": "mouseup in a <blockquote> with no inner <p>",
+      "story": "Quoted text is a direct child of <blockquote> with no inner <p>. The user selects “Quoted”. paintRange would accept the single text node; the product path refuses.",
+      "selectHow": "drag the first word “Quoted” in the bare blockquote",
+      "selectionAnnotated": "<blockquote>⟦Quoted⟧ line only</blockquote>",
+      "expectHuman": "toolbar stays hidden; paint is never attempted. closest() does not treat blockquote as a legal block.",
+      "repro": "1. Load the blockquote. 2. Select “Quoted” and mouseup. 3. toolbar hidden; no mark.",
       "why_breaks": "Quoted text is a direct child of blockquote. Product refuses; paintRange would accept the single text node.",
       "html": "<blockquote>Quoted line only</blockquote>",
       "load": "container-innerHTML",
@@ -4954,11 +5913,17 @@
         "api": "range",
         "pathFrom": "container",
         "start": {
-          "path": [0, 0],
+          "path": [
+            0,
+            0
+          ],
           "offset": 0
         },
         "end": {
-          "path": [0, 0],
+          "path": [
+            0,
+            0
+          ],
           "offset": 6
         },
         "quote": "Quoted"
@@ -5006,6 +5971,11 @@
       "id": "E04",
       "family": "E_sequence",
       "title": "mouseup in <figcaption> / figure chrome",
+      "story": "A figure caption sits under an image. The user selects “Caption”. figcaption is not p|li|h*, so the product hides the toolbar. Same refuse as dt/dd/th/pre/bare article text.",
+      "selectHow": "drag the first word “Caption” inside <figcaption>",
+      "selectionAnnotated": "<figcaption>⟦Caption⟧ text here</figcaption>",
+      "expectHuman": "toolbar stays hidden; paint is never attempted.",
+      "repro": "1. Load the figure. 2. Select “Caption” and mouseup. 3. closest() is null; toolbar hidden.",
       "why_breaks": "Caption text is not p|li|h*. Same product-path refuse as E01–E03.",
       "html": "<figure><img alt='x' src='about:blank'><figcaption>Caption text here</figcaption></figure>",
       "load": "container-innerHTML",
@@ -5013,11 +5983,19 @@
         "api": "range",
         "pathFrom": "container",
         "start": {
-          "path": [0, 1, 0],
+          "path": [
+            0,
+            1,
+            0
+          ],
           "offset": 0
         },
         "end": {
-          "path": [0, 1, 0],
+          "path": [
+            0,
+            1,
+            0
+          ],
           "offset": 7
         },
         "quote": "Caption"
@@ -5073,6 +6051,11 @@
       "id": "E05",
       "family": "E_sequence",
       "title": "Toolbar shown, paint returns null, SAVE still fires",
+      "story": "Same partial-<em> sentence as A01, but this is the product sequence: the range is inside a <p> so the toolbar appears. The user picks a color. paintRange still fails, yet savePendingHighlight sends SAVE_HIGHLIGHT.",
+      "selectHow": "from the last syllable of “Hello” into italic “wor” — then mouseup, color-pick, paint, save",
+      "selectionAnnotated": "Hel⟦lo <em>wor⟧ld</em> today",
+      "expectHuman": "toolbar is shown, paintRange returns null, SAVE_HIGHLIGHT still fires. Ghost record: persist without a mark. Later restore hits the same surroundContents failure.",
+      "repro": "1. Select “lo wor” inside the <p> and mouseup — toolbar shows. 2. Pick a color; paintRange returns null. 3. SAVE_HIGHLIGHT is still sent; no <mark> on the page.",
       "why_breaks": "Selection is inside a <p> so closest() succeeds and the toolbar appears. The range crosses <em>, so paintRange returns null. savePendingHighlight still sends SAVE_HIGHLIGHT, then bails when attaching the handler. Ghost record: persist without a mark. Later GET_HIGHLIGHTS restore hits the same surroundContents failure.",
       "html": "<p>Hello <em>world</em> today</p>",
       "load": "container-innerHTML",
@@ -5080,11 +6063,18 @@
         "api": "range",
         "pathFrom": "container",
         "start": {
-          "path": [0, 0],
+          "path": [
+            0,
+            0
+          ],
           "offset": 3
         },
         "end": {
-          "path": [0, 1, 0],
+          "path": [
+            0,
+            1,
+            0
+          ],
           "offset": 3
         },
         "quote": "lo wor"

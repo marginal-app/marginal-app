@@ -12,6 +12,11 @@ const REQUIRED = [
   'id',
   'family',
   'title',
+  'story',
+  'selectHow',
+  'selectionAnnotated',
+  'expectHuman',
+  'repro',
   'why_breaks',
   'html',
   'load',
@@ -23,6 +28,8 @@ const REQUIRED = [
   'browserOnly',
   'tags',
 ] as const;
+
+const HUMAN = ['story', 'selectHow', 'selectionAnnotated', 'expectHuman', 'repro'] as const;
 
 const FAMILIES = [
   'A_reject',
@@ -36,6 +43,7 @@ type Fixture = {
   id: string;
   family: (typeof FAMILIES)[number];
   html: string;
+  selection: unknown;
   ops: unknown;
   tags: unknown;
   browserOnly: boolean;
@@ -45,6 +53,7 @@ type Catalog = {
   meta: {
     phase: number;
     policy: string;
+    schemaVersion: number;
     count: number;
     families: Record<(typeof FAMILIES)[number], number>;
   };
@@ -56,6 +65,7 @@ describe('phase-1 mark-breakage fixture pack', () => {
 
   it('is a break-only catalog whose counts match meta', () => {
     expect(catalog.meta.phase).toBe(1);
+    expect(catalog.meta.schemaVersion).toBe(2);
     expect(catalog.meta.policy).toMatch(/break-only/i);
     expect(catalog.fixtures).toHaveLength(catalog.meta.count);
     expect(catalog.meta.count).toBeGreaterThanOrEqual(80);
@@ -83,6 +93,31 @@ describe('phase-1 mark-breakage fixture pack', () => {
       expect(Array.isArray(fixture.ops), fixture.id).toBe(true);
       expect(Array.isArray(fixture.tags), fixture.id).toBe(true);
       expect(typeof fixture.browserOnly, fixture.id).toBe('boolean');
+    }
+  });
+
+  it('gives every row founder-facing markers without polluting harness html', () => {
+    for (const fixture of catalog.fixtures) {
+      for (const key of HUMAN) {
+        const value = (fixture as Record<string, unknown>)[key];
+        expect(typeof value, `${fixture.id}.${key}`).toBe('string');
+        expect(String(value).trim().length, `${fixture.id}.${key}`).toBeGreaterThan(0);
+      }
+
+      expect(fixture.html, fixture.id).not.toMatch(/[⟦⟧‹›]/);
+
+      const annotated = (fixture as { selectionAnnotated: string }).selectionAnnotated;
+      const selectHow = (fixture as { selectHow: string }).selectHow;
+      if (fixture.selection) {
+        expect(annotated, fixture.id).toContain('⟦');
+        expect(annotated, fixture.id).toContain('⟧');
+      } else {
+        const restoreHint =
+          annotated.includes('‹') ||
+          /no mouse/i.test(annotated) ||
+          /no mouse/i.test(selectHow);
+        expect(restoreHint, fixture.id).toBe(true);
+      }
     }
   });
 });
