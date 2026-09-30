@@ -1,0 +1,18 @@
+{
+  "name": "@marginal-app/mobile",
+  "description": "Marginal mobile spike: Flutter WebView + the shared in-page overlay",
+  "private": true,
+  "version": "0.0.1",
+  "type": "module",
+  "scripts": {
+    "build:bridge": "vite build --config bridge/vite.config.ts",
+    "compile": "tsc --noEmit -p bridge"
+  },
+  "dependencies": {
+    "@marginal-app/overlay": "workspace:*"
+  },
+  "devDependencies": {
+    "typescript": "^5.9.3",
+    "vite": "^8.2.2"
+  }
+}
