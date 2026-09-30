@@ -2,7 +2,7 @@ import { readFileSync } from 'node:fs';
 import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { afterEach, describe, expect, it } from 'vitest';
-import { flattenText, resolveAndPaint } from '@/entrypoints/content';
+import { flattenText, resolveAndPaint } from '@marginal-app/overlay';
 import type { HighlightRecord } from '@/utils/highlight-messages';
 
 const catalogPath = join(

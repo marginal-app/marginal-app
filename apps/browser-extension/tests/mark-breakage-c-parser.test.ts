@@ -1,5 +1,5 @@
 import { afterEach, describe, expect, it } from 'vitest';
-import { flattenText, paintRange } from '@/entrypoints/content';
+import { flattenText, paintRange } from '@marginal-app/overlay';
 import {
   JSDOM_LOADS,
   type Fixture,

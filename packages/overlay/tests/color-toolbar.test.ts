@@ -2,8 +2,8 @@ import { afterEach, describe, expect, it, vi } from 'vitest';
 import {
   ColorToolbar,
   HIGHLIGHT_COLORS,
-} from '@/components/color-toolbar';
-import { closePopover, eventPathContains, openPopover } from '@/components/popover';
+} from '../src/color-toolbar';
+import { closePopover, eventPathContains, openPopover } from '../src/popover';
 
 afterEach(() => {
   document.querySelectorAll(ColorToolbar.tag).forEach((el) => el.remove());
@@ -141,7 +141,7 @@ describe('isolated content script registry', () => {
     vi.resetModules();
     vi.stubGlobal('customElements', null);
     try {
-      const mod = await import('@/components/color-toolbar');
+      const mod = await import('../src/color-toolbar');
       const toolbar = new mod.ColorToolbar();
       expect(toolbar.host.shadowRoot).not.toBeNull();
     } finally {

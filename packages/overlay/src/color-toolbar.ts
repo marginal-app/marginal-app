@@ -1,11 +1,11 @@
-import commentGlyphUrl from '@/assets/icons/comment.svg?url';
-import { OVERLAY_HOST_STYLES } from '@/components/overlay-styles';
+import { COMMENT_GLYPH_URL } from './comment-glyph';
+import { OVERLAY_HOST_STYLES } from './overlay-styles';
 import {
   closePopover,
   createOverlayHost,
   isPopoverOpen,
   openPopover,
-} from '@/components/popover';
+} from './popover';
 
 export const HIGHLIGHT_COLORS = [
   '#FFF3B0',
@@ -127,7 +127,7 @@ export class ColorToolbar {
     comment.className = 'comment';
     comment.setAttribute('aria-label', '코멘트 남기기');
     const glyph = document.createElement('img');
-    glyph.src = commentGlyphUrl;
+    glyph.src = COMMENT_GLYPH_URL;
     glyph.alt = '';
     glyph.width = 16;
     glyph.height = 16;

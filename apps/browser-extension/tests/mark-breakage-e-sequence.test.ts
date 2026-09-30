@@ -3,7 +3,7 @@ import {
   findToolbarBlock,
   paintRange,
   shouldPersistHighlight,
-} from '@/entrypoints/content';
+} from '@marginal-app/overlay';
 import {
   DEFAULT_COLOR,
   JSDOM_LOADS,

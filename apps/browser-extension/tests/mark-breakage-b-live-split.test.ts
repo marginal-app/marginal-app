@@ -2,7 +2,7 @@ import { afterEach, describe, expect, it } from 'vitest';
 import {
   extractContext,
   quoteOffsetInBlock,
-} from '@/entrypoints/content';
+} from '@marginal-app/overlay';
 import {
   JSDOM_LOADS,
   type Fixture,

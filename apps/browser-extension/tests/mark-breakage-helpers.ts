@@ -1,7 +1,7 @@
 import { readFileSync } from 'node:fs';
 import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { flattenText, paintRange, resolveAndPaint } from '@/entrypoints/content';
+import { flattenText, paintRange, resolveAndPaint } from '@marginal-app/overlay';
 import type { HighlightRecord } from '@/utils/highlight-messages';
 
 export const catalogPath = join(
