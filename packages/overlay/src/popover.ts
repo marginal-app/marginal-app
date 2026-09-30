@@ -1,4 +1,4 @@
-import { adoptStyles } from '@/components/overlay-styles';
+import { adoptStyles } from './overlay-styles';
 
 export function supportsPopover(el: HTMLElement): boolean {
   return typeof el.showPopover === 'function';

@@ -1,0 +1,20 @@
+{
+  "name": "@marginal-app/overlay",
+  "description": "In-page highlight overlay shared by the browser extension and the mobile WebView",
+  "private": true,
+  "version": "0.0.1",
+  "type": "module",
+  "exports": {
+    ".": "./src/index.ts"
+  },
+  "scripts": {
+    "compile": "tsc --noEmit",
+    "test": "vitest run",
+    "test:watch": "vitest"
+  },
+  "devDependencies": {
+    "jsdom": "^30.0.1",
+    "typescript": "^5.9.3",
+    "vitest": "^5.0.0"
+  }
+}

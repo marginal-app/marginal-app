@@ -1,5 +1,5 @@
 import { afterEach, describe, expect, it } from 'vitest';
-import { CommentPopover } from '@/components/comment-popover';
+import { CommentPopover } from '../src/comment-popover';
 
 afterEach(() => {
   document.querySelectorAll(CommentPopover.tag).forEach((el) => el.remove());

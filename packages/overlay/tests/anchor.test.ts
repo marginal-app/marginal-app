@@ -4,22 +4,16 @@ import {
   flattenText,
   resolveAndPaint,
   resolveOffset,
-} from '@/entrypoints/content';
-import type { HighlightRecord } from '@/utils/highlight-messages';
+} from '../src/anchor';
+import type { StoredHighlight } from '../src/anchor';
 
-function makeRecord(overrides: Partial<HighlightRecord>): HighlightRecord {
+function makeRecord(overrides: Partial<StoredHighlight>): StoredHighlight {
   return {
     id: 'id',
-    pageKey: 'pageKey',
-    origin: '',
-    path: 'pageKey',
-    query: '',
     quote: '',
     prefix: '',
     suffix: '',
     color: '#fff',
-    createdAt: 0,
-    updatedAt: 0,
     ...overrides,
   };
 }

@@ -1,10 +1,10 @@
-import { OVERLAY_HOST_STYLES } from '@/components/overlay-styles';
+import { OVERLAY_HOST_STYLES } from './overlay-styles';
 import {
   closePopover,
   createOverlayHost,
   isPopoverOpen,
   openPopover,
-} from '@/components/popover';
+} from './popover';
 
 export type CommentSaveEvent = CustomEvent<{ comment: string }>;
 
