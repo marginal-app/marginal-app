@@ -1,8 +1,12 @@
 import {
   extractContext,
+  findToolbarBlock,
   flattenText,
+  marksInPaintGroup,
   paintRange,
+  quoteOffsetInBlock,
   resolveAndPaint,
+  shouldPersistHighlight,
   type HighlightAnchor,
   type StoredHighlight,
 } from './anchor';
@@ -81,11 +85,15 @@ export function mountHighlighter({ port, trigger }: HighlighterOptions): Highlig
     if (!pending) return;
     const { range, quote, prefix, suffix } = pending;
     const mark = paintRange(range, color);
+    if (!mark || !shouldPersistHighlight(mark)) {
+      hideToolbar();
+      window.getSelection()?.removeAllRanges();
+      return;
+    }
 
     port
       .save({ quote, prefix, suffix, color })
       .then((record) => {
-        if (!mark) return;
         attachCommentHandler(mark, record.id, '');
         if (openComment) openCommentBox(mark, record.id);
       })
@@ -102,12 +110,14 @@ export function mountHighlighter({ port, trigger }: HighlighterOptions): Highlig
     highlightId: string,
     comment: string,
   ) {
-    mark.dataset.highlightId = highlightId;
-    mark.dataset.comment = comment;
-    mark.addEventListener('click', (event) => {
-      event.stopPropagation();
-      openCommentBox(mark, highlightId);
-    });
+    for (const piece of marksInPaintGroup(mark)) {
+      piece.dataset.highlightId = highlightId;
+      piece.dataset.comment = comment;
+      piece.addEventListener('click', (event) => {
+        event.stopPropagation();
+        openCommentBox(piece, highlightId);
+      });
+    }
   }
 
   function handleSelection() {
@@ -124,18 +134,18 @@ export function mountHighlighter({ port, trigger }: HighlighterOptions): Highlig
       return;
     }
 
-    const startNode = range.commonAncestorContainer;
-    const containerEl =
-      startNode.nodeType === Node.TEXT_NODE
-        ? startNode.parentElement
-        : (startNode as Element);
-    const blockEl = containerEl?.closest('p, li, h1, h2, h3, h4, h5, h6');
+    const blockEl = findToolbarBlock(range);
     if (!blockEl) {
       hideToolbar();
       return;
     }
 
-    const { prefix, suffix } = extractContext(blockEl, quote);
+    const { prefix, suffix } = extractContext(
+      blockEl,
+      quote,
+      6,
+      quoteOffsetInBlock(blockEl, range),
+    );
     pending = { range: range.cloneRange(), quote, prefix, suffix };
 
     hideCommentBox();
@@ -159,7 +169,11 @@ export function mountHighlighter({ port, trigger }: HighlighterOptions): Highlig
     if (!(event instanceof CustomEvent)) return;
     if (!activeHighlightId) return;
     const comment = event.detail.comment as string;
-    if (activeMark) activeMark.dataset.comment = comment;
+    if (activeMark) {
+      for (const piece of marksInPaintGroup(activeMark)) {
+        piece.dataset.comment = comment;
+      }
+    }
 
     port.updateComment(activeHighlightId, comment).catch((error) => {
       console.error('코멘트 저장 실패', error);
@@ -213,16 +227,19 @@ export function mountHighlighter({ port, trigger }: HighlighterOptions): Highlig
   );
 
   port.onCommentUpdated?.((id, comment) => {
-    const mark = document.querySelector(`mark[data-highlight-id="${id}"]`);
-    if (mark instanceof HTMLElement) {
-      mark.dataset.comment = comment;
-    }
+    document
+      .querySelectorAll(`mark[data-highlight-id="${id}"]`)
+      .forEach((mark) => {
+        if (mark instanceof HTMLElement) {
+          mark.dataset.comment = comment;
+        }
+      });
   });
 
   async function restore() {
     const records = await port.list();
     if (!records?.length) return;
-    // Painting each record mutates the DOM (splits text nodes), so the
+    // Painting each record mutates the DOM (wrap splits text nodes), so
     // flattened text/offsets must be recomputed fresh before every
     // record — reusing one snapshot across records goes stale after
     // the first paint and produces out-of-range offsets for the rest.

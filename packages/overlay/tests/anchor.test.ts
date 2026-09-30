@@ -1,9 +1,13 @@
 import { describe, expect, it } from 'vitest';
 import {
   extractContext,
+  findToolbarBlock,
   flattenText,
+  paintRange,
+  quoteOffsetInBlock,
   resolveAndPaint,
   resolveOffset,
+  shouldPersistHighlight,
 } from '../src/anchor';
 import type { StoredHighlight } from '../src/anchor';
 
@@ -38,6 +42,59 @@ describe('extractContext', () => {
       prefix: '',
       suffix: '',
     });
+  });
+
+  it('records prefix/suffix against the selected occurrence, not the first indexOf', () => {
+    document.body.innerHTML = '<p id="p">red fox jumps and red fox sleeps</p>';
+    const blockEl = document.getElementById('p')!;
+    const text = blockEl.firstChild as Text;
+    const range = document.createRange();
+    range.setStart(text, 18);
+    range.setEnd(text, 25);
+    expect(range.toString()).toBe('red fox');
+
+    const idx = quoteOffsetInBlock(blockEl, range);
+    expect(extractContext(blockEl, 'red fox')).toEqual({
+      prefix: '',
+      suffix: 'jumps and red fox sleeps',
+    });
+    expect(extractContext(blockEl, 'red fox', 6, idx)).toEqual({
+      prefix: 'red fox jumps and',
+      suffix: 'sleeps',
+    });
+  });
+});
+
+describe('toolbar block + persist guard', () => {
+  it('treats div / td / blockquote / figcaption as toolbar blocks', () => {
+    document.body.innerHTML =
+      '<div>Bare division text</div><table><tbody><tr><td>left cell text</td></tr></tbody></table><blockquote>Quoted line only</blockquote><figure><figcaption>Caption text here</figcaption></figure>';
+
+    const cases: Array<[string, string]> = [
+      ['div', 'division'],
+      ['td', 'cell'],
+      ['blockquote', 'Quoted'],
+      ['figcaption', 'Caption'],
+    ];
+    for (const [tag, snippet] of cases) {
+      const el = document.querySelector(tag)!;
+      const text = el.firstChild as Text;
+      const start = text.data.indexOf(snippet);
+      const range = document.createRange();
+      range.setStart(text, start);
+      range.setEnd(text, start + snippet.length);
+      expect(findToolbarBlock(range)?.tagName, tag).toBe(tag.toUpperCase());
+    }
+  });
+
+  it('does not persist a highlight when paint produced no mark', () => {
+    expect(shouldPersistHighlight(null)).toBe(false);
+    document.body.innerHTML = '<p>Hello</p>';
+    const text = document.querySelector('p')!.firstChild as Text;
+    const range = document.createRange();
+    range.setStart(text, 2);
+    range.setEnd(text, 2);
+    expect(shouldPersistHighlight(paintRange(range, '#FFF3B0'))).toBe(false);
   });
 });
 
@@ -109,8 +166,8 @@ describe('resolveAndPaint', () => {
   });
 
   it('recomputing flattenText fresh before each paint lets multiple highlights on one page restore without offset corruption', () => {
-    // Regression test: painting a highlight mutates the DOM (surroundContents
-    // splits text nodes), so reusing one flattenText() snapshot across
+    // Regression test: painting a highlight mutates the DOM (wrap splits
+    // text nodes), so reusing one flattenText() snapshot across
     // multiple records produces stale spans and throws IndexSizeError on the
     // second-or-later record. The fix is recomputing flattenText per record.
     document.body.innerHTML = '<p>Alpha beta gamma delta epsilon.</p>';
@@ -127,5 +184,193 @@ describe('resolveAndPaint', () => {
     }
 
     expect(document.querySelectorAll('mark')).toHaveLength(2);
+  });
+
+  it('collapses extra spaces and NBSP when matching a stored quote', () => {
+    document.body.innerHTML = '<p>hello  world again</p>';
+    {
+      const { text, spans } = flattenText(document.body);
+      const mark = resolveAndPaint(
+        makeRecord({ quote: 'hello world', prefix: '', suffix: 'again' }),
+        spans,
+        text,
+      );
+      expect(mark).not.toBeNull();
+      expect(mark?.textContent).toBe('hello  world');
+    }
+
+    document.body.innerHTML = '<p>hello&nbsp;world again</p>';
+    const { text, spans } = flattenText(document.body);
+    const mark = resolveAndPaint(
+      makeRecord({ quote: 'hello world', prefix: '', suffix: 'again' }),
+      spans,
+      text,
+    );
+    expect(mark).not.toBeNull();
+    expect(mark?.textContent).toBe('hello\u00a0world');
+  });
+
+  it('prefers a word-bounded quote over an earlier substring hit', () => {
+    document.body.innerHTML = '<p>caterpillar and a cat sat</p>';
+    const { text, spans } = flattenText(document.body);
+    const mark = resolveAndPaint(
+      makeRecord({ quote: 'cat', prefix: 'GONE', suffix: 'GONE' }),
+      spans,
+      text,
+    );
+    expect(mark).not.toBeNull();
+    expect(mark?.textContent).toBe('cat');
+    expect(mark?.parentElement?.textContent).toBe('caterpillar and a cat sat');
+    expect(mark?.previousSibling?.textContent).toContain('and a ');
+  });
+
+  it('returns null for empty quotes, missing quotes, and ambiguous duplicates', () => {
+    document.body.innerHTML = '<p>Some visible text.</p>';
+    {
+      const { text, spans } = flattenText(document.body);
+      expect(
+        resolveAndPaint(
+          makeRecord({ quote: '', prefix: 'Some', suffix: 'text' }),
+          spans,
+          text,
+        ),
+      ).toBeNull();
+    }
+
+    document.body.innerHTML = '<p>shift left then shift right</p>';
+    {
+      const { text, spans } = flattenText(document.body);
+      expect(
+        resolveAndPaint(
+          makeRecord({ quote: 'shift', prefix: 'GONE', suffix: 'AWAY' }),
+          spans,
+          text,
+        ),
+      ).toBeNull();
+      expect(document.querySelectorAll('mark')).toHaveLength(0);
+    }
+
+    document.body.innerHTML = '<p>un</p><p>ion</p>';
+    const { text, spans } = flattenText(document.body);
+    expect(text).toBe('union');
+    expect(
+      resolveAndPaint(makeRecord({ quote: 'union' }), spans, text),
+    ).toBeNull();
+    expect(document.querySelectorAll('mark')).toHaveLength(0);
+  });
+
+  it('returns the existing mark instead of nesting when the same record is restored twice', () => {
+    document.body.innerHTML = '<p>The unique phrase here.</p>';
+    const record = makeRecord({
+      quote: 'unique phrase',
+      prefix: 'The',
+      suffix: 'here',
+    });
+    {
+      const { text, spans } = flattenText(document.body);
+      expect(resolveAndPaint(record, spans, text)).not.toBeNull();
+    }
+    const { text, spans } = flattenText(document.body);
+    const again = resolveAndPaint(record, spans, text);
+    expect(again).not.toBeNull();
+    expect(document.querySelectorAll('mark')).toHaveLength(1);
+    expect(document.querySelectorAll('mark mark')).toHaveLength(0);
+    expect(again?.textContent).toBe('unique phrase');
+  });
+
+  it('ignores soft hyphens when matching a stored quote', () => {
+    document.body.innerHTML = '<p>look af&shy;ter that</p>';
+    const { text, spans } = flattenText(document.body);
+    const mark = resolveAndPaint(
+      makeRecord({ quote: 'after', prefix: 'look', suffix: 'that' }),
+      spans,
+      text,
+    );
+    expect(mark).not.toBeNull();
+    expect(mark?.textContent?.replace(/\u00ad/g, '')).toBe('after');
+  });
+
+  it('restores a cross-inline quote via wrap after flatten is recomputed', () => {
+    document.body.innerHTML = '<p>See <strong>bold text</strong> now later</p>';
+
+    const crossInline = makeRecord({
+      id: '1',
+      quote: 'text now',
+      prefix: 'bold',
+      suffix: 'later',
+    });
+    {
+      const { text, spans } = flattenText(document.body);
+      const mark = resolveAndPaint(crossInline, spans, text);
+      expect(mark).not.toBeNull();
+      const marks = [...document.querySelectorAll('mark')];
+      expect(marks.length).toBeGreaterThanOrEqual(1);
+      expect(marks.map((node) => node.textContent).join('')).toBe('text now');
+    }
+
+    const second = makeRecord({
+      id: '2',
+      quote: 'See',
+      prefix: '',
+      suffix: 'bold',
+    });
+    const { text, spans } = flattenText(document.body);
+    const mark = resolveAndPaint(second, spans, text);
+    expect(mark).not.toBeNull();
+    expect(mark?.textContent).toBe('See');
+  });
+});
+
+describe('paintRange', () => {
+  it('wraps a same-text-node selection in a single mark', () => {
+    document.body.innerHTML = '<p>The quick brown fox jumps.</p>';
+    const text = document.querySelector('p')!.firstChild as Text;
+    const range = document.createRange();
+    range.setStart(text, 10);
+    range.setEnd(text, 19);
+
+    const mark = paintRange(range, '#FFF3B0');
+
+    expect(mark).not.toBeNull();
+    expect(mark?.tagName).toBe('MARK');
+    expect(mark?.textContent).toBe('brown fox');
+    expect(mark?.style.backgroundColor).toBeTruthy();
+    expect(mark?.style.cursor).toBe('pointer');
+    expect(document.querySelectorAll('mark')).toHaveLength(1);
+  });
+
+  it('paints a partial-inline selection like A02 (bold text → following plain)', () => {
+    document.body.innerHTML = '<p>See <strong>bold text</strong> now</p>';
+    const paragraph = document.querySelector('p')!;
+    const strongText = paragraph.querySelector('strong')!.firstChild as Text;
+    const after = paragraph.lastChild as Text;
+    const range = document.createRange();
+    range.setStart(strongText, 5);
+    range.setEnd(after, 4);
+    expect(range.toString()).toBe('text now');
+
+    const mark = paintRange(range, '#FFF3B0');
+
+    expect(mark).not.toBeNull();
+    const marks = [...document.querySelectorAll('mark')];
+    expect(marks.length).toBeGreaterThanOrEqual(1);
+    expect(marks.map((node) => node.textContent).join('')).toBe('text now');
+    expect(mark).toBe(marks[0]);
+    const groups = new Set(
+      marks.map((node) => (node as HTMLElement).dataset.paintGroup),
+    );
+    expect(groups.size).toBe(1);
+    expect([...groups][0]).toBeTruthy();
+  });
+
+  it('returns null when the range has no paintable text', () => {
+    document.body.innerHTML = '<p>Hello</p>';
+    const text = document.querySelector('p')!.firstChild as Text;
+    const range = document.createRange();
+    range.setStart(text, 2);
+    range.setEnd(text, 2);
+
+    expect(paintRange(range, '#FFF3B0')).toBeNull();
+    expect(document.querySelectorAll('mark')).toHaveLength(0);
   });
 });
